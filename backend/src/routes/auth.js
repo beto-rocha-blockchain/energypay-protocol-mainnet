@@ -58,6 +58,11 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ success: false, error: "missing required fields" });
     }
 
+    // TODO: block REGULATORY_AUTHORITY from public signup. This role should only be
+    // provisioned via a private admin endpoint. EnergyPay is regulator-ready but not
+    // regulator-dependent — regulatory access is internal/enterprise-only.
+    // When implementing: return 403 if roles includes "REGULATORY_AUTHORITY".
+
     // Phone is mandatory — required for 2FA on sensitive operations (password reset, etc.)
     if (!phone || String(phone).replace(/[^\d]/g, "").length < 8) {
       return res.status(400).json({

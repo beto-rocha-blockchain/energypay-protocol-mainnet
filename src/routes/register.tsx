@@ -41,7 +41,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useOperator, maskAddress, ROLE_META, ROLE_COLORS, AUTHORITY_TYPE_META, type ParticipantRole, type AuthorityType } from "@/store/operator";
+import { useOperator, maskAddress, ROLE_META, ROLE_COLORS, type ParticipantRole } from "@/store/operator";
 import { BrandBadge, BrandName } from "@/components/BrandLogo";
 import { useUiStore, type Theme } from "@/store/ui";
 import { toast } from "sonner";
@@ -108,7 +108,9 @@ function RegisterPage() {
   const [energyType, setEnergyType] = useState<
     "SOLAR" | "HYDRO" | "SMALL_HYDRO" | "WIND" | "BIOMASS" | "NATURAL_GAS" | "NUCLEAR" | "THERMAL" | "COGENERATION"
   >("SOLAR");
-  const [authorityType, setAuthorityType] = useState<AuthorityType | null>(null);
+  // NOTE: authorityType / REGULATORY_AUTHORITY removed from public onboarding.
+  // TODO: Regulatory/Institutional oversight access should remain internal/admin-only
+  // or future enterprise configuration. Must not be exposed in the public onboarding flow.
 
   // If a session already exists when landing on /register fresh (no in-flight
   // provisioning), send the operator to the dashboard. Never redirect once we
@@ -122,35 +124,14 @@ useEffect(() => {
 
   const toggleRole = (r: ParticipantRole) => {
     if (roles.includes(r)) {
-      // Deselecting — just remove; clear authorityType if RA is being removed
-      if (r === "REGULATORY_AUTHORITY") setAuthorityType(null);
       setRoles(roles.filter((x) => x !== r));
-      return;
-    }
-    // Selecting REGULATORY_AUTHORITY → exclusive: clear all other roles
-    if (r === "REGULATORY_AUTHORITY") {
-      if (roles.length > 0) {
-        toast.info("Regulatory Authority is exclusive — all commercial roles have been cleared.");
-      }
-      setRoles(["REGULATORY_AUTHORITY"]);
-      return;
-    }
-    // Selecting any commercial role while RA is active → remove RA
-    if (roles.includes("REGULATORY_AUTHORITY")) {
-      setAuthorityType(null);
-      toast.info("Regulatory Authority access removed — not compatible with commercial roles.");
-      setRoles([...roles.filter((x) => x !== "REGULATORY_AUTHORITY"), r]);
       return;
     }
     setRoles([...roles, r]);
   };
 
   const selectAll = () => {
-    if (roles.includes("REGULATORY_AUTHORITY")) {
-      setAuthorityType(null);
-      toast.info("Regulatory Authority access removed — not compatible with commercial roles.");
-    }
-    setRoles(["GENERATOR", "SELLER", "INVESTOR", "USER"]);
+    setRoles(["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY"]);
   };
 
   // Basic phone validation: must have country code + at least 8 digits
@@ -178,9 +159,8 @@ useEffect(() => {
       city.trim() &&
       roles.length > 0 &&
       phoneValid &&
-      linkValid &&
-      (!roles.includes("REGULATORY_AUTHORITY") || authorityType !== null),
-    [fullName, email, password, organization, country, city, roles, phoneValid, linkValid, authorityType],
+      linkValid,
+    [fullName, email, password, organization, country, city, roles, phoneValid, linkValid],
   );
 
   const provisioningSteps = useMemo(
@@ -222,7 +202,6 @@ useEffect(() => {
         walletMode,
         existingPublicKey: walletMode === "link" ? existingPublicKey : undefined,
         existingSecretKey: walletMode === "link" ? existingSecretKey : undefined,
-        authorityType: roles.includes("REGULATORY_AUTHORITY") && authorityType ? authorityType : undefined,
       });
       setProvisionError(null);
       setStep("verify-email");
@@ -623,15 +602,7 @@ useEffect(() => {
                     Enable all capabilities →
                   </button>
                 </div>
-                {roles.includes("REGULATORY_AUTHORITY") && (
-                  <div className="mt-2 flex items-center gap-2 rounded-md border border-violet-400/30 bg-violet-400/5 px-3 py-2">
-                    <Scale className="h-3.5 w-3.5 shrink-0 text-violet-400" />
-                    <span className="font-mono text-[10px] text-violet-400/80">
-                      Regulatory Authority is active · commercial roles are locked. Click any role card below to switch profiles.
-                    </span>
-                  </div>
-                )}
-                <div className={cn("mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3", roles.includes("REGULATORY_AUTHORITY") && "opacity-40 grayscale")}>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {(Object.keys(ROLE_META) as ParticipantRole[])
                     .filter((r) => r !== "REGULATORY_AUTHORITY")
                     .map((r) => {
@@ -693,148 +664,11 @@ useEffect(() => {
                     })}
                 </div>
                 <div className="mt-1.5 font-mono text-[10px] text-muted-foreground">
-                  {roles.filter((r) => r !== "REGULATORY_AUTHORITY").length === 0 && roles.length === 0 && "Select one or more institutional capabilities."}
-                  {roles.filter((r) => r !== "REGULATORY_AUTHORITY").length === 1 && `${roles.filter((r) => r !== "REGULATORY_AUTHORITY").length} capability scoped to identity.`}
-                  {roles.filter((r) => r !== "REGULATORY_AUTHORITY").length > 1 && `${roles.filter((r) => r !== "REGULATORY_AUTHORITY").length} capabilities scoped to identity.`}
+                  {roles.length === 0 && "Select one or more market participant roles."}
+                  {roles.length === 1 && `${roles.length} capability scoped to identity.`}
+                  {roles.length > 1 && `${roles.length} capabilities scoped to identity.`}
                 </div>
               </div>
-
-              {/* § 03B · Institutional Oversight Roles */}
-              <div>
-                <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                  § 03B · Institutional Oversight Access · Regulatory
-                </div>
-                <div className="mt-2">
-                  {/* REGULATORY_AUTHORITY card — single toggle */}
-                  {(() => {
-                    const r: ParticipantRole = "REGULATORY_AUTHORITY";
-                    const Icon = ROLE_ICON[r];
-                    const active = roles.includes(r);
-                    return (
-                      <button
-                        type="button"
-                        onClick={() => toggleRole(r)}
-                        className={`group relative w-full overflow-hidden rounded-md border p-3 text-left transition-all duration-200 ${
-                          active
-                            ? `${ROLE_COLORS[r].border} ${ROLE_COLORS[r].bg}`
-                            : "border-border bg-background/40 hover:border-border/80 hover:bg-background/60"
-                        }`}
-                      >
-                        <div className="flex items-start gap-2.5">
-                          <div
-                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${
-                              active
-                                ? `${ROLE_COLORS[r].border} ${ROLE_COLORS[r].bg} ${ROLE_COLORS[r].text}`
-                                : "border-border bg-background/60 text-muted-foreground"
-                            }`}
-                          >
-                            <Icon className="h-3.5 w-3.5" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className={`font-mono text-[11px] uppercase tracking-widest ${active ? ROLE_COLORS[r].text : "text-foreground"}`}>
-                                  {ROLE_META[r].label}
-                                </div>
-                                <span className="rounded-sm border border-violet-400/30 bg-violet-400/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-violet-400">
-                                  Read-Only
-                                </span>
-                              </div>
-                              <div
-                                className={`flex h-4 w-4 items-center justify-center rounded-sm border transition ${
-                                  active
-                                    ? `${ROLE_COLORS[r].border} ${ROLE_COLORS[r].bg} ${ROLE_COLORS[r].text}`
-                                    : "border-border bg-background/60"
-                                }`}
-                              >
-                                {active && <Check className="h-3 w-3" />}
-                              </div>
-                            </div>
-                            <div className="mt-0.5 text-[10px] text-muted-foreground">
-                              {ROLE_META[r].tagline}
-                            </div>
-                            <div className="mt-1.5 flex flex-wrap gap-1">
-                              {ROLE_META[r].capabilities.map((c) => (
-                                <span
-                                  key={c}
-                                  className="rounded-sm border border-border bg-background/60 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-muted-foreground"
-                                >
-                                  {c}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })()}
-                </div>
-                <div className="mt-1.5 font-mono text-[10px] text-muted-foreground">
-                  Exclusive to certified regulators, supervisors &amp; institutional auditors. Cannot be combined with commercial execution roles.
-                </div>
-              </div>
-
-              {/* § 03C · Authority Type — visible only when REGULATORY_AUTHORITY is selected */}
-              {roles.includes("REGULATORY_AUTHORITY") && (
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                      § 03C · Authority Type · Required
-                    </div>
-                    {!authorityType && (
-                      <span className="font-mono text-[10px] text-destructive/80 uppercase tracking-widest">
-                        Select one →
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                    {(Object.keys(AUTHORITY_TYPE_META) as AuthorityType[]).map((at) => {
-                      const meta = AUTHORITY_TYPE_META[at];
-                      const active = authorityType === at;
-                      return (
-                        <button
-                          key={at}
-                          type="button"
-                          onClick={() => setAuthorityType(at)}
-                          className={`group relative overflow-hidden rounded-md border p-3 text-left transition-all duration-200 ${
-                            active
-                              ? "border-violet-400/50 bg-violet-400/10"
-                              : "border-border bg-background/40 hover:border-border/80 hover:bg-background/60"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1">
-                              <div className={`font-mono text-[11px] uppercase tracking-widest leading-tight ${active ? "text-violet-400" : "text-foreground"}`}>
-                                {meta.label}
-                              </div>
-                              <div className="mt-0.5 text-[10px] leading-relaxed text-muted-foreground">
-                                {meta.desc}
-                              </div>
-                              {meta.examples && (
-                                <div className="mt-1 font-mono text-[10px] text-muted-foreground/60">
-                                  e.g. {meta.examples}
-                                </div>
-                              )}
-                            </div>
-                            <div
-                              className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition ${
-                                active
-                                  ? "border-violet-400 bg-violet-400 text-white"
-                                  : "border-border bg-background/60"
-                              }`}
-                            >
-                              {active && <Check className="h-3 w-3" />}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="mt-1.5 font-mono text-[10px] text-muted-foreground">
-                    Institutional certification is required and will be validated by the EnergyPay compliance desk before full access is granted.
-                  </div>
-                </div>
-              )}
 
               {/* § 03b · Generation Source — only visible when GENERATOR role is active */}
               {roles.includes("GENERATOR") && (

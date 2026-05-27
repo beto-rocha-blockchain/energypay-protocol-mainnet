@@ -137,7 +137,9 @@ export type RegisterPayload = {
   existing_secret?: string;
   /** Energy generation source — required when roles includes GENERATOR */
   energy_type?: "SOLAR" | "HYDRO" | "SMALL_HYDRO" | "WIND" | "BIOMASS" | "NATURAL_GAS" | "NUCLEAR" | "THERMAL" | "COGENERATION";
-  /** Granular oversight sub-category — required when roles includes REGULATORY_AUTHORITY */
+  /** Granular oversight sub-category — internal/admin-only, not used in public signup.
+   * TODO: block REGULATORY_AUTHORITY in the backend /api/auth/register route for
+   * public signups. This field should only be accepted via an admin provisioning endpoint. */
   authority_type?: string;
 };
 

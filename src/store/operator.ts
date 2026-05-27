@@ -18,8 +18,14 @@ export type ParticipantRole =
  * Granular oversight category for REGULATORY_AUTHORITY operators.
  * Sent to the backend as `authority_type` on registration.
  *
- * TODO: enforce institutional certification, authorityType, role scope and
- * read-only permissions in backend/API before production use.
+ * INTERNAL / ADMIN-ONLY — not exposed in the public onboarding flow.
+ * EnergyPay is regulator-ready, but not regulator-dependent.
+ * These types are preserved for future enterprise/admin configuration,
+ * audit exports, compliance reporting and eventual institutional integration.
+ *
+ * TODO: expose REGULATORY_AUTHORITY only via a private admin provisioning
+ * endpoint (never via the public /register route). Enforce read-only
+ * permissions and institutional certification in backend/API before use.
  */
 export type AuthorityType =
   | "ENERGY_REGULATOR"
