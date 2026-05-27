@@ -706,7 +706,7 @@ useEffect(() => {
                           <span className="font-mono text-[10px] uppercase tracking-widest leading-tight">
                             {label}
                           </span>
-                          {active && <Check className="h-3 w-3" />}
+                          <Check className={`h-3 w-3 transition-opacity ${active ? "opacity-100" : "opacity-0"}`} />
                         </button>
                       );
                     })}
