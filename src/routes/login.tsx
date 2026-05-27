@@ -92,7 +92,7 @@ function LoginPage() {
               <h1 className="font-display text-2xl font-semibold leading-tight">
                 Programmable settlement
                 <br />
-                for power markets.
+                for energy markets.
               </h1>
               <p className="mt-2 max-w-sm text-xs text-muted-foreground">
                 Operator access connects an existing settlement identity to the EnergyPay clearing

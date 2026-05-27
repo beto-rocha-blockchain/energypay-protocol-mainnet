@@ -164,7 +164,7 @@ function SplashLogoContent() {
             lineHeight: 1,
           }}
         >
-          Programmable Settlement for Power Markets
+          Programmable Settlement for Energy Markets
         </span>
       </div>
     </div>
