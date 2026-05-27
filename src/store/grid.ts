@@ -8,7 +8,10 @@ export type NodeStatus = "ACTIVE" | "DEGRADED" | "OFFLINE";
 export type GridNode = {
   id: string;
   organization: string;
+  /** Primary role (first assigned). Kept for backward-compat with icon/energy lookups. */
   role: ParticipantRole;
+  /** All roles assigned to this participant (one or more). */
+  roles: ParticipantRole[];
   energyType: EnergyType;
   capacityMW: number;
   status: NodeStatus;
@@ -25,10 +28,16 @@ export type GridNode = {
 };
 
 /** Convert a backend GridParticipantDTO into a GridNode for the UI. */
-const dtoToNode = (p: GridParticipantDTO): GridNode => ({
+const dtoToNode = (p: GridParticipantDTO): GridNode => {
+  const primaryRole = (p.role as ParticipantRole) || "USER";
+  const allRoles: ParticipantRole[] = p.roles && p.roles.length > 0
+    ? (p.roles as ParticipantRole[])
+    : [primaryRole];
+  return {
   id: p.id,
   organization: p.organization,
-  role: (p.role as ParticipantRole) || "USER",
+  role: primaryRole,
+  roles: allRoles,
   energyType: (p.energyType as EnergyType) || "GRID",
   capacityMW: 0,
   status: "ACTIVE",
@@ -41,7 +50,8 @@ const dtoToNode = (p: GridParticipantDTO): GridNode => ({
   connections: [],
   uptime: 100,
   approximateLocation: p.approximate_location ?? false,
-});
+  };
+};
 
 type GridState = {
   nodes: GridNode[];

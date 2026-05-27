@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useOperator, maskAddress, ROLE_META } from "@/store/operator";
+import { useWalletBalances } from "@/hooks/useWalletBalances";
 import {
   useP2P,
   buildP2PAuthorization,
@@ -68,16 +69,31 @@ const fmtTs = (d: Date) =>
   `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d.getSeconds().toString().padStart(2, "0")}`;
 
 const ROLE_CONTEXT: Record<string, string> = {
-  GENERATOR: "Distribute generated energy assets to counterparties",
-  SELLER: "Execute commercial settlement transfers",
-  INVESTOR: "Transfer financial settlement exposure",
-  USER: "Settle consumption obligations to providers",
+  GENERATOR:            "Distribute generated energy assets to counterparties",
+  SELLER:               "Execute commercial settlement transfers",
+  INVESTOR:             "Transfer financial settlement exposure",
+  USER:                 "Settle consumption obligations to providers",
+  UTILITY:              "Collect grid access charges from network participants",
+  REGULATORY_AUTHORITY: "Read-only observation of settlement rail activity",
 };
 
 function P2PPage() {
   const operator = useOperator((s) => s.operator);
   const { transfers, counterparties, fetchCounterparties, recordTransfer } = useP2P();
   const { railState, isOffline, isExecutable } = useSettlementRail();
+
+  // Reserve-aware XLM balance ─────────────────────────────────────────────────
+  // Stellar minimum balance = (2 + subentry_count) × 0.5 XLM.
+  // Each trustline is one subentry. We compute how much XLM is actually
+  // spendable so the operator never hits op_underfunded on Horizon.
+  const { data: walletData } = useWalletBalances(operator?.wallet?.publicKey);
+  const STELLAR_BASE_RESERVE = 0.5; // XLM
+  const STELLAR_FEE_BUFFER   = 0.01; // small buffer for tx fees
+  const xlmBalance   = parseFloat(walletData?.summary?.xlm ?? "0") || 0;
+  const subentries   = walletData?.subentry_count ?? 0;
+  const xlmReserved  = (2 + subentries) * STELLAR_BASE_RESERVE;
+  const xlmAvailable = Math.max(0, xlmBalance - xlmReserved - STELLAR_FEE_BUFFER);
+  // ──────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     fetchCounterparties();
@@ -119,10 +135,13 @@ function P2PPage() {
   const validAddress = isValidStellarPublicKey(destinationAddress);
   const numericAmount = Number(amount);
   const validAmount = numericAmount > 0;
+  // For XLM, guard against spending below the minimum account reserve.
+  const exceedsXlmReserve = asset === "XLM" && numericAmount > xlmAvailable && xlmAvailable > 0;
   const canExecute =
     !!operator &&
     validAddress &&
     validAmount &&
+    !exceedsXlmReserve &&
     !running &&
     destinationOrg.trim().length > 0 &&
     isExecutable;
@@ -208,6 +227,17 @@ function P2PPage() {
       setPhase(null, "FAILED", { errorMessage: preflight.message });
       setRunning(false);
       toast.error("Settlement payload rejected", { description: preflight.message });
+      return;
+    }
+
+    // Reserve guard — reject before hitting Horizon to avoid op_underfunded
+    if (asset === "XLM" && numericAmount > xlmAvailable && xlmAvailable > 0) {
+      const msg = `Amount exceeds spendable balance. Max: ${xlmAvailable.toFixed(7)} XLM (${xlmBalance.toFixed(2)} total − ${xlmReserved.toFixed(2)} XLM reserve).`;
+      append("FAILED", `✗ reserve check failed · ${msg}`, "warn");
+      setFieldError({ field: "amount", message: msg });
+      setPhase(null, "FAILED", { errorMessage: msg });
+      setRunning(false);
+      toast.error("Insufficient spendable balance", { description: msg });
       return;
     }
 
@@ -476,9 +506,19 @@ function P2PPage() {
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"
                   className={`bg-input font-mono ${
-                    fieldError?.field === "amount" ? "border-destructive" : ""
+                    fieldError?.field === "amount" || exceedsXlmReserve
+                      ? "border-destructive"
+                      : ""
                   }`}
                 />
+                {/* Reserve-aware available balance hint for XLM */}
+                {asset === "XLM" && walletData && (
+                  <p className={`font-mono text-[10px] ${exceedsXlmReserve ? "text-destructive" : "text-muted-foreground"}`}>
+                    {exceedsXlmReserve
+                      ? `Exceeds available balance · max ${xlmAvailable.toFixed(7)} XLM (${xlmBalance.toFixed(2)} total − ${xlmReserved.toFixed(2)} reserve)`
+                      : `Available: ${xlmAvailable.toFixed(7)} XLM · (${xlmBalance.toFixed(2)} − ${xlmReserved.toFixed(2)} reserve · ${subentries} subentries)`}
+                  </p>
+                )}
                 {fieldError?.field === "amount" && (
                   <p className="font-mono text-[10px] text-destructive">
                     server · {fieldError.message}

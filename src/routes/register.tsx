@@ -34,13 +34,14 @@ import {
   Leaf,
   Atom,
   Recycle,
+  Scale,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useOperator, maskAddress, ROLE_META, ROLE_COLORS, type ParticipantRole } from "@/store/operator";
+import { useOperator, maskAddress, ROLE_META, ROLE_COLORS, AUTHORITY_TYPE_META, type ParticipantRole, type AuthorityType } from "@/store/operator";
 import { BrandBadge, BrandName } from "@/components/BrandLogo";
 import { useUiStore, type Theme } from "@/store/ui";
 import { toast } from "sonner";
@@ -61,6 +62,7 @@ const ROLE_ICON: Record<ParticipantRole, React.ComponentType<{ className?: strin
   INVESTOR: LineChart,
   USER: Plug,
   UTILITY: Building2,
+  REGULATORY_AUTHORITY: Scale,
 };
 
 const PROVISIONING_STEPS = [
@@ -106,6 +108,7 @@ function RegisterPage() {
   const [energyType, setEnergyType] = useState<
     "SOLAR" | "HYDRO" | "SMALL_HYDRO" | "WIND" | "BIOMASS" | "NATURAL_GAS" | "NUCLEAR" | "THERMAL" | "COGENERATION"
   >("SOLAR");
+  const [authorityType, setAuthorityType] = useState<AuthorityType | null>(null);
 
   // If a session already exists when landing on /register fresh (no in-flight
   // provisioning), send the operator to the dashboard. Never redirect once we
@@ -117,10 +120,38 @@ useEffect(() => {
   // Intentionally empty.
 }, []);
 
-  const toggleRole = (r: ParticipantRole) =>
-    setRoles((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
+  const toggleRole = (r: ParticipantRole) => {
+    if (roles.includes(r)) {
+      // Deselecting — just remove; clear authorityType if RA is being removed
+      if (r === "REGULATORY_AUTHORITY") setAuthorityType(null);
+      setRoles(roles.filter((x) => x !== r));
+      return;
+    }
+    // Selecting REGULATORY_AUTHORITY → exclusive: clear all other roles
+    if (r === "REGULATORY_AUTHORITY") {
+      if (roles.length > 0) {
+        toast.info("Regulatory Authority is exclusive — all commercial roles have been cleared.");
+      }
+      setRoles(["REGULATORY_AUTHORITY"]);
+      return;
+    }
+    // Selecting any commercial role while RA is active → remove RA
+    if (roles.includes("REGULATORY_AUTHORITY")) {
+      setAuthorityType(null);
+      toast.info("Regulatory Authority access removed — not compatible with commercial roles.");
+      setRoles([...roles.filter((x) => x !== "REGULATORY_AUTHORITY"), r]);
+      return;
+    }
+    setRoles([...roles, r]);
+  };
 
-  const selectAll = () => setRoles(["GENERATOR", "SELLER", "INVESTOR", "USER"]);
+  const selectAll = () => {
+    if (roles.includes("REGULATORY_AUTHORITY")) {
+      setAuthorityType(null);
+      toast.info("Regulatory Authority access removed — not compatible with commercial roles.");
+    }
+    setRoles(["GENERATOR", "SELLER", "INVESTOR", "USER"]);
+  };
 
   // Basic phone validation: must have country code + at least 8 digits
   const phoneValid = useMemo(() => {
@@ -147,8 +178,9 @@ useEffect(() => {
       city.trim() &&
       roles.length > 0 &&
       phoneValid &&
-      linkValid,
-    [fullName, email, password, organization, country, city, roles, phoneValid, linkValid],
+      linkValid &&
+      (!roles.includes("REGULATORY_AUTHORITY") || authorityType !== null),
+    [fullName, email, password, organization, country, city, roles, phoneValid, linkValid, authorityType],
   );
 
   const provisioningSteps = useMemo(
@@ -190,6 +222,7 @@ useEffect(() => {
         walletMode,
         existingPublicKey: walletMode === "link" ? existingPublicKey : undefined,
         existingSecretKey: walletMode === "link" ? existingSecretKey : undefined,
+        authorityType: roles.includes("REGULATORY_AUTHORITY") && authorityType ? authorityType : undefined,
       });
       setProvisionError(null);
       setStep("verify-email");
@@ -235,83 +268,118 @@ useEffect(() => {
   };
 
   return (
-    <div className="grid min-h-screen w-full place-items-center px-4 py-8">
-      <div className="grid w-full max-w-6xl gap-6 lg:grid-cols-[1fr_1.15fr] lg:items-stretch">
-        {/* Left: institutional context */}
-        <Card className="hidden flex-col justify-between overflow-hidden border-border bg-card/60 p-6 lg:flex">
-          <div>
-            <div className="flex items-center gap-2">
-              <BrandBadge size="md" />
-              <div className="leading-tight" style={{ gap: 3, display: "flex", flexDirection: "column" }}>
-                <BrandName size="md" />
+    <div className="flex min-h-screen w-full flex-col items-center px-4 py-8">
+      <div className="w-full max-w-6xl space-y-4">
+        {/* Top: info panel — horizontal, full width */}
+        <Card className="overflow-hidden border-border bg-card/60 p-5">
+          <div className="flex flex-wrap items-start gap-5 lg:flex-nowrap lg:gap-6">
+
+            {/* A · Brand + heading */}
+            <div className="flex shrink-0 flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <BrandBadge size="md" />
+                <div className="leading-tight" style={{ gap: 3, display: "flex", flexDirection: "column" }}>
+                  <BrandName size="md" />
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Clearing &amp; Settlement Infrastructure
+                  </div>
+                </div>
+              </div>
+              <div>
                 <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Clearing &amp; Settlement Infrastructure
+                  Network Provisioning · Pilot Environment
+                </div>
+                <h1 className="font-display text-lg font-semibold leading-snug">
+                  Provision a settlement
+                  <br />
+                  participant identity.
+                </h1>
+                <p className="mt-1 max-w-[210px] text-[11px] text-muted-foreground">
+                  Mints an identity, binds an ed25519 keypair and registers your market roles on Stellar.
+                </p>
+              </div>
+            </div>
+
+            {/* vertical divider */}
+            <div className="hidden w-px self-stretch bg-border/60 lg:block" />
+
+            {/* B · Onboarding Steps */}
+            <div className="flex-1 min-w-[220px]">
+              <div className="mb-3 text-[10px] font-mono font-semibold uppercase tracking-widest text-foreground/60">
+                Onboarding Steps
+              </div>
+              <div className="grid grid-cols-2 gap-x-5 gap-y-3">
+                {(
+                  [
+                    { n: "01", label: "Fill this form",         sub: "Credentials, roles & wallet" },
+                    { n: "03", label: "Verify via WhatsApp",    sub: "6-digit code to your phone" },
+                    { n: "02", label: "Verify your email",      sub: "Confirmation link sent to your inbox" },
+                    { n: "04", label: "Access the environment", sub: "Settlement identity is live" },
+                  ] as const
+                ).map(({ n, label, sub }) => (
+                  <div key={n} className="flex items-start gap-2">
+                    <span className="mt-0.5 shrink-0 font-mono text-xs font-bold text-primary">{n}</span>
+                    <span>
+                      <span className="block font-mono text-xs font-semibold text-foreground">{label}</span>
+                      <span className="block text-[11px] leading-relaxed text-muted-foreground">{sub}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* vertical divider */}
+            <div className="hidden w-px self-stretch bg-border/60 lg:block" />
+
+            {/* C · Network + Required */}
+            <div className="flex shrink-0 flex-wrap gap-3">
+              <div className="rounded-md border border-border bg-background/40 p-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                <div className="flex items-center justify-between gap-4">
+                  <span>Network</span>
+                  <span className="flex items-center gap-1 text-success">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> Nominal
+                  </span>
+                </div>
+                <div className="mt-1.5 text-foreground">{STELLAR_NETWORK_LABEL}</div>
+                <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-border/40 pt-1.5">
+                  <span>Horizon</span>
+                  <span className="text-foreground">{HORIZON_URL.replace("https://", "")}</span>
+                </div>
+                {!IS_MAINNET && (
+                  <div className="mt-1.5 flex items-center justify-between">
+                    <span>Friendbot</span>
+                    <span className="text-success">active</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-md border border-border bg-background/40 p-3">
+                <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Required
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+                    <Mail className="h-3 w-3 shrink-0" />
+                    <span>Institutional email</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+                    <Phone className="h-3 w-3 shrink-0" />
+                    <span>WhatsApp phone</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+                    <ShieldCheck className="h-3 w-3 shrink-0" />
+                    <span>Participant role</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+                    <KeyRound className="h-3 w-3 shrink-0" />
+                    <span>Backend key custody</span>
+                  </div>
                 </div>
               </div>
             </div>
-
-            <div className="mt-8 space-y-1">
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                Network Provisioning · Pilot Environment
-              </div>
-              <h1 className="font-display text-2xl font-semibold leading-tight">
-                Provision a settlement
-                <br />
-                participant identity.
-              </h1>
-              <p className="mt-2 max-w-sm text-xs text-muted-foreground">
-                Onboarding mints an operational identity, binds an ed25519 settlement keypair, and
-                registers your market participant roles on the Stellar settlement rails.
-              </p>
-            </div>
-
-            <Separator className="my-6 bg-border/60" />
-
-            <ul className="space-y-2.5 text-xs">
-              <li className="flex items-start gap-2">
-                <ShieldCheck className="mt-0.5 h-3.5 w-3.5 text-success" />
-                <span>
-                  <span className="font-mono text-foreground">Operational identity</span> · scoped
-                  to clearing &amp; reconciliation
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Terminal className="mt-0.5 h-3.5 w-3.5 text-accent" />
-                <span>
-                  <span className="font-mono text-foreground">Settlement keypair</span> · ed25519 ·
-                  {IS_MAINNET ? "mainnet custody" : "funded via Friendbot"}
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Activity className="mt-0.5 h-3.5 w-3.5 text-success" />
-                <span>
-                  <span className="font-mono text-foreground">Role provisioning</span> · Generator ·
-                  Seller · Investor · Consumer
-                </span>
-              </li>
-            </ul>
-
-            <div className="mt-6 rounded-md border border-border bg-background/40 p-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              <div className="flex items-center justify-between">
-                <span>Network</span>
-                <span className="flex items-center gap-1.5 text-success">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> {STELLAR_NETWORK_LABEL} · Nominal
-                </span>
-              </div>
-              <div className="mt-1.5 flex items-center justify-between">
-                <span>Horizon</span>
-                <span className="text-foreground">{HORIZON_URL.replace("https://", "")}</span>
-              </div>
-              {!IS_MAINNET && (
-              <div className="mt-1.5 flex items-center justify-between">
-                <span>Friendbot</span>
-                <span className="text-foreground">friendbot.stellar.org</span>
-              </div>
-              )}
-            </div>
           </div>
 
-          <div className="mt-6 flex items-center justify-between border-t border-border pt-4 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+          <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
             <span>EnergyPay Clearing · v0.4.2</span>
             <Link to="/login" className="text-foreground hover:text-primary">
               Operator Access →
@@ -319,7 +387,7 @@ useEffect(() => {
           </div>
         </Card>
 
-        {/* Right: provisioning terminal */}
+        {/* Form: provisioning terminal — full width */}
         <Card className="overflow-hidden border-border bg-card/70">
           <div className="flex items-center justify-between border-b border-border bg-background/40 px-4 py-2.5">
             <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
@@ -361,7 +429,7 @@ useEffect(() => {
                 <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
                   § 01 · Operator Credentials
                 </div>
-                <div className="mt-2 grid gap-3 md:grid-cols-2">
+                <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   <Field label="Full Name" icon={<User className="h-3.5 w-3.5" />}>
                     <Input
                       value={fullName}
@@ -379,32 +447,33 @@ useEffect(() => {
                       className="h-9 pl-8 font-mono text-xs"
                     />
                   </Field>
-                  <Field
-                    label="Phone Number *"
-                    icon={<Phone className="h-3.5 w-3.5" />}
-                    hint="Required for 2FA. Include country code, e.g. +55 11 99999-9999"
-                  >
-                    <Input
-                      type="tel"
-                      required
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+55 11 9 0000-0000"
-                      className={cn(
-                        "h-9 pl-8 font-mono text-xs",
-                        phone && !phoneValid && "border-destructive/60",
-                      )}
-                    />
-                  </Field>
-                  {phone && !phoneValid && (
-                    <p className="-mt-1 font-mono text-[10px] text-destructive">
-                      Include country code — e.g. +55 11 99999-9999
-                    </p>
-                  )}
+                  <div>
+                    <Field
+                      label="Phone Number *"
+                      icon={<Phone className="h-3.5 w-3.5" />}
+                      hint="Required for 2FA. Include country code, e.g. +55 11 99999-9999"
+                    >
+                      <Input
+                        type="tel"
+                        required
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="+55 11 9 0000-0000"
+                        className={cn(
+                          "h-9 pl-8 font-mono text-xs",
+                          phone && !phoneValid && "border-destructive/60",
+                        )}
+                      />
+                    </Field>
+                    {phone && !phoneValid && (
+                      <p className="mt-1 font-mono text-[10px] text-destructive">
+                        Include country code — e.g. +55 11 99999-9999
+                      </p>
+                    )}
+                  </div>
                   <Field
                     label="Password"
                     icon={<Lock className="h-3.5 w-3.5" />}
-                    className="md:col-span-2"
                   >
                     <Input
                       type={showPw ? "text" : "password"}
@@ -554,16 +623,98 @@ useEffect(() => {
                     Enable all capabilities →
                   </button>
                 </div>
-                <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                  {(Object.keys(ROLE_META) as ParticipantRole[]).map((r) => {
+                {roles.includes("REGULATORY_AUTHORITY") && (
+                  <div className="mt-2 flex items-center gap-2 rounded-md border border-violet-400/30 bg-violet-400/5 px-3 py-2">
+                    <Scale className="h-3.5 w-3.5 shrink-0 text-violet-400" />
+                    <span className="font-mono text-[10px] text-violet-400/80">
+                      Regulatory Authority is active · commercial roles are locked. Click any role card below to switch profiles.
+                    </span>
+                  </div>
+                )}
+                <div className={cn("mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3", roles.includes("REGULATORY_AUTHORITY") && "opacity-40 grayscale")}>
+                  {(Object.keys(ROLE_META) as ParticipantRole[])
+                    .filter((r) => r !== "REGULATORY_AUTHORITY")
+                    .map((r) => {
+                      const Icon = ROLE_ICON[r];
+                      const active = roles.includes(r);
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => toggleRole(r)}
+                          className={`group relative overflow-hidden rounded-md border p-3 text-left transition-all duration-200 ${
+                            active
+                              ? `${ROLE_COLORS[r].border} ${ROLE_COLORS[r].bg}`
+                              : "border-border bg-background/40 hover:border-border/80 hover:bg-background/60"
+                          }`}
+                        >
+                          <div className="flex items-start gap-2.5">
+                            <div
+                              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${
+                                active
+                                  ? `${ROLE_COLORS[r].border} ${ROLE_COLORS[r].bg} ${ROLE_COLORS[r].text}`
+                                  : "border-border bg-background/60 text-muted-foreground"
+                              }`}
+                            >
+                              <Icon className="h-3.5 w-3.5" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <div className={`font-mono text-[11px] uppercase tracking-widest ${active ? ROLE_COLORS[r].text : "text-foreground"}`}>
+                                  {ROLE_META[r].label}
+                                </div>
+                                <div
+                                  className={`flex h-4 w-4 items-center justify-center rounded-sm border transition ${
+                                    active
+                                      ? `${ROLE_COLORS[r].border} ${ROLE_COLORS[r].bg} ${ROLE_COLORS[r].text}`
+                                      : "border-border bg-background/60"
+                                  }`}
+                                >
+                                  {active && <Check className="h-3 w-3" />}
+                                </div>
+                              </div>
+                              <div className="mt-0.5 text-[10px] text-muted-foreground">
+                                {ROLE_META[r].tagline}
+                              </div>
+                              <div className="mt-1.5 flex flex-wrap gap-1">
+                                {ROLE_META[r].capabilities.map((c) => (
+                                  <span
+                                    key={c}
+                                    className="rounded-sm border border-border bg-background/60 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-muted-foreground"
+                                  >
+                                    {c}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                </div>
+                <div className="mt-1.5 font-mono text-[10px] text-muted-foreground">
+                  {roles.filter((r) => r !== "REGULATORY_AUTHORITY").length === 0 && roles.length === 0 && "Select one or more institutional capabilities."}
+                  {roles.filter((r) => r !== "REGULATORY_AUTHORITY").length === 1 && `${roles.filter((r) => r !== "REGULATORY_AUTHORITY").length} capability scoped to identity.`}
+                  {roles.filter((r) => r !== "REGULATORY_AUTHORITY").length > 1 && `${roles.filter((r) => r !== "REGULATORY_AUTHORITY").length} capabilities scoped to identity.`}
+                </div>
+              </div>
+
+              {/* § 03B · Institutional Oversight Roles */}
+              <div>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                  § 03B · Institutional Oversight Access · Regulatory
+                </div>
+                <div className="mt-2">
+                  {/* REGULATORY_AUTHORITY card — single toggle */}
+                  {(() => {
+                    const r: ParticipantRole = "REGULATORY_AUTHORITY";
                     const Icon = ROLE_ICON[r];
                     const active = roles.includes(r);
                     return (
                       <button
-                        key={r}
                         type="button"
                         onClick={() => toggleRole(r)}
-                        className={`group relative overflow-hidden rounded-md border p-3 text-left transition-all duration-200 ${
+                        className={`group relative w-full overflow-hidden rounded-md border p-3 text-left transition-all duration-200 ${
                           active
                             ? `${ROLE_COLORS[r].border} ${ROLE_COLORS[r].bg}`
                             : "border-border bg-background/40 hover:border-border/80 hover:bg-background/60"
@@ -581,8 +732,13 @@ useEffect(() => {
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
-                              <div className={`font-mono text-[11px] uppercase tracking-widest ${active ? ROLE_COLORS[r].text : "text-foreground"}`}>
-                                {ROLE_META[r].label}
+                              <div className="flex items-center gap-2">
+                                <div className={`font-mono text-[11px] uppercase tracking-widest ${active ? ROLE_COLORS[r].text : "text-foreground"}`}>
+                                  {ROLE_META[r].label}
+                                </div>
+                                <span className="rounded-sm border border-violet-400/30 bg-violet-400/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-violet-400">
+                                  Read-Only
+                                </span>
                               </div>
                               <div
                                 className={`flex h-4 w-4 items-center justify-center rounded-sm border transition ${
@@ -611,14 +767,74 @@ useEffect(() => {
                         </div>
                       </button>
                     );
-                  })}
+                  })()}
                 </div>
                 <div className="mt-1.5 font-mono text-[10px] text-muted-foreground">
-                  {roles.length === 0 && "Select one or more institutional capabilities."}
-                  {roles.length === 1 && `${roles.length} capability scoped to identity.`}
-                  {roles.length > 1 && `${roles.length} capabilities scoped to identity.`}
+                  Exclusive to certified regulators, supervisors &amp; institutional auditors. Cannot be combined with commercial execution roles.
                 </div>
               </div>
+
+              {/* § 03C · Authority Type — visible only when REGULATORY_AUTHORITY is selected */}
+              {roles.includes("REGULATORY_AUTHORITY") && (
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                      § 03C · Authority Type · Required
+                    </div>
+                    {!authorityType && (
+                      <span className="font-mono text-[10px] text-destructive/80 uppercase tracking-widest">
+                        Select one →
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                    {(Object.keys(AUTHORITY_TYPE_META) as AuthorityType[]).map((at) => {
+                      const meta = AUTHORITY_TYPE_META[at];
+                      const active = authorityType === at;
+                      return (
+                        <button
+                          key={at}
+                          type="button"
+                          onClick={() => setAuthorityType(at)}
+                          className={`group relative overflow-hidden rounded-md border p-3 text-left transition-all duration-200 ${
+                            active
+                              ? "border-violet-400/50 bg-violet-400/10"
+                              : "border-border bg-background/40 hover:border-border/80 hover:bg-background/60"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <div className={`font-mono text-[11px] uppercase tracking-widest leading-tight ${active ? "text-violet-400" : "text-foreground"}`}>
+                                {meta.label}
+                              </div>
+                              <div className="mt-0.5 text-[10px] leading-relaxed text-muted-foreground">
+                                {meta.desc}
+                              </div>
+                              {meta.examples && (
+                                <div className="mt-1 font-mono text-[10px] text-muted-foreground/60">
+                                  e.g. {meta.examples}
+                                </div>
+                              )}
+                            </div>
+                            <div
+                              className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition ${
+                                active
+                                  ? "border-violet-400 bg-violet-400 text-white"
+                                  : "border-border bg-background/60"
+                              }`}
+                            >
+                              {active && <Check className="h-3 w-3" />}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-1.5 font-mono text-[10px] text-muted-foreground">
+                    Institutional certification is required and will be validated by the EnergyPay compliance desk before full access is granted.
+                  </div>
+                </div>
+              )}
 
               {/* § 03b · Generation Source — only visible when GENERATOR role is active */}
               {roles.includes("GENERATOR") && (

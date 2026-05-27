@@ -1049,6 +1049,116 @@ router.post("/:id/reject", requireAuth, async (req, res) => {
 });
 
 // -----------------------------------------------
+// POST /api/contracts/:id/document
+// Upload the physical contract file to Supabase Storage.
+// Uses express.raw() — does not require multer.
+// -----------------------------------------------
+router.post(
+  "/:id/document",
+  requireAuth,
+  express.raw({ type: "*/*", limit: "15mb" }),
+  async (req, res) => {
+    try {
+      const contractId = req.params.id;
+
+      // Verify contract exists
+      const { data: contract, error: cErr } = await supabase
+        .from("contracts")
+        .select("id")
+        .eq("id", contractId)
+        .single();
+
+      if (cErr || !contract) {
+        return res.status(404).json({ success: false, error: "Contract not found." });
+      }
+
+      const rawFileName = req.query.filename
+        ? decodeURIComponent(req.query.filename)
+        : (req.headers["x-file-name"]
+            ? decodeURIComponent(req.headers["x-file-name"])
+            : "contract.pdf");
+
+      // Sanitise: strip any path separators
+      const fileName = rawFileName.replace(/[/\\]/g, "_").slice(0, 200);
+      const contentType = req.headers["content-type"] || "application/octet-stream";
+      const storagePath = `${contractId}/${Date.now()}_${fileName}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from("contract-documents")
+        .upload(storagePath, req.body, { contentType, upsert: true });
+
+      if (uploadErr) {
+        return res.status(500).json({ success: false, error: uploadErr.message });
+      }
+
+      // Persist path + name on the contract row (non-fatal if columns don't exist yet)
+      const { error: updateErr } = await supabase
+        .from("contracts")
+        .update({ document_path: storagePath, document_name: fileName })
+        .eq("id", contractId);
+
+      if (updateErr) {
+        console.warn("document_path update non-fatal:", updateErr.message);
+      }
+
+      // Return a 7-day signed URL for immediate preview
+      const { data: signed } = await supabase.storage
+        .from("contract-documents")
+        .createSignedUrl(storagePath, 60 * 60 * 24 * 7);
+
+      return res.json({
+        success: true,
+        document_path: storagePath,
+        document_name: fileName,
+        signed_url: signed?.signedUrl ?? null,
+      });
+    } catch (err) {
+      console.error("POST /api/contracts/:id/document error:", err.message);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
+
+// -----------------------------------------------
+// GET /api/contracts/:id/document
+// Return a fresh 1-hour signed URL for the attached document.
+// -----------------------------------------------
+router.get("/:id/document", requireAuth, async (req, res) => {
+  try {
+    const { data: contract, error } = await supabase
+      .from("contracts")
+      .select("id, document_path, document_name")
+      .eq("id", req.params.id)
+      .single();
+
+    if (error || !contract) {
+      return res.status(404).json({ success: false, error: "Contract not found." });
+    }
+
+    if (!contract.document_path) {
+      return res.status(404).json({ success: false, error: "No document attached to this contract." });
+    }
+
+    const { data: signed, error: signErr } = await supabase.storage
+      .from("contract-documents")
+      .createSignedUrl(contract.document_path, 60 * 60); // 1 hour
+
+    if (signErr || !signed?.signedUrl) {
+      return res.status(500).json({ success: false, error: "Failed to generate document URL." });
+    }
+
+    return res.json({
+      success: true,
+      document_name: contract.document_name,
+      signed_url: signed.signedUrl,
+    });
+  } catch (err) {
+    console.error("GET /api/contracts/:id/document error:", err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// -----------------------------------------------
 // GET /api/contracts/:id/movements
 // Immutable audit trail for a single contract.
 // -----------------------------------------------

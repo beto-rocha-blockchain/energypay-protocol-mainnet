@@ -18,6 +18,7 @@ import {
   ShoppingCart,
   ArrowRight,
   Building2,
+  Scale,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -487,9 +488,26 @@ const ROLE_CONTEXT = {
       "All free-market participants in your area flow through your distribution infrastructure.",
     ],
   },
+  REGULATORY_AUTHORITY: {
+    Icon: Scale,
+    accent: "border-violet-400/30 bg-violet-400/5",
+    iconAccent: "text-violet-400 bg-violet-400/10 border-violet-400/30",
+    label: "Regulatory Oversight",
+    description: "You have certified read-only access to the EnergyPay settlement network. Monitor the full audit trail, verify settlement receipts, and export compliance reports without the ability to execute transactions or modify any operational data.",
+    actions: [
+      { label: "Audit & Compliance", to: "/audit", primary: true },
+      { label: "Contract Registry", to: "/contracts", primary: false },
+      { label: "Settlement Engine", to: "/settlement", primary: false },
+    ],
+    tips: [
+      "Your access is strictly read-only — no execution, no wallet operations.",
+      "All settlement receipts are immutably recorded on the Stellar ledger.",
+      "Use Audit & Compliance to export reports for institutional review.",
+    ],
+  },
 } as const;
 
-function RoleContextPanel({ role }: { role: "GENERATOR" | "SELLER" | "INVESTOR" | "USER" | "UTILITY" }) {
+function RoleContextPanel({ role }: { role: "GENERATOR" | "SELLER" | "INVESTOR" | "USER" | "UTILITY" | "REGULATORY_AUTHORITY" }) {
   const ctx = ROLE_CONTEXT[role];
   if (!ctx) return null;
   const { Icon, accent, iconAccent, label, description, actions, tips } = ctx;

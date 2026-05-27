@@ -1,19 +1,13 @@
 import { useRouterState, useNavigate } from "@tanstack/react-router";
-import { STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import {
   LayoutDashboard,
   Calculator,
-
-  Activity,
   ListChecks,
-  FilePlus2,
   Send,
   Radio,
   Wallet,
-  Factory,
   GitBranch,
   ShieldCheck,
-  Database,
   Network,
   BookLock,
   Banknote,
@@ -34,13 +28,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-  SidebarFooter,
 } from "@/components/ui/sidebar";
 
 import { useOperator } from "@/store/operator";
 import { BrandBadge, BrandName } from "@/components/BrandLogo";
 
-type Role = "GENERATOR" | "SELLER" | "INVESTOR" | "USER" | "UTILITY";
+type Role = "GENERATOR" | "SELLER" | "INVESTOR" | "USER" | "UTILITY" | "REGULATORY_AUTHORITY";
 
 type Item = {
   title: string;
@@ -73,43 +66,36 @@ const MARKET_OPS: Item[] = [
     title: "Operations",
     url: "/",
     icon: LayoutDashboard,
-    code: "OPS-00",
-    roles: ["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY"],
+    code: "EXE-01",
+    roles: ["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY", "REGULATORY_AUTHORITY"],
   },
   {
-    title: "Netting & Clearing",
-    url: "/clearing",
-    icon: GitBranch,
-    code: "CLR-01",
-    roles: ["GENERATOR", "SELLER", "INVESTOR", "UTILITY"],
+    title: "Audit & Compliance",
+    url: "/audit",
+    icon: BookLock,
+    code: "EXE-02",
+    roles: ["GENERATOR", "SELLER", "INVESTOR", "UTILITY", "REGULATORY_AUTHORITY"],
   },
 ];
 
 // --------------------------------------------------
-// RISK & COMPLIANCE
+// RISK & CLEARING
 // --------------------------------------------------
 
 const RISK_DATA: Item[] = [
   {
-    title: "Reconciliation",
-    url: "/reconciliation",
-    icon: Database,
-    code: "RSK-02",
+    title: "Netting & Clearing",
+    url: "/clearing",
+    icon: GitBranch,
+    code: "RSK-01",
     roles: ["GENERATOR", "SELLER", "INVESTOR", "UTILITY"],
   },
   {
     title: "Oracle & Market Data",
     url: "/oracle",
     icon: Radio,
-    code: "RSK-03",
-    roles: ["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY"],
-  },
-  {
-    title: "Audit & Compliance",
-    url: "/audit",
-    icon: BookLock,
-    code: "RSK-04",
-    roles: ["GENERATOR", "SELLER", "INVESTOR", "UTILITY"],
+    code: "RSK-02",
+    roles: ["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY", "REGULATORY_AUTHORITY"],
   },
 ];
 
@@ -130,7 +116,7 @@ const SETTLEMENT: Item[] = [
     url: "/settlement",
     icon: Calculator,
     code: "STL-02",
-    roles: ["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY"],
+    roles: ["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY", "REGULATORY_AUTHORITY"],
   },
   {
     title: "Direct Settlement",
@@ -144,14 +130,14 @@ const SETTLEMENT: Item[] = [
     title: "x402 API Access",
     url: "/x402",
     icon: PlugZap,
-    code: "STL-05",
+    code: "STL-04",
     roles: ["SELLER", "INVESTOR", "USER", "UTILITY"],
   },
   {
     title: "Custody Wallet",
     url: "/wallet",
     icon: Wallet,
-    code: "STL-04",
+    code: "STL-05",
     roles: ["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY"],
   },
 ];
@@ -162,32 +148,18 @@ const SETTLEMENT: Item[] = [
 
 const TERMINALS: Item[] = [
   {
-    title: "Generator Terminal",
-    url: "/generator",
-    icon: Factory,
-    code: "TRM-01",
-    roles: ["GENERATOR"],
-  },
-  {
     title: "Contract Registry",
     url: "/contracts",
     icon: ListChecks,
-    code: "TRM-02",
-    roles: ["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY"],
-  },
-  {
-    title: "New Contract",
-    url: "/contracts/new",
-    icon: FilePlus2,
-    code: "TRM-03",
-    roles: ["GENERATOR", "SELLER", "USER", "UTILITY"],
+    code: "MKT-01",
+    roles: ["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY", "REGULATORY_AUTHORITY"],
   },
   {
     title: "Operational Grid",
     url: "/grid",
     icon: Radio,
-    code: "TRM-04",
-    roles: ["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY"],
+    code: "MKT-02",
+    roles: ["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY", "REGULATORY_AUTHORITY"],
   },
 ];
 
@@ -239,7 +211,7 @@ function Group({ label, items, path }: { label: string; items: Item[]; path: str
   if (items.length === 0) return null;
 
   return (
-    <SidebarGroup className="py-1">
+    <SidebarGroup className="py-0.5">
       <SidebarGroupLabel className="px-2 font-mono text-[9.5px] font-medium tracking-[0.22em] text-muted-foreground/75">
         {label}
       </SidebarGroupLabel>
@@ -256,7 +228,7 @@ function Group({ label, items, path }: { label: string; items: Item[]; path: str
                 <SidebarMenuButton
                   isActive={active}
                   tooltip={{ children: item.title, className: "font-mono text-[11px]" }}
-                  className="relative h-7 cursor-pointer select-none rounded-sm pl-2 pr-1 data-[active=true]:bg-sidebar-accent/70"
+                  className="relative h-6 cursor-pointer select-none rounded-sm pl-2 pr-1 data-[active=true]:bg-sidebar-accent/70"
                   onClick={() => navigate({ to: item.url })}
                 >
                   {active && (
@@ -299,8 +271,11 @@ export function AppSidebar() {
 
   const buildHash = "b9f4c2e";
 
+  // Width is controlled via the --sidebar-width CSS variable (18rem) set on
+  // SidebarProvider in __root.tsx — do NOT add a w-* class here, it would
+  // desync the fixed overlay from the gap-holder div inside <Sidebar>.
   return (
-    <Sidebar collapsible="icon" className="w-72">
+    <Sidebar collapsible="icon">
       <SidebarHeader className="!p-0 border-b border-sidebar-border">
         <div className="flex h-12 items-center gap-2.5 px-3">
           <BrandBadge size="sm" />
@@ -313,7 +288,9 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="gap-0">
+      {/* group-data-[collapsible=icon]:overflow-hidden prevents a vertical
+          scrollbar from appearing in icon-only mode when there are many items. */}
+      <SidebarContent className="gap-0 overflow-hidden">
         <Group label="Executive Layer" items={marketOps} path={path} />
 
         <Group label="Risk & Clearing" items={riskData} path={path} />
@@ -325,46 +302,6 @@ export function AppSidebar() {
         <Group label="Utility Operations" items={utilityOps} path={path} />
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border">
-        {/* Expanded: full info grid */}
-        <div className="flex flex-col gap-1.5 px-3 py-2 font-mono text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground group-data-[collapsible=icon]:hidden">
-          <div className="grid grid-cols-[64px_1fr] items-center gap-2">
-            <span>Operator</span>
-            <span
-              className="min-w-0 truncate text-right text-foreground/85"
-              title={operator?.operatorId ?? "No session"}
-            >
-              {operator?.operatorId ?? "No session"}
-            </span>
-          </div>
-          <div className="grid grid-cols-[64px_1fr] items-center gap-2">
-            <span>Roles</span>
-            <span
-              className="min-w-0 truncate text-right text-foreground/70"
-              title={roles.length > 0 ? roles.map(r => r === "USER" ? "CONSUMER" : r).join(" · ") : "UNASSIGNED"}
-            >
-              {roles.length > 0 ? roles.map(r => r === "USER" ? "CONSUMER" : r).join(" · ") : "UNASSIGNED"}
-            </span>
-          </div>
-          <div className="grid grid-cols-[64px_1fr] items-center gap-2">
-            <span>Network</span>
-            <div className="flex min-w-0 items-center justify-end gap-1.5">
-              <Activity className="h-3 w-3 shrink-0 text-success animate-status-dot" />
-              <span className="truncate text-foreground/70">{STELLAR_NETWORK_LABEL}</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-[64px_1fr] items-center gap-2">
-            <span>Version</span>
-            <span className="min-w-0 truncate text-right text-foreground/70">
-              v0.5 · {buildHash}
-            </span>
-          </div>
-        </div>
-        {/* Collapsed: just a network status dot */}
-        <div className="hidden items-center justify-center py-2 group-data-[collapsible=icon]:flex">
-          <Activity className="h-3.5 w-3.5 text-success animate-status-dot" />
-        </div>
-      </SidebarFooter>
     </Sidebar>
   );
 }

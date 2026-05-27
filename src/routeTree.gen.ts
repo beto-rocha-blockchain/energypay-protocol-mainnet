@@ -21,6 +21,7 @@ import { Route as ReconciliationRouteImport } from './routes/reconciliation'
 import { Route as P2pRouteImport } from './routes/p2p'
 import { Route as OracleRouteImport } from './routes/oracle'
 import { Route as OpsRouteImport } from './routes/ops'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as GridRouteImport } from './routes/grid'
 import { Route as GeneratorRouteImport } from './routes/generator'
@@ -99,6 +100,11 @@ const OracleRoute = OracleRouteImport.update({
 const OpsRoute = OpsRouteImport.update({
   id: '/ops',
   path: '/ops',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -207,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/generator': typeof GeneratorRoute
   '/grid': typeof GridRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/ops': typeof OpsRoute
   '/oracle': typeof OracleRoute
   '/p2p': typeof P2pRoute
@@ -240,6 +247,7 @@ export interface FileRoutesByTo {
   '/generator': typeof GeneratorRoute
   '/grid': typeof GridRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/ops': typeof OpsRoute
   '/oracle': typeof OracleRoute
   '/p2p': typeof P2pRoute
@@ -274,6 +282,7 @@ export interface FileRoutesById {
   '/generator': typeof GeneratorRoute
   '/grid': typeof GridRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/ops': typeof OpsRoute
   '/oracle': typeof OracleRoute
   '/p2p': typeof P2pRoute
@@ -309,6 +318,7 @@ export interface FileRouteTypes {
     | '/generator'
     | '/grid'
     | '/login'
+    | '/notifications'
     | '/ops'
     | '/oracle'
     | '/p2p'
@@ -342,6 +352,7 @@ export interface FileRouteTypes {
     | '/generator'
     | '/grid'
     | '/login'
+    | '/notifications'
     | '/ops'
     | '/oracle'
     | '/p2p'
@@ -375,6 +386,7 @@ export interface FileRouteTypes {
     | '/generator'
     | '/grid'
     | '/login'
+    | '/notifications'
     | '/ops'
     | '/oracle'
     | '/p2p'
@@ -409,6 +421,7 @@ export interface RootRouteChildren {
   GeneratorRoute: typeof GeneratorRoute
   GridRoute: typeof GridRoute
   LoginRoute: typeof LoginRoute
+  NotificationsRoute: typeof NotificationsRoute
   OpsRoute: typeof OpsRoute
   OracleRoute: typeof OracleRoute
   P2pRoute: typeof P2pRoute
@@ -519,6 +532,13 @@ declare module '@tanstack/react-router' {
       path: '/ops'
       fullPath: '/ops'
       preLoaderRoute: typeof OpsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -665,6 +685,7 @@ const rootRouteChildren: RootRouteChildren = {
   GeneratorRoute: GeneratorRoute,
   GridRoute: GridRoute,
   LoginRoute: LoginRoute,
+  NotificationsRoute: NotificationsRoute,
   OpsRoute: OpsRoute,
   OracleRoute: OracleRoute,
   P2pRoute: P2pRoute,

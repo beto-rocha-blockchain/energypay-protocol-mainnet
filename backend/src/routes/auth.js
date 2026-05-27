@@ -930,6 +930,7 @@ router.get("/grid-participants", requireAuth, async (req, res) => {
         id: u.id,
         organization: u.organization || u.full_name,
         role: primaryRole,
+        roles,
         energyType,
         settlementAddress: u.stellar_public_key,
         region: `${u.city || "—"} · ${u.country || "—"}`,

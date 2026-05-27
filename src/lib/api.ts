@@ -137,6 +137,8 @@ export type RegisterPayload = {
   existing_secret?: string;
   /** Energy generation source — required when roles includes GENERATOR */
   energy_type?: "SOLAR" | "HYDRO" | "SMALL_HYDRO" | "WIND" | "BIOMASS" | "NATURAL_GAS" | "NUCLEAR" | "THERMAL" | "COGENERATION";
+  /** Granular oversight sub-category — required when roles includes REGULATORY_AUTHORITY */
+  authority_type?: string;
 };
 
 export type LoginPayload = {
@@ -282,11 +284,13 @@ export async function apiValidatedP2PTransfer(
   });
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    const err = buildError(
-      res.status,
-      (data as P2PValidationError)?.message || `Settlement rejected (${res.status})`,
-      data,
-    );
+    // Backend returns { error, code } — fall back to message/error in that order.
+    const raw = data && typeof data === "object" ? (data as Record<string, unknown>) : null;
+    const errMsg =
+      (raw?.["message"] as string | undefined) ||
+      (raw?.["error"] as string | undefined) ||
+      `Settlement rejected (${res.status})`;
+    const err = buildError(res.status, errMsg, data);
     throw err;
   }
   return data as P2PTransferResult;
@@ -341,7 +345,10 @@ export const apiVerifyPhoneCode = (code: string) =>
 export type GridParticipantDTO = {
   id: string;
   organization: string;
-  role: "GENERATOR" | "SELLER" | "INVESTOR" | "USER";
+  /** Primary role (first in the roles array). */
+  role: "GENERATOR" | "SELLER" | "INVESTOR" | "USER" | "UTILITY" | "REGULATORY_AUTHORITY";
+  /** All roles assigned to this participant. Falls back to [role] when absent (older API). */
+  roles?: string[];
   energyType: string;
   settlementAddress: string;
   region: string;
@@ -384,6 +391,8 @@ export type DbContract = {
   finality_ms: number | null;
   settlement_window: string;
   memo: string | null;
+  document_path: string | null;
+  document_name: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -530,6 +539,9 @@ export const apiMarkNotificationRead = (id: string) =>
 export const apiMarkAllNotificationsRead = () =>
   apiRequest<{ success: boolean }>("/api/notifications/read-all", { method: "POST" });
 
+export const apiDeleteNotification = (id: string) =>
+  apiRequest<{ success: boolean }>(`/api/notifications/${id}`, { method: "DELETE" });
+
 export const apiGetContractApprovals = (id: string) =>
   apiRequest<{ success: boolean; approvals: ContractApproval[] }>(
     `/api/contracts/${id}/approvals`,
@@ -546,4 +558,44 @@ export const apiRejectContract = (id: string, reason?: string) =>
   apiRequest<{ success: boolean; rejected: boolean }>(
     `/api/contracts/${id}/reject`,
     { method: "POST", body: { reason } },
+  );
+
+/**
+ * Upload the physical contract document (PDF, Word, image, etc.)
+ * Uses raw fetch so the file Buffer is sent as the body — no FormData / multer needed.
+ */
+export async function apiUploadContractDocument(
+  contractId: string,
+  file: File,
+): Promise<{ success: boolean; document_path: string; document_name: string; signed_url: string | null }> {
+  const session = getSession();
+  const headers: Record<string, string> = {
+    "Content-Type": file.type || "application/octet-stream",
+  };
+  if (session?.token) headers["Authorization"] = `Bearer ${session.token}`;
+
+  const url = `${API_BASE_URL}/api/contracts/${contractId}/document?filename=${encodeURIComponent(file.name)}`;
+  let res: Response;
+  try {
+    res = await fetch(url, { method: "POST", headers, body: file });
+  } catch (err) {
+    throw new Error(`Network error uploading document: ${(err as Error).message}`);
+  }
+
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    const msg =
+      (data && typeof data === "object" && "error" in (data as Record<string, unknown>)
+        ? String((data as Record<string, unknown>).error)
+        : null) || `Upload failed with ${res.status}`;
+    throw new Error(msg);
+  }
+  return data as { success: boolean; document_path: string; document_name: string; signed_url: string | null };
+}
+
+/** Fetch a fresh 1-hour signed URL for the document attached to a contract. */
+export const apiGetContractDocumentUrl = (contractId: string) =>
+  apiRequest<{ success: boolean; document_name: string; signed_url: string }>(
+    `/api/contracts/${contractId}/document`,
+    { method: "GET" },
   );

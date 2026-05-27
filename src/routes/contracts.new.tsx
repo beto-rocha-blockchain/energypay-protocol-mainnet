@@ -6,7 +6,9 @@ import {
   ArrowRight,
   CalendarIcon,
   FileSignature,
+  FileText,
   Hash,
+  Paperclip,
   Zap,
   Loader2,
   CheckCircle2,
@@ -27,7 +29,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { useOperator } from "@/store/operator";
-import { apiCreateContract, API_BASE_URL } from "@/lib/api";
+import { apiCreateContract, apiUploadContractDocument, API_BASE_URL } from "@/lib/api";
 import { getSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
@@ -65,11 +67,14 @@ const ATOMIC_OPS = [
 ];
 
 import { ROLE_COLORS as _RC } from "@/store/operator";
+// All 6 platform roles — no silent fallback to wrong color
 const ROLE_COLORS: Record<string, string> = {
-  GENERATOR: `${_RC.GENERATOR.border} ${_RC.GENERATOR.bg} ${_RC.GENERATOR.text}`,
-  SELLER: `${_RC.SELLER.border} ${_RC.SELLER.bg} ${_RC.SELLER.text}`,
-  INVESTOR: `${_RC.INVESTOR.border} ${_RC.INVESTOR.bg} ${_RC.INVESTOR.text}`,
-  USER: `${_RC.USER.border} ${_RC.USER.bg} ${_RC.USER.text}`,
+  GENERATOR:            `${_RC.GENERATOR.border} ${_RC.GENERATOR.bg} ${_RC.GENERATOR.text}`,
+  SELLER:               `${_RC.SELLER.border} ${_RC.SELLER.bg} ${_RC.SELLER.text}`,
+  INVESTOR:             `${_RC.INVESTOR.border} ${_RC.INVESTOR.bg} ${_RC.INVESTOR.text}`,
+  USER:                 `${_RC.USER.border} ${_RC.USER.bg} ${_RC.USER.text}`,
+  UTILITY:              `${_RC.UTILITY.border} ${_RC.UTILITY.bg} ${_RC.UTILITY.text}`,
+  REGULATORY_AUTHORITY: `${_RC.REGULATORY_AUTHORITY.border} ${_RC.REGULATORY_AUTHORITY.bg} ${_RC.REGULATORY_AUTHORITY.text}`,
 };
 
 const CONTRACT_ROLES = ["SELLER", "GUARANTOR", "BROKER", "WITNESS"] as const;
@@ -142,6 +147,8 @@ function NewContract() {
     price: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  // Optional physical document to attach after contract creation
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
   // Shown after successful DRAFT submission — pending counterparty approval
   const [pendingContractId, setPendingContractId] = useState<string | null>(null);
 
@@ -283,10 +290,29 @@ function NewContract() {
         parties: partiesPayload,
       });
 
-      setPendingContractId(res.contract?.id ?? null);
-      toast.success("Contract submitted — awaiting approvals", {
-        description: `${parties.length} counterpart${parties.length > 1 ? "ies" : "y"} notified. Stellar execution is automatic upon approval.`,
-      });
+      const newContractId = res.contract?.id ?? null;
+      setPendingContractId(newContractId);
+
+      // Upload physical document if one was selected (non-blocking — contract already created)
+      if (documentFile && newContractId) {
+        try {
+          await apiUploadContractDocument(newContractId, documentFile);
+          toast.success("Contract submitted — awaiting approvals", {
+            description: `${parties.length} counterpart${parties.length > 1 ? "ies" : "y"} notified. Document attached for review.`,
+          });
+        } catch (uploadErr) {
+          toast.success("Contract submitted — awaiting approvals", {
+            description: `${parties.length} counterpart${parties.length > 1 ? "ies" : "y"} notified.`,
+          });
+          toast.warning("Document upload failed — retry from Contract Registry", {
+            description: (uploadErr as Error).message,
+          });
+        }
+      } else {
+        toast.success("Contract submitted — awaiting approvals", {
+          description: `${parties.length} counterpart${parties.length > 1 ? "ies" : "y"} notified. Stellar execution is automatic upon approval.`,
+        });
+      }
     } catch (err) {
       toast.error("Registration failed", { description: (err as Error).message });
     } finally {
@@ -295,6 +321,40 @@ function NewContract() {
   };
 
   const notional = (Number(form.volume) || 0) * (Number(form.price) || 0);
+
+  // ── Role guard — must be after all hooks ────────────────────────────────────
+  // Roles permitted to register contracts: GENERATOR, SELLER, USER, UTILITY.
+  // INVESTOR (passive) and REGULATORY_AUTHORITY (read-only) cannot create contracts.
+  const _opRoles = (operator?.roles ?? []).map((r) => String(r).toUpperCase());
+  const _canCreate = _opRoles.some((r) =>
+    ["GENERATOR", "SELLER", "USER", "UTILITY"].includes(r),
+  );
+  if (!_canCreate) {
+    const _isRegAuth = _opRoles.includes("REGULATORY_AUTHORITY");
+    return (
+      <div className="mx-auto flex max-w-4xl flex-col items-center justify-center gap-5 py-20 text-center">
+        <ShieldCheck className="h-10 w-10 text-muted-foreground/40" />
+        <div>
+          <p className="font-mono text-sm font-semibold uppercase tracking-widest text-foreground">
+            Access Restricted
+          </p>
+          <p className="mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground">
+            {_isRegAuth
+              ? "Regulatory Authority access is read-only. Contract registration is not permitted for oversight roles."
+              : "Your current role does not permit contract creation. Contact your settlement administrator."}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="font-mono text-xs uppercase tracking-widest"
+          onClick={() => navigate({ to: "/contracts" })}
+        >
+          Back to Registry
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -605,6 +665,66 @@ function NewContract() {
                 <p className="mt-1 font-mono text-[10px] text-muted-foreground">
                   D+1 17:00 BRT clearing window — auto-derived from contract end date
                 </p>
+              </Field>
+            </div>
+
+            {/* ── Physical Contract Document ── */}
+            <div className="mt-5">
+              <Field label="Physical Contract Document (Optional)" id="doc-upload" className="md:col-span-2">
+                <div className="space-y-2">
+                  {documentFile ? (
+                    <div className="flex items-center gap-3 rounded-md border border-border bg-background/40 px-3 py-2.5">
+                      <FileText className="h-4 w-4 shrink-0 text-primary" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[12px] font-medium">{documentFile.name}</p>
+                        <p className="font-mono text-[10px] text-muted-foreground">
+                          {documentFile.size < 1024 * 1024
+                            ? `${(documentFile.size / 1024).toFixed(0)} KB`
+                            : `${(documentFile.size / (1024 * 1024)).toFixed(1)} MB`}
+                          {" · "}{documentFile.type || "application/octet-stream"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setDocumentFile(null)}
+                        className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                        aria-label="Remove document"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="doc-upload"
+                      className="flex h-14 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border bg-background/20 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                      <span className="font-mono text-[10px] uppercase tracking-widest">
+                        Click to attach document
+                      </span>
+                      <input
+                        id="doc-upload"
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (!f) return;
+                          if (f.size > 15 * 1024 * 1024) {
+                            toast.error("File too large — maximum 15 MB.");
+                            e.target.value = "";
+                            return;
+                          }
+                          setDocumentFile(f);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  )}
+                  <p className="font-mono text-[10px] text-muted-foreground">
+                    Counterparties can review this document before approving. PDF, Word, or image · max 15 MB.
+                  </p>
+                </div>
               </Field>
             </div>
 

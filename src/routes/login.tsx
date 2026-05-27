@@ -120,8 +120,8 @@ function LoginPage() {
               <li className="flex items-start gap-2">
                 <Activity className="mt-0.5 h-3.5 w-3.5 text-success" />
                 <span>
-                  <span className="font-mono text-foreground">Network status</span> · Stellar
-                  Testnet · Settlement Network
+                  <span className="font-mono text-foreground">Network status</span> ·{" "}
+                  {STELLAR_NETWORK_LABEL} · Settlement Network
                 </span>
               </li>
             </ul>

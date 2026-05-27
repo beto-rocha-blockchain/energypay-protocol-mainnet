@@ -1,27 +1,32 @@
 // Client-only component — imported exclusively via React.lazy() in grid.tsx
 // Never rendered during SSR. All Leaflet code is safe here.
 import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 import { useEffect, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
+  Marker,
   CircleMarker,
   Tooltip,
   Polyline,
   useMap,
 } from "react-leaflet";
 import type { GridNode } from "@/store/grid";
+import { ROLE_META } from "@/store/operator";
 
 // ── Color maps ────────────────────────────────────────────────────────────────
+// Keep in sync with ROLE_COLORS.hex in src/store/operator.ts
 const ROLE_COLOR: Record<string, string> = {
-  GENERATOR: "#22c55e",
-  SELLER:    "#60a5fa",
-  INVESTOR:  "#f59e0b",
-  USER:      "#94a3b8",
-  UTILITY:   "#fb923c",
+  GENERATOR:            "#f87171", // red-400
+  SELLER:               "#38bdf8", // sky-400
+  INVESTOR:             "#facc15", // yellow-400
+  USER:                 "#4ade80", // green-400  (Consumer)
+  UTILITY:              "#fb923c", // orange-400
+  REGULATORY_AUTHORITY: "#a78bfa", // violet-400
 };
 
-/** Status overrides role color when set. */
+/** Status overrides all role colors when set. */
 const STATUS_COLOR: Record<string, string | null> = {
   ACTIVE:   null,
   DEGRADED: "#f59e0b",
@@ -33,6 +38,49 @@ const STATUS_OPACITY: Record<string, number> = {
   DEGRADED: 0.55,
   OFFLINE:  0.3,
 };
+
+// ── Multi-color icon factory ──────────────────────────────────────────────────
+
+/**
+ * Build a CSS conic-gradient for N role colors.
+ * Single color → plain hex string (no gradient wrapper).
+ */
+function roleBackground(hexColors: string[]): string {
+  if (hexColors.length === 1) return hexColors[0];
+  const step = 100 / hexColors.length;
+  const stops = hexColors
+    .map((c, i) => `${c} ${i * step}% ${(i + 1) * step}%`)
+    .join(", ");
+  return `conic-gradient(${stops})`;
+}
+
+/**
+ * Create a Leaflet DivIcon for a participant node.
+ * Supports multi-role conic-gradient fills and DEGRADED/OFFLINE status tint.
+ */
+function makeNodeIcon(
+  roles: string[],
+  status: string,
+  isSelected: boolean,
+): L.DivIcon {
+  const size = isSelected ? 22 : 14;
+  const half = size / 2;
+  const opacity = STATUS_OPACITY[status] ?? 0.9;
+  const overrideColor = STATUS_COLOR[status];
+  const bg = overrideColor
+    ? overrideColor
+    : roleBackground(roles.map((r) => ROLE_COLOR[r] ?? "#94a3b8"));
+  const border = isSelected
+    ? "2.5px solid rgba(255,255,255,0.9)"
+    : "1.5px solid rgba(0,0,0,0.35)";
+  return L.divIcon({
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${bg};border:${border};opacity:${opacity};box-sizing:border-box;cursor:pointer;"></div>`,
+    className: "",
+    iconSize: [size, size],
+    iconAnchor: [half, half],
+    tooltipAnchor: [0, -(half + 2)],
+  });
+}
 
 // ── AutoBounds ────────────────────────────────────────────────────────────────
 /** Fits the map to all markers once, on first render with data. */
@@ -95,6 +143,11 @@ export default function GridMapLeaflet({
         ])
     : [];
 
+  // Connection line color = primary role color of the selected node
+  const connLineColor = selectedNode
+    ? (ROLE_COLOR[selectedNode.roles[0]] ?? "#94a3b8")
+    : "#94a3b8";
+
   return (
     <MapContainer
       center={opPos ?? [-14.235, -51.925]}
@@ -117,28 +170,28 @@ export default function GridMapLeaflet({
         <Polyline
           key={i}
           positions={[a, b]}
-          color="#22c55e"
+          color={connLineColor}
           weight={1.5}
           opacity={0.5}
           dashArray="5 5"
         />
       ))}
 
-      {/* Participant markers */}
+      {/* Participant markers — multi-color divIcon */}
       {nodes.map((n) => {
-        const fillColor = STATUS_COLOR[n.status] ?? ROLE_COLOR[n.role] ?? "#94a3b8";
-        const fillOpacity = STATUS_OPACITY[n.status] ?? 0.9;
         const isSelected = n.id === selectedId;
+        const icon = makeNodeIcon(n.roles, n.status, isSelected);
+
+        // Tooltip role labels
+        const roleLabels = n.roles
+          .map((r) => ROLE_META[r]?.label ?? r)
+          .join(" · ");
 
         return (
-          <CircleMarker
+          <Marker
             key={n.id}
-            center={[n.coords.lat, n.coords.lng]}
-            radius={isSelected ? 11 : 7}
-            fillColor={fillColor}
-            fillOpacity={fillOpacity}
-            color={isSelected ? "#ffffff" : "rgba(0,0,0,0.25)"}
-            weight={isSelected ? 2.5 : 1}
+            position={[n.coords.lat, n.coords.lng]}
+            icon={icon}
             eventHandlers={{ click: () => onSelect(n.id) }}
           >
             <Tooltip direction="top" offset={[0, -8]} opacity={1}>
@@ -159,17 +212,17 @@ export default function GridMapLeaflet({
                   style={{
                     fontFamily: "monospace",
                     fontSize: "10px",
-                    color: "#64748b",
+                    color: "#94a3b8",
                     textTransform: "uppercase",
                     letterSpacing: "0.04em",
                   }}
                 >
-                  {n.role} · {n.region}
+                  {roleLabels} · {n.region}
                   {n.approximateLocation ? " · ~approx" : ""}
                 </span>
               </div>
             </Tooltip>
-          </CircleMarker>
+          </Marker>
         );
       })}
 

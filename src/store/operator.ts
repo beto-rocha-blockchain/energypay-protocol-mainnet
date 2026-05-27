@@ -5,15 +5,84 @@ import { STELLAR_NETWORK } from "@/lib/stellar";
 
 export type AccessLevel = "OPERATOR" | "SUPERVISOR" | "CLEARING_ADMIN";
 
-export type ParticipantRole = "GENERATOR" | "SELLER" | "INVESTOR" | "USER" | "UTILITY";
+export type ParticipantRole =
+  | "GENERATOR"
+  | "SELLER"
+  | "INVESTOR"
+  | "USER"
+  | "UTILITY"
+  | "REGULATORY_AUTHORITY";
+
+// ─── Regulatory Authority sub-type ───────────────────────────────────────────
+/**
+ * Granular oversight category for REGULATORY_AUTHORITY operators.
+ * Sent to the backend as `authority_type` on registration.
+ *
+ * TODO: enforce institutional certification, authorityType, role scope and
+ * read-only permissions in backend/API before production use.
+ */
+export type AuthorityType =
+  | "ENERGY_REGULATOR"
+  | "MARKET_OPERATOR_CLEARING_HOUSE"
+  | "GRID_SYSTEM_OPERATOR"
+  | "SETTLEMENT_SUPERVISOR"
+  | "AUDIT_COMPLIANCE_AUTHORITY"
+  | "ENVIRONMENTAL_CERTIFICATE_AUTHORITY"
+  | "FINANCIAL_PAYMENT_AUTHORITY"
+  | "GOVERNMENT_POLICY_AGENCY";
+
+export type AuthorityTypeMeta = {
+  label: string;
+  desc: string;
+  examples?: string;
+};
+
+export const AUTHORITY_TYPE_META: Record<AuthorityType, AuthorityTypeMeta> = {
+  ENERGY_REGULATOR: {
+    label: "Energy Regulator",
+    desc: "Formal energy sector regulator.",
+    examples: "ANEEL, FERC, Ofgem, ACER",
+  },
+  MARKET_OPERATOR_CLEARING_HOUSE: {
+    label: "Market Operator / Clearing House",
+    desc: "Market operation, clearing, settlement and participant coordination.",
+    examples: "CCEE, market operators, settlement chambers",
+  },
+  GRID_SYSTEM_OPERATOR: {
+    label: "Grid / System Operator",
+    desc: "Grid operation, dispatch, reliability and system supervision.",
+    examples: "ONS, ISO, RTO, TSO, DSO",
+  },
+  SETTLEMENT_SUPERVISOR: {
+    label: "Settlement Supervisor",
+    desc: "Settlement, collateral, default and financial closing supervision.",
+  },
+  AUDIT_COMPLIANCE_AUTHORITY: {
+    label: "Audit & Compliance Authority",
+    desc: "External audit, compliance verification and certification access.",
+  },
+  ENVIRONMENTAL_CERTIFICATE_AUTHORITY: {
+    label: "Environmental / Energy Certificate Authority",
+    desc: "Renewable certificates, energy attributes, RECs/I-RECs and certificate lifecycle oversight.",
+  },
+  FINANCIAL_PAYMENT_AUTHORITY: {
+    label: "Financial / Payment Authority",
+    desc: "Payment, banking, financial settlement or central bank supervisory access.",
+  },
+  GOVERNMENT_POLICY_AGENCY: {
+    label: "Government / Public Policy Agency",
+    desc: "Aggregated market visibility for public policy and institutional reporting.",
+  },
+};
 
 /**
  * Role color system — single source of truth for the entire platform.
- *   GENERATOR → red     (#f87171 / red-400)
- *   SELLER    → blue    (#38bdf8 / sky-400)
- *   INVESTOR  → yellow  (#facc15 / yellow-400)
- *   USER      → green   (#4ade80 / green-400)
- *   UTILITY   → orange  (#fb923c / orange-400)
+ *   GENERATOR            → red     (#f87171 / red-400)
+ *   SELLER               → blue    (#38bdf8 / sky-400)
+ *   INVESTOR             → yellow  (#facc15 / yellow-400)
+ *   USER                 → green   (#4ade80 / green-400)
+ *   UTILITY              → orange  (#fb923c / orange-400)
+ *   REGULATORY_AUTHORITY → violet  (#a78bfa / violet-400)
  */
 export type RoleColor = {
   /** Tailwind border class fragment */
@@ -27,11 +96,12 @@ export type RoleColor = {
 };
 
 export const ROLE_COLORS: Record<ParticipantRole, RoleColor> = {
-  GENERATOR: { border: "border-red-400/50",    bg: "bg-red-400/10",    text: "text-red-400",    hex: "#f87171" },
-  SELLER:    { border: "border-sky-400/50",    bg: "bg-sky-400/10",    text: "text-sky-400",    hex: "#38bdf8" },
-  INVESTOR:  { border: "border-yellow-400/50", bg: "bg-yellow-400/10", text: "text-yellow-400", hex: "#facc15" },
-  USER:      { border: "border-green-400/50",  bg: "bg-green-400/10",  text: "text-green-400",  hex: "#4ade80" },
-  UTILITY:   { border: "border-orange-400/50", bg: "bg-orange-400/10", text: "text-orange-400", hex: "#fb923c" },
+  GENERATOR:            { border: "border-red-400/50",    bg: "bg-red-400/10",    text: "text-red-400",    hex: "#f87171" },
+  SELLER:               { border: "border-sky-400/50",    bg: "bg-sky-400/10",    text: "text-sky-400",    hex: "#38bdf8" },
+  INVESTOR:             { border: "border-yellow-400/50", bg: "bg-yellow-400/10", text: "text-yellow-400", hex: "#facc15" },
+  USER:                 { border: "border-green-400/50",  bg: "bg-green-400/10",  text: "text-green-400",  hex: "#4ade80" },
+  UTILITY:              { border: "border-orange-400/50", bg: "bg-orange-400/10", text: "text-orange-400", hex: "#fb923c" },
+  REGULATORY_AUTHORITY: { border: "border-violet-400/50", bg: "bg-violet-400/10", text: "text-violet-400", hex: "#a78bfa" },
 };
 
 export const ROLE_META: Record<
@@ -67,6 +137,12 @@ export const ROLE_META: Record<
     tagline: "Concessionária · distribution & grid operations",
     capabilities: ["Manage UC registry", "Collect TUSD settlements", "Grid connection certificates"],
     color: ROLE_COLORS.UTILITY,
+  },
+  REGULATORY_AUTHORITY: {
+    label: "Regulatory Authority",
+    tagline: "Certified read-only oversight · regulators & institutional auditors",
+    capabilities: ["View audit trail", "Verify settlement receipts", "Monitor reconciliation", "Export compliance reports"],
+    color: ROLE_COLORS.REGULATORY_AUTHORITY,
   },
 };
 
@@ -129,6 +205,7 @@ type OperatorState = {
     walletMode?: "generate" | "link";
     existingPublicKey?: string;
     existingSecretKey?: string;
+    authorityType?: AuthorityType;
   }) => Promise<OperatorIdentity>;
   setRoles: (roles: ParticipantRole[]) => void;
   setCoords: (coords: OperatorCoords | undefined) => void;
@@ -139,11 +216,18 @@ type OperatorState = {
 };
 
 const ROLE_PERMISSIONS: Record<ParticipantRole, string[]> = {
-  GENERATOR: ["generation.issue", "assets.read"],
-  SELLER: ["settlements.execute", "contracts.write"],
-  INVESTOR: ["portfolio.read", "analytics.read"],
-  USER: ["billing.read", "consumption.read"],
-  UTILITY: ["grid.manage", "tusd.collect", "uc.registry"],
+  // Energy producers — may create (sell) contracts and execute settlement
+  GENERATOR:            ["generation.issue", "assets.read", "contracts.create", "settlements.execute"],
+  // Traders — full contract write + settlement execution
+  SELLER:               ["settlements.execute", "contracts.write", "contracts.create"],
+  // Passive holders — portfolio analytics only; no contract creation
+  INVESTOR:             ["portfolio.read", "analytics.read"],
+  // Consumers (Mercado Livre) — may create buy contracts; cannot execute settlement
+  USER:                 ["billing.read", "consumption.read", "contracts.create"],
+  // Distribution concessionaire — manages grid contracts and TUSD settlement flows
+  UTILITY:              ["grid.manage", "tusd.collect", "uc.registry", "contracts.create", "settlements.execute"],
+  // Read-only oversight — no execution, no write, no wallet, no secrets
+  REGULATORY_AUTHORITY: ["audit.read", "settlement.verify", "reconciliation.monitor", "compliance.export"],
 };
 
 const buildPermissions = (roles: ParticipantRole[]) => {
@@ -159,6 +243,7 @@ const ROLE_ORDER: ParticipantRole[] = [
   "INVESTOR",
   "UTILITY",
   "USER",
+  "REGULATORY_AUTHORITY",
 ];
 
 const normalizeRoles = (roles: string[] | undefined): ParticipantRole[] => {
@@ -251,6 +336,7 @@ export const useOperator = create<OperatorState>()((set, get) => ({
     walletMode,
     existingPublicKey,
     existingSecretKey,
+    authorityType,
   }) => {
     if (!roles.length) throw new Error("Select at least one market participant role.");
     const payload: RegisterPayload = {
@@ -268,6 +354,7 @@ export const useOperator = create<OperatorState>()((set, get) => ({
       wallet_mode: walletMode,
       existing_public_key: walletMode === "link" ? existingPublicKey : undefined,
       existing_secret: walletMode === "link" ? existingSecretKey : undefined,
+      authority_type: roles.includes("REGULATORY_AUTHORITY") ? authorityType : undefined,
     };
     const res = await apiRegister(payload);
     const session: AuthSession = {

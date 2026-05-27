@@ -51,6 +51,13 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
   const xlmNum = Number(xlm);
   const eprwNum = Number(eprw);
 
+  // Reserve calculation — same formula used across the platform
+  const subentries = data?.subentry_count ?? 0;
+  const STELLAR_BASE_RESERVE = 0.5;
+  const STELLAR_FEE_BUFFER = 0.01;
+  const xlmReserved = (2 + subentries) * STELLAR_BASE_RESERVE;
+  const xlmSpendable = Math.max(0, xlmNum - xlmReserved - STELLAR_FEE_BUFFER);
+
   const health = useMemo(() => {
     if (error) return { label: "DEGRADED", tone: "warn" as const };
     if (!data) return { label: "INITIALIZING", tone: "muted" as const };
@@ -218,7 +225,7 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
             Live Wallet Balances
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Real-time Horizon-backed balances for the operator's settlement custody account.
+            Live on-chain balances for <strong>your</strong> personal settlement account on the Stellar ledger — backed directly by Horizon.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -253,7 +260,7 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
             </div>
             <div>
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Settlement Custody Account
+                Your Settlement Account · Stellar {data?.network ?? "Mainnet"}
               </p>
               <div className="mt-0.5 flex items-center gap-2">
                 <span className="font-mono text-sm">{maskAddress(publicKey)}</span>
@@ -340,6 +347,41 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
           amount={fmtAmount(eprw, 2)}
         />
       </div>
+
+      {/* Reserve breakdown — only when account is loaded */}
+      {data && (
+        <div className="rounded-md border border-border bg-background/40 px-4 py-2.5">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[10px]">
+            <span className="text-muted-foreground uppercase tracking-widest shrink-0">
+              Account Balance Breakdown
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Total on-chain:</span>
+              <span className="text-foreground font-semibold">{xlmNum.toFixed(7)} XLM</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Stellar reserve lock:</span>
+              <span className="text-foreground">
+                {xlmReserved.toFixed(2)} XLM
+                <span className="text-muted-foreground/70">
+                  {" "}· {2 + subentries} entries × 0.5 XLM
+                </span>
+              </span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Spendable:</span>
+              <span className={xlmSpendable < 0.5 ? "text-destructive font-semibold" : "text-success font-semibold"}>
+                {xlmSpendable.toFixed(7)} XLM
+              </span>
+            </span>
+          </div>
+          {xlmNum > 0 && xlmSpendable < 0.1 && (
+            <p className="mt-1.5 font-mono text-[10px] text-destructive">
+              ⚠ Spendable balance is very low — reserve consumes most of the account balance.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Buy EPWR Panel */}
       {trustline && data && (

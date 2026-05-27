@@ -1,11 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowUpDown,
   CheckCircle2,
   ExternalLink,
+  FileText,
   Filter,
   Loader2,
+  Plus,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -58,6 +60,7 @@ import {
   apiExecuteContractSettlement,
   apiGetMovements,
   apiReconcileContract,
+  apiGetContractDocumentUrl,
   type DbContract,
   type ContractMovement,
   type ContractReconciliation,
@@ -209,10 +212,24 @@ function LifecycleActions({
   const [reconciliation, setReconciliation] = useState<ContractReconciliation | null>(null);
   const [reconLoading, setReconLoading] = useState(false);
 
-  // Role guard: only SELLER / INVESTOR may run ledger reconciliation
+  // ── Role guards ─────────────────────────────────────────────────────────────
   const operator = useOperator((s) => s.operator);
-  const canReconcile = (operator?.roles ?? []).some((r) =>
-    ["SELLER", "INVESTOR"].includes(String(r).toUpperCase()),
+  const _roles = (operator?.roles ?? []).map((r) => String(r).toUpperCase());
+
+  // Active market participants can drive lifecycle transitions
+  const isParticipant = _roles.some((r) =>
+    ["GENERATOR", "SELLER", "USER", "UTILITY"].includes(r),
+  );
+  // Only these roles may execute the on-chain settlement call
+  const canExecuteSettlementByRole = _roles.some((r) =>
+    ["GENERATOR", "SELLER", "UTILITY"].includes(r),
+  );
+  // SELLER + INVESTOR can see AND run reconciliation; REGULATORY_AUTHORITY can monitor
+  const canSeeReconciliation = _roles.some((r) =>
+    ["SELLER", "INVESTOR", "REGULATORY_AUTHORITY"].includes(r),
+  );
+  const canRunReconciliation = _roles.some((r) =>
+    ["SELLER", "INVESTOR"].includes(r),
   );
 
   useEffect(() => {
@@ -239,9 +256,9 @@ function LifecycleActions({
 
   const { status, state } = dbContract;
 
-  const canActivate = status === "DRAFT";
-  const canRequestSettlement = status === "ACTIVE";
-  const canExecute = status === "PENDING";
+  const canActivate          = status === "DRAFT"   && isParticipant;
+  const canRequestSettlement = status === "ACTIVE"  && isParticipant;
+  const canExecute           = status === "PENDING" && canExecuteSettlementByRole;
   const isSettled = status === "SETTLED";
   const isFailed = status === "FAILED";
 
@@ -303,47 +320,53 @@ function LifecycleActions({
           <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             Lifecycle Actions
           </p>
-          <div className="flex flex-wrap gap-2">
-            {canActivate && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 font-mono text-[11px] uppercase"
-                onClick={activate}
-                disabled={busy}
-              >
-                {busy ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : null}
-                Activate Contract
-              </Button>
-            )}
-            {canRequestSettlement && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 font-mono text-[11px] uppercase"
-                onClick={requestSettlement}
-                disabled={busy}
-              >
-                {busy ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : null}
-                Request Settlement
-              </Button>
-            )}
-            {canExecute && (
-              <Button
-                size="sm"
-                className="h-7 bg-primary font-mono text-[11px] uppercase"
-                onClick={executeSettlement}
-                disabled={busy}
-              >
-                {busy ? (
-                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-                ) : (
-                  <Zap className="mr-1.5 h-3 w-3" />
-                )}
-                Execute Settlement
-              </Button>
-            )}
-          </div>
+          {isParticipant ? (
+            <div className="flex flex-wrap gap-2">
+              {canActivate && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 font-mono text-[11px] uppercase"
+                  onClick={activate}
+                  disabled={busy}
+                >
+                  {busy ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : null}
+                  Activate Contract
+                </Button>
+              )}
+              {canRequestSettlement && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 font-mono text-[11px] uppercase"
+                  onClick={requestSettlement}
+                  disabled={busy}
+                >
+                  {busy ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : null}
+                  Request Settlement
+                </Button>
+              )}
+              {canExecute && (
+                <Button
+                  size="sm"
+                  className="h-7 bg-primary font-mono text-[11px] uppercase"
+                  onClick={executeSettlement}
+                  disabled={busy}
+                >
+                  {busy ? (
+                    <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                  ) : (
+                    <Zap className="mr-1.5 h-3 w-3" />
+                  )}
+                  Execute Settlement
+                </Button>
+              )}
+            </div>
+          ) : (
+            <p className="font-mono text-[10px] text-muted-foreground/60">
+              Read-only access · lifecycle actions require an active market role.
+            </p>
+          )}
           <p className="mt-1.5 font-mono text-[10px] text-muted-foreground/60">
             Current: {status} · {state}
           </p>
@@ -394,23 +417,29 @@ function LifecycleActions({
         </div>
       )}
 
-      {/* Reconciliation — SELLER / INVESTOR only */}
-      {canReconcile && (
+      {/* Reconciliation — SELLER/INVESTOR run · REGULATORY_AUTHORITY monitor-only */}
+      {canSeeReconciliation && (
       <div>
         <div className="flex items-center justify-between">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             Ledger Reconciliation
           </p>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-6 font-mono text-[10px]"
-            onClick={runReconcile}
-            disabled={reconLoading}
-          >
-            <RefreshCw className={`mr-1 h-3 w-3 ${reconLoading ? "animate-spin" : ""}`} />
-            Reconcile
-          </Button>
+          {canRunReconciliation ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 font-mono text-[10px]"
+              onClick={runReconcile}
+              disabled={reconLoading}
+            >
+              <RefreshCw className={`mr-1 h-3 w-3 ${reconLoading ? "animate-spin" : ""}`} />
+              Reconcile
+            </Button>
+          ) : (
+            <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground/50">
+              monitor only
+            </span>
+          )}
         </div>
         {reconciliation && (
           <div className="mt-2 rounded-md border border-border bg-background/40 p-3 space-y-1.5 font-mono text-[11px]">
@@ -444,8 +473,60 @@ function LifecycleActions({
   );
 }
 
+// ── Document viewer — fetches a signed URL and opens it in a new tab ──────────
+function DocumentViewer({ contractId, documentName }: { contractId: string; documentName: string }) {
+  const [fetching, setFetching] = useState(false);
+
+  const openDocument = async () => {
+    setFetching(true);
+    try {
+      const res = await apiGetContractDocumentUrl(contractId);
+      window.open(res.signed_url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      toast.error("Failed to open document", { description: (err as Error).message });
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between rounded-md border border-border bg-background/40 px-3 py-2.5">
+      <div className="flex items-center gap-2 min-w-0">
+        <FileText className="h-3.5 w-3.5 shrink-0 text-primary" />
+        <div className="min-w-0">
+          <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+            Contract Document
+          </p>
+          <p className="truncate text-[12px] font-medium">{documentName}</p>
+        </div>
+      </div>
+      <Button
+        size="sm"
+        variant="outline"
+        className="ml-3 h-7 shrink-0 gap-1.5 font-mono text-[10px] uppercase tracking-widest"
+        onClick={openDocument}
+        disabled={fetching}
+      >
+        {fetching ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : (
+          <ExternalLink className="h-3 w-3" />
+        )}
+        View
+      </Button>
+    </div>
+  );
+}
+
 function ContractsList() {
   const { dbContracts, loading: dbLoading, reload: reloadDb } = useDbContracts();
+
+  // Role guard for contract creation button
+  const _listOperator = useOperator((s) => s.operator);
+  const _listRoles = (_listOperator?.roles ?? []).map((r) => String(r).toUpperCase());
+  const canCreateContract = _listRoles.some((r) =>
+    ["GENERATOR", "SELLER", "USER", "UTILITY"].includes(r),
+  );
 
   // One-time migration: purge any synthetic EPC-N contracts that the atomic
   // tokenize flow incorrectly added to the Zustand localStorage cache.
@@ -561,17 +642,27 @@ function ContractsList() {
 
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-5">
-      <div>
-        <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          Clearing & Reconciliation / Contract Registry
-        </p>
-        <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight">
-          Contract Registry
-        </h1>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Bilateral PPAs under settlement supervision · counterparty exposure, PLD reference and
-          transaction finality.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+            Clearing & Reconciliation / Contract Registry
+          </p>
+          <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight">
+            Contract Registry
+          </h1>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Bilateral PPAs under settlement supervision · counterparty exposure, PLD reference and
+            transaction finality.
+          </p>
+        </div>
+        {canCreateContract && (
+          <Link to="/contracts/new">
+            <Button className="h-9 shrink-0 gap-2 font-mono text-xs uppercase tracking-widest">
+              <Plus className="h-3.5 w-3.5" />
+              New Contract
+            </Button>
+          </Link>
+        )}
       </div>
 
       <Card className="overflow-hidden border-border bg-card/60 p-0 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]">
@@ -845,6 +936,14 @@ function ContractsList() {
                     )}
                   </div>
                 </div>
+
+                {/* Attached physical document */}
+                {selectedDb?.document_name && (
+                  <DocumentViewer
+                    contractId={selectedDb.id}
+                    documentName={selectedDb.document_name}
+                  />
+                )}
 
                 {/* DB-backed lifecycle actions + audit trail + reconciliation */}
                 {selectedDb && (

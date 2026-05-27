@@ -27,6 +27,7 @@ import { useDashboard } from "@/hooks/useDashboard";
 import { useSettlementRail } from "@/hooks/useSettlementRail";
 import { STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import { API_BASE_URL } from "@/lib/api";
+import { BrazilGridMap } from "@/components/generator/BrazilGridMap";
 
 export const Route = createFileRoute("/oracle")({
   head: () => ({
@@ -376,6 +377,64 @@ function OraclePage() {
           </div>
         )}
       </Card>
+
+      {/* Regional Map + PLD per submercado */}
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1fr_280px]">
+        <BrazilGridMap />
+
+        {/* PLD by region */}
+        <Card className="border-border bg-card p-4">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            PLD · Preço por Submercado
+          </p>
+          <p className="mt-0.5 font-display text-sm font-semibold">Tempo Real · CCEE/ONS</p>
+          <div className="mt-3 space-y-2">
+            {pldLoading && prices.length === 0 ? (
+              [1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-14 animate-pulse rounded-md border border-border bg-background/40" />
+              ))
+            ) : prices.length > 0 ? (
+              prices.map((p) => {
+                const color = SM_COLORS[p.subsistema] ?? "oklch(0.78 0.13 215)";
+                return (
+                  <div
+                    key={p.subsistema}
+                    className="flex items-center justify-between rounded-md border border-border bg-background/40 px-3 py-2.5"
+                    style={{ borderLeftColor: color, borderLeftWidth: "2.5px" }}
+                  >
+                    <div>
+                      <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                        {p.submercado} · Submercado
+                      </p>
+                      <p className="mt-0.5 font-mono text-xs font-semibold text-foreground">
+                        {p.nome}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p
+                        className="font-mono text-sm font-bold"
+                        style={{ color }}
+                      >
+                        R$ {p.cmo_brl_mwh.toFixed(2)}
+                      </p>
+                      <p className="font-mono text-[9px] text-muted-foreground">/MWh</p>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="font-mono text-[11px] text-muted-foreground">
+                {pldError ? `Erro: ${pldError}` : "Carregando..."}
+              </p>
+            )}
+          </div>
+          {updatedAt && (
+            <p className="mt-3 border-t border-border pt-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60">
+              Atualizado · {fmtDate(updatedAt)}
+            </p>
+          )}
+        </Card>
+      </div>
 
       {/* Feed Monitor + Treasury */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">

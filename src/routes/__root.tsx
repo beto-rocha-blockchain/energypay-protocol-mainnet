@@ -10,14 +10,16 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { Activity } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { OperatorBadge } from "@/components/OperatorBadge";
 import { StatusRail } from "@/components/ops/StatusRail";
-import { NotificationBell } from "@/components/NotificationBell";
+import { StatusBar } from "@/components/StatusBar";
 import { Toaster } from "@/components/ui/sonner";
-import { useOperator } from "@/store/operator";
+import { useOperator, maskAddress, ROLE_COLORS, ROLE_META } from "@/store/operator";
 import { useUiStore } from "@/store/ui";
+import { STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import { SplashScreen } from "@/components/SplashScreen";
 
 import appCss from "../styles.css?url";
@@ -141,6 +143,109 @@ function ThemeSync() {
   return null;
 }
 
+/**
+ * AppHeader — sticky top bar.
+ *
+ * Layout:
+ *   [SidebarTrigger] | [operator info chips — ID · ROLES · NETWORK · VERSION]  →  [OperatorBadge]
+ *
+ * When the sidebar is collapsed, the info chips are replaced by the brand tagline.
+ * Must live inside <SidebarProvider> so useSidebar() resolves correctly.
+ */
+const BUILD_VERSION = "v0.5 · b9f4c2e";
+
+function AppHeader() {
+  const operator = useOperator((s) => s.operator);
+
+  return (
+    <header className="sticky top-0 z-30 flex h-12 items-center border-b border-border bg-background/90 backdrop-blur">
+      {/* LEFT — collapse toggle */}
+      <SidebarTrigger className="h-12 w-12 shrink-0 rounded-none border-r border-border text-muted-foreground hover:bg-accent hover:text-foreground" />
+
+      {/* CENTER — operator info chips always visible (ID · ROLES · NETWORK · VERSION) */}
+      <div className="flex min-w-0 flex-1 items-center overflow-hidden px-3">
+        {operator ? (
+          <div className="flex min-w-0 items-center">
+            {/* Operator ID */}
+            <HeaderChip label="ID" value={maskAddress(operator.operatorId)} />
+            <HDivider />
+            {/* Roles — individual colored dot + readable label per role */}
+            <div className="flex min-w-0 items-center gap-1.5 overflow-hidden px-3">
+              <span className="shrink-0 font-mono text-[8px] uppercase tracking-[0.2em] text-muted-foreground/70">
+                Roles
+              </span>
+              <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+                {operator.roles.map((r) => {
+                  const color = ROLE_COLORS[r]?.hex;
+                  const label = ROLE_META[r]?.label ?? r;
+                  return (
+                    <span key={r} className="flex shrink-0 items-center gap-1">
+                      <span
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ background: color }}
+                      />
+                      <span className="font-mono text-[9px] text-foreground/90">{label}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+            <HDivider />
+            {/* Network */}
+            <div className="flex shrink-0 items-center gap-1.5 px-3">
+              <Activity className="h-2.5 w-2.5 shrink-0 text-success" />
+              <span className="font-mono text-[9px] text-foreground/85">
+                {STELLAR_NETWORK_LABEL}
+              </span>
+            </div>
+            <HDivider />
+            {/* Version */}
+            <div className="shrink-0 px-3">
+              <span className="font-mono text-[8.5px] text-muted-foreground/65">
+                {BUILD_VERSION}
+              </span>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* RIGHT — operator profile (with notifications inside) */}
+      <div className="flex shrink-0 items-center border-l border-border px-3">
+        <OperatorBadge />
+      </div>
+    </header>
+  );
+}
+
+function HeaderChip({
+  label,
+  value,
+  truncate,
+}: {
+  label: string;
+  value: string;
+  truncate?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-baseline gap-1.5 px-3 ${truncate ? "min-w-0 overflow-hidden" : "shrink-0"}`}
+    >
+      <span className="shrink-0 font-mono text-[8px] uppercase tracking-[0.2em] text-muted-foreground/70">
+        {label}
+      </span>
+      <span
+        className={`font-mono text-[9px] text-foreground/90 ${truncate ? "truncate" : ""}`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function HDivider() {
+  return <div className="h-3 w-px shrink-0 bg-border/60" />;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const isAuthenticated = useOperator((s) => s.isAuthenticated);
@@ -185,21 +290,19 @@ function RootComponent() {
     <SplashScreen>
       <QueryClientProvider client={queryClient}>
         <ThemeSync />
-        <SidebarProvider>
-          <div className="flex min-h-screen w-full bg-background">
+        {/* --sidebar-width controls both the fixed overlay and the gap-holder.
+            Keep this in sync with any w-* override on <Sidebar> to prevent
+            the 32px overlap that hides the StatusBar "Live" LED in expanded mode.
+            15.5rem = 248px — minimum width where all item labels render without truncation. */}
+        <SidebarProvider style={{ "--sidebar-width": "15.5rem" } as React.CSSProperties}>
+          <div className="flex h-screen w-full overflow-hidden bg-background">
             <AppSidebar />
-            <div className="flex flex-1 flex-col">
-              <header className="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-border bg-background/90 backdrop-blur">
-                {/* Collapse trigger — sits flush at the left edge of the main content, aligned with the sidebar scroll track */}
-                <SidebarTrigger className="h-12 w-12 shrink-0 rounded-none border-r border-border text-muted-foreground hover:bg-accent hover:text-foreground" />
-                <div className="flex items-center gap-2 px-3 text-xs">
-                  <NotificationBell />
-                  <OperatorBadge />
-                </div>
-              </header>
-              <main className="flex-1 space-y-4 p-4 md:p-6 lg:p-8">
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <AppHeader />
+              <main className="flex-1 overflow-y-auto space-y-4 p-4 pl-8 md:p-6 md:pl-10 lg:p-8 lg:pl-12">
                 <Outlet />
               </main>
+              <StatusBar />
             </div>
           </div>
           <Toaster />

@@ -34,7 +34,7 @@ import {
   type EnergyType,
   type NodeStatus,
 } from "@/store/grid";
-import { useOperator, maskAddress, ROLE_COLORS } from "@/store/operator";
+import { useOperator, maskAddress, ROLE_COLORS, ROLE_META } from "@/store/operator";
 import type { ParticipantRole } from "@/store/operator";
 
 // Leaflet map — client-only, loaded lazily to avoid SSR issues
@@ -50,6 +50,7 @@ const ROLE_ICON: Record<ParticipantRole, React.ComponentType<{ className?: strin
   INVESTOR: LineChart,
   USER: Plug,
   UTILITY: Building2,
+  REGULATORY_AUTHORITY: ShieldCheck,
 };
 
 const ENERGY_ICON: Record<EnergyType, React.ComponentType<{ className?: string }>> = {
@@ -103,7 +104,7 @@ function GridPage() {
   const filtered = useMemo(
     () =>
       nodes.filter((n) => {
-        if (filterRole !== "ALL" && n.role !== filterRole) return false;
+        if (filterRole !== "ALL" && !n.roles.includes(filterRole)) return false;
         if (filterStatus !== "ALL" && n.status !== filterStatus) return false;
         if (
           query &&
@@ -167,9 +168,12 @@ function GridPage() {
           <Pill active={filterRole === "ALL"} onClick={() => setFilterRole("ALL")}>
             All Roles
           </Pill>
-          {(["GENERATOR", "SELLER", "INVESTOR", "USER"] as ParticipantRole[]).map((r) => (
-            <Pill key={r} active={filterRole === r} onClick={() => setFilterRole(r)}>
-              {r}
+          {(["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY"] as ParticipantRole[]).map((r) => (
+            <Pill key={r} active={filterRole === r} onClick={() => setFilterRole(r)} color={ROLE_COLORS[r].hex}>
+              <span className="flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: ROLE_COLORS[r].hex }} />
+                {ROLE_META[r].label}
+              </span>
             </Pill>
           ))}
           <Separator orientation="vertical" className="mx-1 h-4 bg-border" />
@@ -249,21 +253,12 @@ function GridPage() {
               <span>Stellar Settlement Network · Live Map</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#22c55e]" /> Generator
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#60a5fa]" /> Seller
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#f59e0b]" /> Investor
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#94a3b8]" /> Consumer
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#fb923c]" /> Utility
-              </span>
+              {(["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY"] as ParticipantRole[]).map((r) => (
+                <span key={r} className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full" style={{ background: ROLE_COLORS[r].hex }} />
+                  {ROLE_META[r].label}
+                </span>
+              ))}
               <span className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-[#06b6d4]" /> You
               </span>
@@ -317,34 +312,42 @@ function GridPage() {
               </div>
               <div className="space-y-3 p-4">
                 <div className="flex items-start gap-3">
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-md border ${TONE_CLASS[STATUS_TONE[selected.status]].border} bg-background`}
-                  >
-                    {(() => {
-                      const Icon = ENERGY_ICON[selected.energyType];
-                      return (
-                        <Icon
-                          className={`h-5 w-5 ${TONE_CLASS[STATUS_TONE[selected.status]].text}`}
-                        />
-                      );
-                    })()}
-                  </div>
+                  {(() => {
+                    const Icon = ENERGY_ICON[selected.energyType];
+                    const roleColor = ROLE_COLORS[selected.role]?.hex ?? "#94a3b8";
+                    return (
+                      <div
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-background"
+                        style={{
+                          borderColor: `${roleColor}55`,
+                          boxShadow: `0 0 12px ${roleColor}28`,
+                        }}
+                      >
+                        <span style={{ color: roleColor }}>
+                          <Icon className="h-5 w-5" />
+                        </span>
+                      </div>
+                    );
+                  })()}
                   <div className="flex-1">
                     <div className="font-display text-base font-semibold leading-tight">
                       {selected.organization}
                     </div>
-                    <div className="mt-0.5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                      {(() => {
-                        const RIcon = ROLE_ICON[selected.role];
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10px] uppercase tracking-widest">
+                      {selected.roles.map((r) => {
+                        const RIcon = ROLE_ICON[r] ?? ShieldCheck;
+                        const roleColor = ROLE_COLORS[r]?.hex;
                         return (
-                          <>
-                            <RIcon className="h-3 w-3" />
-                            {selected.role}
-                          </>
+                          <span key={r} className="flex items-center gap-1" style={{ color: roleColor }}>
+                            <span style={{ color: roleColor }}>
+                              <RIcon className="h-3 w-3" />
+                            </span>
+                            {ROLE_META[r]?.label ?? r}
+                          </span>
                         );
-                      })()}
-                      <span>·</span>
-                      <span>{selected.jurisdiction}</span>
+                      })}
+                      <span className="text-muted-foreground">·</span>
+                      <span className="text-muted-foreground">{selected.jurisdiction}</span>
                     </div>
                   </div>
                   <span
@@ -473,8 +476,18 @@ function GridPage() {
                     className={`cursor-pointer border-b border-border/60 transition hover:bg-background/40 ${isSel ? "bg-primary/5" : ""}`}
                   >
                     <td className="px-3 py-2 font-mono text-foreground">{n.organization}</td>
-                    <td className={`px-3 py-2 font-mono uppercase tracking-widest ${ROLE_COLORS[n.role]?.text ?? "text-muted-foreground"}`}>
-                      {n.role}
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+                        {n.roles.map((r) => (
+                          <span
+                            key={r}
+                            className="font-mono text-[10px] uppercase tracking-widest"
+                            style={{ color: ROLE_COLORS[r]?.hex }}
+                          >
+                            {ROLE_META[r]?.label ?? r}
+                          </span>
+                        ))}
+                      </div>
                     </td>
                     <td className="px-3 py-2 font-mono uppercase tracking-widest text-muted-foreground">
                       {n.energyType}
@@ -541,19 +554,28 @@ function Pill({
   active,
   onClick,
   children,
+  color,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  color?: string;
 }) {
+  const activeStyle =
+    active && color
+      ? { borderColor: `${color}60`, background: `${color}18`, color }
+      : undefined;
   return (
     <button
       onClick={onClick}
       className={`rounded-sm border px-2 py-0.5 transition ${
-        active
+        active && !color
           ? "border-primary/60 bg-primary/10 text-primary"
-          : "border-border bg-background/40 text-muted-foreground hover:text-foreground"
+          : !active
+          ? "border-border bg-background/40 text-muted-foreground hover:text-foreground"
+          : "border-transparent"
       }`}
+      style={activeStyle}
     >
       {children}
     </button>

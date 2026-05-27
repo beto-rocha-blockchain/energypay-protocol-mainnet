@@ -73,4 +73,24 @@ router.post("/:id/read", requireAuth, async (req, res) => {
   }
 });
 
+// DELETE /api/notifications/:id
+// Permanently removes a notification that is no longer actionable.
+router.delete("/:id", requireAuth, async (req, res) => {
+  try {
+    const userId = req.operator.sub || req.operator.id;
+
+    const { error } = await supabase
+      .from("notifications")
+      .delete()
+      .eq("id", req.params.id)
+      .eq("user_id", userId); // scoped to owner — cannot delete another user's notification
+
+    if (error) throw error;
+
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 export default router;
