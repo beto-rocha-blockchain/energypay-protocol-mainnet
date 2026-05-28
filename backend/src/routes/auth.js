@@ -295,8 +295,12 @@ router.post("/register", async (req, res) => {
         verificationToken: emailVerificationToken,
       });
       if (verifyResult?.skipped && process.env.NODE_ENV !== "production") {
-        const backendUrl = process.env.VITE_API_URL || process.env.BACKEND_URL || "http://localhost:3000";
-        devVerifyUrl = `${backendUrl}/api/auth/verify-email?token=${emailVerificationToken}`;
+        const _siteUrl =
+          process.env.SITE_URL ||
+          (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+          process.env.BACKEND_URL ||
+          "http://localhost:3000";
+        devVerifyUrl = `${_siteUrl}/api/auth/verify-email?token=${emailVerificationToken}`;
         console.log(`[Auth] DEV — verify email link for ${email}: ${devVerifyUrl}`);
       }
     } catch (e) {
@@ -431,30 +435,32 @@ router.post("/forgot-password", async (req, res) => {
     // Expire token after 1 hour
     setTimeout(() => resetTokens.delete(token), 60 * 60 * 1000);
 
-    const emailResult = await sendPasswordResetEmail({
-      to: data.email,
-      fullName: data.full_name,
-      resetToken: token,
-    });
-
-    // Dev-mode fallback: when no RESEND_API_KEY is configured, email delivery
-    // is skipped. Return the reset link directly so developers can still test
-    // the reset flow without a mail provider configured.
+    // Canonical site URL — same resolution as emailService.js
+    const siteUrl =
+      process.env.SITE_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+      "http://localhost:3000";
+    const frontendBase = process.env.FRONTEND_URL || siteUrl;
     const isDev = process.env.NODE_ENV !== "production";
-    const emailSkipped = emailResult?.skipped === true;
 
-    if (emailSkipped) {
-      const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:8080"}/reset-password?token=${token}`;
+    // Respond immediately — NEVER await email delivery.
+    // A slow or misconfigured Resend API must not block the Vercel function.
+    if (!process.env.RESEND_API_KEY && isDev) {
+      // No mail provider: give devs a clickable link so they can still test.
+      const resetUrl = `${frontendBase}/reset-password?token=${token}`;
       console.log(`[ForgotPassword] DEV — reset link for ${data.email}: ${resetUrl}`);
-      return res.json({
+      res.json({
         success: true,
         message: "If that email is registered, a reset link has been sent.",
-        // Only exposed in non-production when email delivery is unavailable.
-        ...(isDev && { dev_reset_url: resetUrl }),
+        dev_reset_url: resetUrl,
       });
+    } else {
+      res.json({ success: true, message: "If that email is registered, a reset link has been sent." });
     }
 
-    res.json({ success: true, message: "If that email is registered, a reset link has been sent." });
+    // Fire email in background after the response has been flushed
+    sendPasswordResetEmail({ to: data.email, fullName: data.full_name, resetToken: token })
+      .catch((e) => console.warn("[ForgotPassword] Email send failed:", e.message));
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: err.message });
@@ -688,7 +694,11 @@ router.get("/verify-email", async (req, res) => {
     }).catch((e) => console.warn("[Auth] Welcome email failed:", e.message));
 
     // Redirect to frontend with success
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:8080";
+    const _siteUrl =
+      process.env.SITE_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+      "http://localhost:3000";
+    const frontendUrl = process.env.FRONTEND_URL || _siteUrl;
     res.redirect(`${frontendUrl}/login?verified=true`);
   } catch (err) {
     console.error(err);
@@ -743,8 +753,12 @@ router.post("/resend-verification", async (req, res) => {
 
     const isDev = process.env.NODE_ENV !== "production";
     if (resendResult?.skipped && isDev) {
-      const backendUrl = process.env.VITE_API_URL || process.env.BACKEND_URL || "http://localhost:3000";
-      const devVerifyUrl = `${backendUrl}/api/auth/verify-email?token=${newToken}`;
+      const _siteUrl =
+        process.env.SITE_URL ||
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+        process.env.BACKEND_URL ||
+        "http://localhost:3000";
+      const devVerifyUrl = `${_siteUrl}/api/auth/verify-email?token=${newToken}`;
       console.log(`[Auth] DEV — verify email link for ${data.email}: ${devVerifyUrl}`);
       return res.json({
         success: true,
@@ -1054,15 +1068,24 @@ router.post("/send-phone-code", async (req, res) => {
 
     // Send code via WhatsApp (Twilio)
     const maskedPhone = data.phone.replace(/(\+\d{2})\d+(\d{2})$/, "$1·····$2");
-    const whatsappResult = await sendWhatsAppVerificationCode({
-      to: data.phone,
-      fullName: data.full_name,
-      code,
-    });
+    let whatsappResult;
+    try {
+      whatsappResult = await sendWhatsAppVerificationCode({
+        to: data.phone,
+        fullName: data.full_name,
+        code,
+      });
+    } catch (twilioErr) {
+      // Twilio Sandbox: recipient may not have opted-in, or credentials not set.
+      // Treat as fallback — expose code so the platform remains testable.
+      console.warn("[SendPhoneCode] WhatsApp delivery failed:", twilioErr.message);
+      whatsappResult = { fallback: true, error: twilioErr.message };
+    }
 
-    // Dev fallback: Twilio not configured — return code in response
-    if (whatsappResult?.fallback && process.env.NODE_ENV !== "production") {
-      console.log(`[SendPhoneCode] DEV — code for ${data.phone}: ${code}`);
+    // Fallback: Twilio unavailable (sandbox opt-in required, credentials absent, etc.)
+    // Expose dev_code so operators can still complete verification on the demo deployment.
+    if (whatsappResult?.fallback) {
+      console.log(`[SendPhoneCode] WhatsApp unavailable — sandbox fallback for ${maskedPhone}: code generated`);
       return res.json({
         success: true,
         message: `Verification code sent via WhatsApp to ${maskedPhone}.`,

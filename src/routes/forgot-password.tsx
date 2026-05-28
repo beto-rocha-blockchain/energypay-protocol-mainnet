@@ -36,6 +36,11 @@ function ForgotPasswordPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => `HTTP ${res.status}`);
+        console.warn("[ForgotPassword] Server error:", res.status, errText);
+        throw new Error(`Server error ${res.status}`);
+      }
       const data = await res.json();
       if (data.dev_reset_url) {
         setDevResetUrl(data.dev_reset_url);

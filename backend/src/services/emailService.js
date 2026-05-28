@@ -3,19 +3,43 @@ import { NETWORK_LABEL } from "../lib/stellar-network.js";
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "EnergyPay <noreply@energypay.io>";
 const API_KEY = process.env.RESEND_API_KEY;
 
+/**
+ * Canonical base URL for this deployment.
+ * Set SITE_URL in Vercel env vars to the production domain.
+ * Falls back to VERCEL_URL (deployment-scoped) → localhost.
+ */
+export const SITE_URL =
+  process.env.SITE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+  "http://localhost:3000";
+
 async function sendEmail({ to, subject, html }) {
   if (!API_KEY) {
     console.log(`[EmailService] No RESEND_API_KEY — skipping email to ${to}: ${subject}`);
     return { skipped: true };
   }
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ from: FROM_EMAIL, to: [to], subject, html }),
-  });
+
+  // 10-second timeout so a slow Resend API never blocks the Vercel function
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+  let res;
+  try {
+    res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ from: FROM_EMAIL, to: [to], subject, html }),
+      signal: controller.signal,
+    });
+  } catch (fetchErr) {
+    clearTimeout(timeout);
+    console.warn(`[EmailService] Resend fetch failed (${fetchErr.name}): ${fetchErr.message}`);
+    return { skipped: true, reason: fetchErr.message };
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
@@ -125,7 +149,7 @@ export async function sendPhoneVerificationCode({ to, fullName, code, phone }) {
 }
 
 export async function sendVerificationEmail({ to, fullName, verificationToken }) {
-  const verifyUrl = `${process.env.VITE_API_URL || process.env.BACKEND_URL || "http://localhost:3000"}/api/auth/verify-email?token=${verificationToken}`;
+  const verifyUrl = `${SITE_URL}/api/auth/verify-email?token=${verificationToken}`;
   return sendEmail({
     to,
     subject: "EnergyPay — Verify Your Email",
@@ -160,7 +184,7 @@ export async function sendVerificationEmail({ to, fullName, verificationToken })
 }
 
 export async function sendPasswordResetEmail({ to, fullName, resetToken }) {
-  const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:8080"}/reset-password?token=${resetToken}`;
+  const resetUrl = `${process.env.FRONTEND_URL || SITE_URL}/reset-password?token=${resetToken}`;
   return sendEmail({
     to,
     subject: "EnergyPay — Password Reset Request",
