@@ -14,13 +14,10 @@ import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as TreasuryRouteImport } from './routes/treasury'
 import { Route as TopologyRouteImport } from './routes/topology'
 import { Route as SettlementRouteImport } from './routes/settlement'
-import { Route as RiskRouteImport } from './routes/risk'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
-import { Route as ReconciliationRouteImport } from './routes/reconciliation'
 import { Route as P2pRouteImport } from './routes/p2p'
 import { Route as OracleRouteImport } from './routes/oracle'
-import { Route as OpsRouteImport } from './routes/ops'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as GridRouteImport } from './routes/grid'
@@ -66,11 +63,6 @@ const SettlementRoute = SettlementRouteImport.update({
   path: '/settlement',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RiskRoute = RiskRouteImport.update({
-  id: '/risk',
-  path: '/risk',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -81,11 +73,6 @@ const RegisterRoute = RegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReconciliationRoute = ReconciliationRouteImport.update({
-  id: '/reconciliation',
-  path: '/reconciliation',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const P2pRoute = P2pRouteImport.update({
   id: '/p2p',
   path: '/p2p',
@@ -94,11 +81,6 @@ const P2pRoute = P2pRouteImport.update({
 const OracleRoute = OracleRouteImport.update({
   id: '/oracle',
   path: '/oracle',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OpsRoute = OpsRouteImport.update({
-  id: '/ops',
-  path: '/ops',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationsRoute = NotificationsRouteImport.update({
@@ -207,13 +189,10 @@ export interface FileRoutesByFullPath {
   '/grid': typeof GridRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
-  '/ops': typeof OpsRoute
   '/oracle': typeof OracleRoute
   '/p2p': typeof P2pRoute
-  '/reconciliation': typeof ReconciliationRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/risk': typeof RiskRoute
   '/settlement': typeof SettlementRoute
   '/topology': typeof TopologyRoute
   '/treasury': typeof TreasuryRoute
@@ -240,13 +219,10 @@ export interface FileRoutesByTo {
   '/grid': typeof GridRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
-  '/ops': typeof OpsRoute
   '/oracle': typeof OracleRoute
   '/p2p': typeof P2pRoute
-  '/reconciliation': typeof ReconciliationRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/risk': typeof RiskRoute
   '/settlement': typeof SettlementRoute
   '/topology': typeof TopologyRoute
   '/treasury': typeof TreasuryRoute
@@ -274,13 +250,10 @@ export interface FileRoutesById {
   '/grid': typeof GridRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
-  '/ops': typeof OpsRoute
   '/oracle': typeof OracleRoute
   '/p2p': typeof P2pRoute
-  '/reconciliation': typeof ReconciliationRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/risk': typeof RiskRoute
   '/settlement': typeof SettlementRoute
   '/topology': typeof TopologyRoute
   '/treasury': typeof TreasuryRoute
@@ -309,13 +282,10 @@ export interface FileRouteTypes {
     | '/grid'
     | '/login'
     | '/notifications'
-    | '/ops'
     | '/oracle'
     | '/p2p'
-    | '/reconciliation'
     | '/register'
     | '/reset-password'
-    | '/risk'
     | '/settlement'
     | '/topology'
     | '/treasury'
@@ -342,13 +312,10 @@ export interface FileRouteTypes {
     | '/grid'
     | '/login'
     | '/notifications'
-    | '/ops'
     | '/oracle'
     | '/p2p'
-    | '/reconciliation'
     | '/register'
     | '/reset-password'
-    | '/risk'
     | '/settlement'
     | '/topology'
     | '/treasury'
@@ -375,13 +342,10 @@ export interface FileRouteTypes {
     | '/grid'
     | '/login'
     | '/notifications'
-    | '/ops'
     | '/oracle'
     | '/p2p'
-    | '/reconciliation'
     | '/register'
     | '/reset-password'
-    | '/risk'
     | '/settlement'
     | '/topology'
     | '/treasury'
@@ -409,13 +373,10 @@ export interface RootRouteChildren {
   GridRoute: typeof GridRoute
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
-  OpsRoute: typeof OpsRoute
   OracleRoute: typeof OracleRoute
   P2pRoute: typeof P2pRoute
-  ReconciliationRoute: typeof ReconciliationRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  RiskRoute: typeof RiskRoute
   SettlementRoute: typeof SettlementRoute
   TopologyRoute: typeof TopologyRoute
   TreasuryRoute: typeof TreasuryRoute
@@ -472,13 +433,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettlementRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/risk': {
-      id: '/risk'
-      path: '/risk'
-      fullPath: '/risk'
-      preLoaderRoute: typeof RiskRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -493,13 +447,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reconciliation': {
-      id: '/reconciliation'
-      path: '/reconciliation'
-      fullPath: '/reconciliation'
-      preLoaderRoute: typeof ReconciliationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/p2p': {
       id: '/p2p'
       path: '/p2p'
@@ -512,13 +459,6 @@ declare module '@tanstack/react-router' {
       path: '/oracle'
       fullPath: '/oracle'
       preLoaderRoute: typeof OracleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ops': {
-      id: '/ops'
-      path: '/ops'
-      fullPath: '/ops'
-      preLoaderRoute: typeof OpsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notifications': {
@@ -665,13 +605,10 @@ const rootRouteChildren: RootRouteChildren = {
   GridRoute: GridRoute,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
-  OpsRoute: OpsRoute,
   OracleRoute: OracleRoute,
   P2pRoute: P2pRoute,
-  ReconciliationRoute: ReconciliationRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  RiskRoute: RiskRoute,
   SettlementRoute: SettlementRoute,
   TopologyRoute: TopologyRoute,
   TreasuryRoute: TreasuryRoute,

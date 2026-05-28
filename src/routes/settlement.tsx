@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { Calculator, ShieldCheck, Zap } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Calculator, RefreshCw, ShieldCheck, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { useOps } from "@/store/operations";
 import { ExecutionConsole } from "@/components/ExecutionConsole";
 import { StateMachine } from "@/components/StateMachine";
 import { useMarketContext } from "@/hooks/useMarketContext";
+import { API_BASE_URL } from "@/lib/api";
 
 export const Route = createFileRoute("/settlement")({
   head: () => ({
@@ -41,6 +42,35 @@ function SettlementPage() {
   const [contractId, setContractId] = useState(contracts[0]?.id ?? "");
   const contract = contracts.find((c) => c.id === contractId) ?? contracts[0];
   const [pld, setPld] = useState<number>(278);
+  const [oraclePld, setOraclePld] = useState<number | null>(null);
+  const [pldSynced, setPldSynced] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  // Fetch real-time PLD from the ONS oracle on mount.
+  // Uses SE/CO submercado as the primary reference (largest market in Brazil).
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/oracle/pld`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (json?.success && Array.isArray(json.prices) && json.prices.length > 0) {
+          const se: any =
+            json.prices.find((p: any) => p.subsistema === "SE") ?? json.prices[0];
+          setOraclePld(se.cmo_brl_mwh);
+          setPld(se.cmo_brl_mwh);
+          setPldSynced(true);
+        }
+      })
+      .catch(() => {
+        // Keep the fallback default value on network error.
+      });
+  }, []);
+
+  const syncToOracle = () => {
+    if (oraclePld !== null) {
+      setPld(oraclePld);
+      setPldSynced(true);
+    }
+  };
 
   const settlement = useMemo(() => contract ? (pld - contract.priceBRL) * contract.volumeMWh : 0, [pld, contract]);
   const direction = settlement >= 0 ? "Buyer receives" : "Seller receives";
@@ -62,8 +92,6 @@ function SettlementPage() {
       </div>
     );
   }
-
-  const [open, setOpen] = useState(false);
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -123,24 +151,42 @@ function SettlementPage() {
                 <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">
                   Simulated {market.referencePrice.label}
                 </Label>
-                <span className="font-mono text-sm">{market.currencySymbol} {pld.toFixed(2)} / {market.energyUnit}</span>
+                <div className="flex items-center gap-2">
+                  {oraclePld !== null && (
+                    <button
+                      onClick={syncToOracle}
+                      className="flex items-center gap-1 rounded border border-border bg-background/40 px-2 py-0.5 font-mono text-[10px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                      title={`Sync to current ${market.referencePrice.label} from ${market.referencePrice.source}`}
+                    >
+                      <RefreshCw className="h-2.5 w-2.5" />
+                      {market.referencePrice.source} {market.currencySymbol} {oraclePld.toFixed(2)}
+                    </button>
+                  )}
+                  <span className={`font-mono text-sm ${pldSynced ? "text-success" : ""}`}>
+                    {market.currencySymbol} {pld.toFixed(2)} / {market.energyUnit}
+                  </span>
+                </div>
               </div>
               <Slider
                 value={[pld]}
-                min={150}
-                max={400}
+                min={0}
+                max={900}
                 step={0.5}
-                onValueChange={(v) => setPld(v[0])}
+                onValueChange={(v) => { setPld(v[0]); setPldSynced(false); }}
               />
               <div className="flex items-center gap-2 pt-1">
                 <Input
                   type="number"
                   step="0.01"
                   value={pld}
-                  onChange={(e) => setPld(Number(e.target.value))}
+                  onChange={(e) => { setPld(Number(e.target.value)); setPldSynced(false); }}
                   className="w-32 bg-input font-mono"
                 />
-                <span className="text-xs text-muted-foreground">Fine-tune PLD scenario</span>
+                <span className="text-xs text-muted-foreground">
+                  {pldSynced
+                    ? `← ${market.referencePrice.source} oracle · SE/CO`
+                    : "Manual override"}
+                </span>
               </div>
             </div>
 

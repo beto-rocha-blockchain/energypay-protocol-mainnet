@@ -1144,7 +1144,7 @@ useEffect(() => {
               </a>
 
               <Button
-                onClick={() => navigate({ to: "/ops" })}
+                onClick={() => navigate({ to: "/" })}
                 className="h-10 w-full font-mono text-xs uppercase tracking-widest"
               >
                 Enter Settlement Control Room

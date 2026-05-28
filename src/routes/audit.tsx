@@ -64,6 +64,7 @@ function AuditPage() {
   const total = stats?.total_settlements ?? 0;
   const settled = stats?.settled_count ?? 0;
   const failed = stats?.failed_count ?? 0;
+  const pending = Math.max(0, total - settled - failed);
   const successRate = total > 0 ? (settled / total) * 100 : 0;
   const horizonLatency = horizon?.latency_ms ?? 0;
   const finalityMs = stats?.avg_finality_ms ?? 0;
@@ -95,10 +96,11 @@ function AuditPage() {
       {/* KPI Strip */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <KpiCard
-          label="Audit Records"
-          value={String(total)}
-          sub="settlement entries"
+          label="Pending"
+          value={String(pending)}
+          sub="awaiting confirmation"
           loading={loading && !stats}
+          tone={pending > 0 ? "warn" : "ok"}
         />
         <KpiCard
           label="Confirmed"
