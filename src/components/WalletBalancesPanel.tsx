@@ -24,7 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useWalletBalances } from "@/hooks/useWalletBalances";
-import { stellarExpertAccount, STELLAR_NETWORK_LABEL } from "@/lib/stellar";
+import { stellarExpertAccount, stellarExpertTx, STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import { maskAddress } from "@/store/operator";
 import { toast } from "sonner";
 
@@ -465,7 +465,7 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
                   <>
                     <span className="text-muted-foreground">Tx Hash</span>
                     <a
-                      href={`https://stellar.expert/explorer/public/tx/${buyResult.hash}`}
+                      href={stellarExpertTx(buyResult.hash)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:underline truncate"
@@ -592,7 +592,7 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
                   <>
                     <span className="text-muted-foreground">Tx Hash</span>
                     <a
-                      href={`https://stellar.expert/explorer/public/tx/${sellResult.hash}`}
+                      href={stellarExpertTx(sellResult.hash)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:underline truncate"

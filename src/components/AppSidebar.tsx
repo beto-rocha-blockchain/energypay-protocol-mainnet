@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useRouterState, useNavigate } from "@tanstack/react-router";
 import {
+  ChevronDown,
   LayoutDashboard,
   Calculator,
   ListChecks,
@@ -28,7 +30,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  useSidebar,
 } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 import { useOperator } from "@/store/operator";
 import { BrandBadge, BrandName } from "@/components/BrandLogo";
@@ -207,51 +211,71 @@ const UTILITY_OPS: Item[] = [
 
 function Group({ label, items, path }: { label: string; items: Item[]; path: string }) {
   const navigate = useNavigate();
+  const { state } = useSidebar();
+  const [open, setOpen] = useState(true);
 
   if (items.length === 0) return null;
 
+  // In icon-only mode the group label (and its collapse trigger) is hidden, so a
+  // collapsed section would strand its items with no way to reopen — force open there.
+  const isIconMode = state === "collapsed";
+
   return (
-    <SidebarGroup className="py-0.5">
-      <SidebarGroupLabel className="px-2 font-mono text-[9.5px] font-medium tracking-[0.22em] text-muted-foreground/75">
-        {label}
-      </SidebarGroupLabel>
+    <Collapsible
+      open={isIconMode ? true : open}
+      onOpenChange={setOpen}
+      className="group/collapsible"
+    >
+      <SidebarGroup className="py-0.5">
+        <SidebarGroupLabel
+          asChild
+          className="px-2 font-mono text-[9.5px] font-medium tracking-[0.22em] text-muted-foreground/75"
+        >
+          <CollapsibleTrigger className="w-full cursor-pointer transition-colors hover:text-muted-foreground">
+            {label}
+            <ChevronDown className="ml-auto h-3 w-3 shrink-0 text-muted-foreground/55 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
+          </CollapsibleTrigger>
+        </SidebarGroupLabel>
 
-      <SidebarGroupContent>
-        <SidebarMenu className="gap-[2px]">
-          {items.map((item) => {
-            // Exact match only — child routes (e.g. /contracts/new) should NOT
-            // highlight a parent entry (/contracts) when both are in the sidebar.
-            const active = path === item.url;
+        <CollapsibleContent>
+          <SidebarGroupContent>
+            <SidebarMenu className="gap-[2px]">
+              {items.map((item) => {
+                // Exact match only — child routes (e.g. /contracts/new) should NOT
+                // highlight a parent entry (/contracts) when both are in the sidebar.
+                const active = path === item.url;
 
-            return (
-              <SidebarMenuItem key={item.url}>
-                <SidebarMenuButton
-                  isActive={active}
-                  tooltip={{ children: item.title, className: "font-mono text-[11px]" }}
-                  className="relative h-6 cursor-pointer select-none rounded-sm pl-2 pr-1 data-[active=true]:bg-sidebar-accent/70"
-                  onClick={() => navigate({ to: item.url })}
-                >
-                  {active && (
-                    <span
-                      aria-hidden
-                      className="absolute left-0 top-1 bottom-1 w-[2px] rounded-r-sm bg-primary"
-                    />
-                  )}
+                return (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton
+                      isActive={active}
+                      tooltip={{ children: item.title, className: "font-mono text-[11px]" }}
+                      className="relative h-6 cursor-pointer select-none rounded-sm pl-2 pr-1 data-[active=true]:bg-sidebar-accent/70"
+                      onClick={() => navigate({ to: item.url })}
+                    >
+                      {active && (
+                        <span
+                          aria-hidden
+                          className="absolute left-0 top-1 bottom-1 w-[2px] rounded-r-sm bg-primary"
+                        />
+                      )}
 
-                  <item.icon className="h-3.5 w-3.5 shrink-0" />
+                      <item.icon className="h-3.5 w-3.5 shrink-0" />
 
-                  <span className="truncate text-[12px] leading-none">{item.title}</span>
+                      <span className="truncate text-[12px] leading-none">{item.title}</span>
 
-                  <span className="ml-auto font-mono text-[9px] tracking-widest text-muted-foreground/55">
-                    {item.code}
-                  </span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
+                      <span className="ml-auto font-mono text-[9px] tracking-widest text-muted-foreground/55">
+                        {item.code}
+                      </span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </SidebarGroup>
+    </Collapsible>
   );
 }
 
