@@ -10,9 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useOperator } from "@/store/operator";
-import { useWalletBalances } from "@/hooks/useWalletBalances";
-import { useWalletActivity } from "@/hooks/useWalletActivity";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useDashboard } from "@/hooks/useDashboard";
 import { useSettlementRail } from "@/hooks/useSettlementRail";
 import { StellarRailMonitor } from "@/components/generator/StellarRailMonitor";
@@ -25,7 +30,7 @@ export const Route = createFileRoute("/treasury")({
       {
         name: "description",
         content:
-          "Stellar settlement rail monitoring, treasury balances and ledger activity.",
+          "Platform treasury accounts, settlement rail monitoring and platform-wide settlement activity.",
       },
     ],
   }),
@@ -38,22 +43,37 @@ const fmtBRL = (n: number) =>
 const shortHash = (h: string) =>
   h && h.length > 12 ? `${h.slice(0, 6)}…${h.slice(-6)}` : h || "—";
 
-const fmtNum = (n: number | string) =>
-  Number(n).toLocaleString("en-US", { maximumFractionDigits: 7 });
+const fmtNum = (n: number | string | undefined | null) => {
+  const num = Number(n);
+  return Number.isFinite(num)
+    ? num.toLocaleString("en-US", { maximumFractionDigits: 4, minimumFractionDigits: 4 })
+    : "—";
+};
+
+const timeAgo = (iso: string) => {
+  if (!iso) return "—";
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+};
 
 function TreasuryPage() {
-  const operator = useOperator((s) => s.operator);
-  const pk = operator?.wallet?.publicKey ?? null;
-  const balances = useWalletBalances(pk);
-  const activity = useWalletActivity(pk);
-  const { stats, horizon, loading, refresh } = useDashboard();
-  const { health, telemetry } = useSettlementRail();
+  const { stats, settlements, horizon, loading, refresh } = useDashboard();
+  const { health } = useSettlementRail();
 
-  const xlm = balances.data?.summary?.xlm ?? "0.0000000";
-  const eprw = balances.data?.summary?.eprw ?? "0.0000000";
-  const settled = stats?.settled_count ?? 0;
-  const failed = stats?.failed_count ?? 0;
-  const totalBrl = stats?.total_value_brl ?? 0;
+  // Platform treasury accounts — sourced from Horizon via the dashboard endpoint.
+  // These are the PLATFORM's operator and distributor Stellar accounts,
+  // NOT the personal wallet of the logged-in user.
+  const operatorXlm  = horizon?.operator_balance?.xlm  ?? null;
+  const distributorXlm  = horizon?.distribution_balance?.xlm  ?? null;
+  const epwrSupply   = horizon?.distribution_balance?.epwr ?? null;
+
+  const settled    = stats?.settled_count  ?? 0;
+  const failed     = stats?.failed_count   ?? 0;
+  const totalBrl   = stats?.total_value_brl ?? 0;
   const horizonLatency = horizon?.latency_ms ?? 0;
 
   return (
@@ -80,19 +100,25 @@ function TreasuryPage() {
         </div>
       </div>
 
-      {/* KPI Strip */}
+      {/* KPI Strip — platform accounts only */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <KpiCard
           label="Operator XLM"
-          value={Number(xlm).toFixed(4)}
-          sub={pk ? `${pk.slice(0, 6)}…${pk.slice(-4)}` : "no operator"}
-          loading={balances.loading && !balances.data}
+          value={operatorXlm ? Number(operatorXlm).toFixed(4) : "—"}
+          sub="platform operator account"
+          loading={loading && !horizon}
         />
         <KpiCard
-          label="EPWR Inventory"
-          value={fmtNum(eprw)}
-          sub="EPWR"
-          loading={balances.loading && !balances.data}
+          label="EPWR Supply"
+          value={epwrSupply ? fmtNum(epwrSupply) : "—"}
+          sub="distributor account"
+          loading={loading && !horizon}
+        />
+        <KpiCard
+          label="Distributor XLM"
+          value={distributorXlm ? Number(distributorXlm).toFixed(4) : "—"}
+          sub="distribution reserve"
+          loading={loading && !horizon}
         />
         <KpiCard
           label="Settled Volume"
@@ -100,13 +126,6 @@ function TreasuryPage() {
           sub={`${settled} confirmed`}
           loading={loading && !stats}
           tone="ok"
-        />
-        <KpiCard
-          label="Failed"
-          value={String(failed)}
-          sub={failed > 0 ? "requires review" : "no failures"}
-          loading={loading && !stats}
-          tone={failed > 0 ? "warn" : "ok"}
         />
         <KpiCard
           label="Users"
@@ -160,117 +179,106 @@ function TreasuryPage() {
           </Card>
         </div>
 
-        {/* Treasury Telemetry */}
+        {/* Treasury Telemetry — platform accounts */}
         <Card className="border-border bg-card p-4">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             Treasury Telemetry
           </p>
           <div className="mt-3 space-y-2">
-            <TelRow label="Operator XLM" value={`${Number(xlm).toFixed(4)} XLM`} tone="ok" />
-            <TelRow label="EPWR Balance" value={`${fmtNum(eprw)} EPWR`} tone="ok" />
-            <TelRow label="Horizon latency" value={`${horizonLatency} ms`} tone={horizonLatency < 1000 ? "ok" : "warn"} />
-            <TelRow label="Backend latency" value={`${health?.backend?.latency_ms ?? 0} ms`} tone="ok" />
-            <TelRow label="Settled count" value={String(settled)} tone="ok" />
-            <TelRow label="Failed count" value={String(failed)} tone={failed > 0 ? "warn" : "ok"} />
-            <TelRow label="Total BRL" value={fmtBRL(totalBrl)} tone="muted" />
-            <TelRow label="Users" value={String(stats?.total_users ?? 0)} tone="muted" />
+            <TelRow label="Operator XLM"     value={operatorXlm    ? `${Number(operatorXlm).toFixed(4)} XLM`    : "—"} tone="ok" />
+            <TelRow label="Distributor XLM"  value={distributorXlm ? `${Number(distributorXlm).toFixed(4)} XLM` : "—"} tone="ok" />
+            <TelRow label="EPWR Supply"       value={epwrSupply     ? `${fmtNum(epwrSupply)} EPWR`               : "—"} tone="ok" />
+            <TelRow label="Horizon latency"  value={`${horizonLatency} ms`}                  tone={horizonLatency < 1000 ? "ok" : "warn"} />
+            <TelRow label="Backend latency"  value={`${health?.backend?.latency_ms ?? 0} ms`} tone="ok" />
+            <TelRow label="Settled count"    value={String(settled)}    tone="ok" />
+            <TelRow label="Failed count"     value={String(failed)}     tone={failed > 0 ? "warn" : "ok"} />
+            <TelRow label="Total BRL"        value={fmtBRL(totalBrl)}   tone="muted" />
+            <TelRow label="Counterparties"   value={String(stats?.total_users ?? 0)} tone="muted" />
           </div>
         </Card>
       </div>
 
-      {/* Live Ledger Activity */}
-      <Card className="border-border bg-card p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+      {/* Platform Settlement Activity */}
+      <Card className="border-border bg-card p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Stellar Horizon · Real-time Ledger Activity
+              Settlement Rail · Platform-wide Activity
             </p>
-            <p className="mt-0.5 font-display text-base font-semibold">
-              Recent Ledger Operations
-            </p>
+            <p className="font-display text-lg font-semibold">Recent Settlements</p>
           </div>
-          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest">
-            {activity.fetchedAt && (
-              <Badge variant="outline" className="border-success/40 text-success">
-                <Activity className="mr-1.5 h-3 w-3 animate-pulse" />
-                STREAMING
-              </Badge>
-            )}
-            {activity.fetchedAt && (
-              <span className="text-muted-foreground">
-                sync {new Date(activity.fetchedAt).toUTCString().slice(17, 25)}
-              </span>
-            )}
-          </div>
+          <Button size="sm" variant="outline" onClick={refresh} disabled={loading}>
+            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
         </div>
 
-        <div className="mt-3 overflow-x-auto">
-          {activity.loading && activity.events.length === 0 ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          ) : activity.events.length === 0 ? (
-            <div className="py-10 text-center">
-              <Activity className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
-              <p className="font-mono text-sm text-muted-foreground">
-                No ledger activity in current window.
-              </p>
-            </div>
-          ) : (
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="px-2 py-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Tx Hash</th>
-                  <th className="px-2 py-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Kind</th>
-                  <th className="px-2 py-2 text-right font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Amount</th>
-                  <th className="px-2 py-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Asset</th>
-                  <th className="px-2 py-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Result</th>
-                  <th className="px-2 py-2" />
-                </tr>
-              </thead>
-              <tbody>
-                {activity.events.slice(0, 10).map((ev) => (
-                  <tr key={ev.id} className="border-b border-border/50 hover:bg-primary/[0.03]">
-                    <td className="px-2 py-2 font-mono text-[11px] text-primary">
-                      {shortHash(ev.tx_hash)}
-                    </td>
-                    <td className="px-2 py-2 font-mono text-[10px] uppercase text-muted-foreground">
-                      {ev.kind}
-                    </td>
-                    <td className="px-2 py-2 text-right font-mono text-[11px]">
-                      {ev.amount ?? "—"}
-                    </td>
-                    <td className="px-2 py-2 font-mono text-[11px]">{ev.asset ?? "—"}</td>
-                    <td className="px-2 py-2">
-                      <Badge
-                        variant="outline"
-                        className={`font-mono text-[9px] ${
-                          ev.successful
-                            ? "border-success/40 bg-success/10 text-success"
-                            : "border-destructive/40 bg-destructive/10 text-destructive"
-                        }`}
-                      >
-                        {ev.successful ? "FINALIZED" : "FAILED"}
-                      </Badge>
-                    </td>
-                    <td className="px-2 py-2 text-right">
+        {loading && settlements.length === 0 ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
+          </div>
+        ) : settlements.length === 0 ? (
+          <div className="py-10 text-center">
+            <Activity className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
+            <p className="font-mono text-sm text-muted-foreground">No settlement activity yet.</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border hover:bg-transparent">
+                <TableHead className="text-[11px] uppercase tracking-wider">ID</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Seller</TableHead>
+                <TableHead className="text-right text-[11px] uppercase tracking-wider">Amount</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Tx Hash</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">Status</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">When</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {settlements.map((s) => (
+                <TableRow key={s.id + s.created_at} className="border-border">
+                  <TableCell className="font-mono text-xs">{s.id}</TableCell>
+                  <TableCell className="max-w-[120px] truncate font-mono text-xs">
+                    {s.seller ? shortHash(s.seller) : "—"}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-sm text-success">
+                    {s.amount_brl ? fmtBRL(s.amount_brl) : "—"}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">
+                    {s.tx_hash && s.tx_hash !== "UNAVAILABLE" ? (
                       <a
-                        href={stellarExpertTx(ev.tx_hash)}
+                        href={stellarExpertTx(s.tx_hash)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 font-mono text-[10px] text-muted-foreground hover:text-primary"
+                        className="inline-flex items-center gap-1 hover:text-primary"
                       >
-                        View on Stellar Expert <ExternalLink className="h-2.5 w-2.5" />
+                        {shortHash(s.tx_hash)}
+                        <ExternalLink className="h-3 w-3" />
                       </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+                    ) : "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={`font-mono text-[10px] ${
+                        s.status === "SETTLED" || s.status === "CONFIRMED"
+                          ? "border-success/40 bg-success/10 text-success"
+                          : s.status === "FAILED"
+                            ? "border-destructive/40 bg-destructive/10 text-destructive"
+                            : "border-warning/40 bg-warning/10 text-warning"
+                      }`}
+                    >
+                      {s.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-mono text-[11px] text-muted-foreground">
+                    {timeAgo(s.created_at)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </Card>
     </div>
   );

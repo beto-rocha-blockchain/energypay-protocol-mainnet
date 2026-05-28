@@ -219,7 +219,7 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Treasury / Settlement Wallet
+            Custody Wallet · Your Settlement Account
           </p>
           <h2 className="mt-1 font-display text-2xl font-semibold tracking-tight">
             Live Wallet Balances
