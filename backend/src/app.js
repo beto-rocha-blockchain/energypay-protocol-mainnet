@@ -20,6 +20,7 @@ import adminRoutes from "./routes/admin.js";
 import oracleRoutes from "./routes/oracle.js";
 import contractRoutes from "./routes/contracts.js";
 import notificationRoutes from "./routes/notifications.js";
+import settlementRoutes from "./routes/settlement.js";
 
 import { executeSettlement } from "./services/stellarSettlementService.js";
 import { NETWORK_NAME, IS_MAINNET } from "./lib/stellar-network.js";
@@ -48,6 +49,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/oracle", oracleRoutes);
 app.use("/api/contracts", contractRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/settlement", settlementRoutes);
 
 // ========================================
 // Health Check

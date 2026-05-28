@@ -1,11 +1,9 @@
 /**
- * Centralized Stellar network configuration.
+ * Centralized Stellar network configuration — Mainnet only.
  *
- * Reads STELLAR_NETWORK from process.env to determine whether the platform
- * operates on the public mainnet or the testnet.
- *
- *   STELLAR_NETWORK=mainnet  → Stellar public network
- *   STELLAR_NETWORK=testnet  → Stellar test network (default)
+ * STELLAR_NETWORK env var is kept for compatibility but this platform
+ * operates exclusively on Stellar Mainnet (PUBLIC network).
+ * Friendbot and testnet references have been removed.
  *
  * Every backend service and route MUST import from this module instead of
  * hard-coding Horizon URLs, network passphrases, or explorer base URLs.
@@ -13,19 +11,15 @@
 
 import { Horizon, Networks } from "@stellar/stellar-sdk";
 
-const raw = (process.env.STELLAR_NETWORK || "testnet").toLowerCase().trim();
+// Platform is mainnet-only. The env var check is kept as a safety guard.
+const raw = (process.env.STELLAR_NETWORK || "mainnet").toLowerCase().trim();
 export const IS_MAINNET = raw === "mainnet" || raw === "public";
 
-export const NETWORK_NAME = IS_MAINNET ? "stellar-mainnet" : "stellar-testnet";
-export const NETWORK_LABEL = IS_MAINNET ? "STELLAR_MAINNET" : "STELLAR_TESTNET";
-export const NETWORK_PASSPHRASE = IS_MAINNET ? Networks.PUBLIC : Networks.TESTNET;
+export const NETWORK_NAME = "stellar-mainnet";
+export const NETWORK_LABEL = "STELLAR_MAINNET";
+export const NETWORK_PASSPHRASE = Networks.PUBLIC;
 
-export const HORIZON_URL = IS_MAINNET
-  ? "https://horizon.stellar.org"
-  : "https://horizon-testnet.stellar.org";
-
-export const FRIENDBOT_URL = "https://friendbot.stellar.org";
-export const FRIENDBOT_AVAILABLE = !IS_MAINNET;
+export const HORIZON_URL = "https://horizon.stellar.org";
 
 const EXPLORER_SEGMENT = IS_MAINNET ? "public" : "testnet";
 export const explorerTxUrl = (hash) =>

@@ -38,7 +38,8 @@ import {
   type P2PTransferState,
 } from "@/store/p2p";
 import { stellarExpertTx, STELLAR_NETWORK } from "@/lib/stellar";
-import { apiValidatedP2PTransfer, type P2PValidationError } from "@/lib/api";
+import { apiValidatedP2PTransfer, apiPrepareSettlement, apiSubmitSignedSettlement, type P2PValidationError } from "@/lib/api";
+import { TransactionSigningModal } from "@/components/TransactionSigningModal";
 import { validateP2PTransfer } from "@/lib/p2p-validation";
 import {
   P2PLiveStatusPanel,
@@ -121,6 +122,11 @@ function P2PPage() {
     errorMessage: null,
   });
   const scrollRef = useRef<HTMLDivElement>(null);
+  // USER_CONTROLLED signing modal
+  const [signingModalOpen, setSigningModalOpen] = useState(false);
+  const [pendingUnsignedXdr, setPendingUnsignedXdr] = useState("");
+  const [pendingSettlementId, setPendingSettlementId] = useState("");
+  const startedAtRef = useRef<number>(0);
 
   const setPhase = (
     phase: LiveStatusPhase | null,
@@ -248,6 +254,38 @@ function P2PPage() {
       await wait(160);
       append("PREPARING", `✓ transfer authority verified · counterparty ${destinationOrg}`, "ok");
       await wait(160);
+      if (operator.wallet.walletMode === "USER_CONTROLLED") {
+        // USER_CONTROLLED: backend prepares unsigned XDR → user signs locally → submit
+        append("SIGNING", `USER_CONTROLLED wallet · preparing unsigned XDR for local signing`);
+        await wait(160);
+        setPhase("SUBMITTED", "SIGNING");
+        try {
+          const prep = await apiPrepareSettlement({
+            recipient_public_key: payload.recipient_public_key,
+            asset: payload.asset as "EPWR" | "XLM",
+            amount: payload.amount,
+            memo: payload.memo,
+            settlement_id: transferId,
+          });
+          append("SIGNING", `⏳ awaiting local signature · XDR ready`);
+          setPendingUnsignedXdr(prep.unsigned_xdr);
+          setPendingSettlementId(prep.settlement_id);
+          startedAtRef.current = startedAt;
+          setSigningModalOpen(true);
+          setRunning(false); // modal takes over; handleSigned resumes the flow
+          return;
+        } catch (err) {
+          const e = err as Error & { status?: number };
+          const msg = e.message || "Failed to prepare unsigned XDR";
+          append("FAILED", `✗ prepare · ${msg}`, "warn");
+          setPhase(null, "FAILED", { errorMessage: msg });
+          setRunning(false);
+          toast.error("Settlement preparation failed", { description: msg });
+          return;
+        }
+      }
+
+      // PLATFORM_MANAGED: backend signs in-memory and submits to Horizon
       append("SIGNING", `binding execution signer · source=${signer}`);
       await wait(160);
       append("SIGNING", `delegating ed25519 signing to backend custody · in-memory only`);
@@ -331,6 +369,78 @@ function P2PPage() {
         setFieldError({ field, message: msg });
       }
       append("FAILED", `✗ ${code ?? "submission"} · ${msg}`, "warn");
+      setPhase(null, "FAILED", { errorMessage: msg });
+      setRunning(false);
+      toast.error("Direct settlement failed", { description: msg });
+    }
+  };
+
+  // Callback from TransactionSigningModal for USER_CONTROLLED wallets.
+  // Receives the locally-signed XDR and submits it to the backend.
+  const handleSigned = async (signedXdr: string) => {
+    setSigningModalOpen(false);
+    setRunning(true);
+    const startedAt = startedAtRef.current || Date.now();
+    const log = (s: P2PTransferState, text: string, level: "info" | "ok" | "warn" = "info") => {
+      setState(s);
+      setLogs((l) => [...l, { ts: fmtTs(new Date()), text, level }]);
+    };
+    const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+    try {
+      log("BROADCASTING", `→ POST /api/settlement/submit-signed · broadcasting to Stellar Mainnet`);
+      setPhase("SUBMITTED", "BROADCASTING");
+
+      const submission = await apiSubmitSignedSettlement({
+        settlement_id: pendingSettlementId,
+        signed_xdr: signedXdr,
+      });
+
+      const explorer = submission.explorer_url || stellarExpertTx(submission.tx_hash);
+      log("CONFIRMING", `awaiting Horizon confirmation · ledger pending`);
+      setPhase("CONFIRMED", "CONFIRMING", {
+        txHash: submission.tx_hash,
+        ledger: submission.ledger,
+        explorerLink: explorer,
+      });
+      await wait(140);
+      log("CONFIRMING", `✓ tx confirmed · ledger #${submission.ledger.toLocaleString("en-US")}`, "ok");
+      log("CONFIRMING", `tx hash: ${submission.tx_hash}`);
+      await wait(140);
+      log("FINALIZED", `✓ settlement finality reached · direct rail closed`, "ok");
+      const finalityMs = submission.finality_ms ?? Date.now() - startedAt;
+      setPhase("SETTLED", "FINALIZED", { finalityMs });
+
+      if (authorization && operator) {
+        const recipient = maskAddress(authorization.destinationPublicKey);
+        const transfer: P2PTransfer = {
+          id: pendingSettlementId,
+          ts: new Date().toISOString().slice(0, 16).replace("T", " "),
+          sourcePublicKey: operator.wallet.publicKey,
+          destinationPublicKey: authorization.destinationPublicKey,
+          destinationOrg,
+          asset: authorization.asset,
+          amount: authorization.amount,
+          memo: authorization.memo,
+          txHash: submission.tx_hash,
+          ledger: submission.ledger,
+          latencyMs: finalityMs,
+          state: "FINALIZED",
+          operatorId: operator.operatorId,
+          explorerLink: explorer,
+        };
+        recordTransfer(transfer);
+        setResult(transfer);
+        toast.success("Direct settlement finalized", {
+          description: `${transfer.amount} ${transfer.asset} → ${recipient}`,
+        });
+      }
+      setRunning(false);
+    } catch (err) {
+      const e = err as Error & { status?: number };
+      const msg = e.message || "submission failed";
+      setState("FAILED");
+      setLogs((l) => [...l, { ts: fmtTs(new Date()), text: `✗ submit-signed · ${msg}`, level: "warn" }]);
       setPhase(null, "FAILED", { errorMessage: msg });
       setRunning(false);
       toast.error("Direct settlement failed", { description: msg });
@@ -824,6 +934,31 @@ function P2PPage() {
           </div>
         )}
       </Card>
+
+      {/* USER_CONTROLLED local signing modal */}
+      <TransactionSigningModal
+        open={signingModalOpen}
+        unsignedXdr={pendingUnsignedXdr}
+        settlementId={pendingSettlementId}
+        onSigned={handleSigned}
+        onCancel={() => {
+          setSigningModalOpen(false);
+          setState("DRAFT");
+          setRunning(false);
+          setLogs([]);
+          setLive({
+            phase: null,
+            state: "DRAFT",
+            txHash: null,
+            ledger: null,
+            finalityMs: null,
+            explorerLink: null,
+            startedAt: null,
+            errorMessage: null,
+          });
+          toast.info("Transaction signing cancelled.");
+        }}
+      />
     </div>
   );
 }

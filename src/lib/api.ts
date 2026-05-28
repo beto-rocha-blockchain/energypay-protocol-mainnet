@@ -114,6 +114,8 @@ export type ApiUser = {
   provisioning_tx_hash?: string | null;
   provisioning_ledger?: number | null;
   settlement_status?: string | null;
+  wallet_mode?: "PLATFORM_MANAGED" | "USER_CONTROLLED";
+  has_epwr_trustline?: boolean;
 };
 
 export type AuthResponse = {
@@ -134,7 +136,6 @@ export type RegisterPayload = {
   fund?: boolean;
   wallet_mode?: "generate" | "link";
   existing_public_key?: string;
-  existing_secret?: string;
   /** Energy generation source — required when roles includes GENERATOR */
   energy_type?: "SOLAR" | "HYDRO" | "SMALL_HYDRO" | "WIND" | "BIOMASS" | "NATURAL_GAS" | "NUCLEAR" | "THERMAL" | "COGENERATION";
   /** Granular oversight sub-category — internal/admin-only, not used in public signup.
@@ -191,6 +192,66 @@ export type SettlementResult = {
 
 export const apiExecuteSettlement = (payload: SettlementExecutePayload) =>
   apiRequest<SettlementResult>("/api/settlement/execute", {
+    method: "POST",
+    body: payload,
+  });
+
+/* ------------------------------------------------------------------ */
+/*  Dual-mode settlement (PLATFORM_MANAGED / USER_CONTROLLED)         */
+/* ------------------------------------------------------------------ */
+
+export type PrepareSettlementPayload = {
+  recipient_public_key: string;
+  asset?: "EPWR" | "XLM";
+  amount: number;
+  memo?: string;
+  contract_id?: string;
+  settlement_id?: string;
+};
+
+export type PrepareSettlementResponse = {
+  success: boolean;
+  settlement_id: string;
+  unsigned_xdr: string;
+  expires_at: string;
+  network: "PUBLIC";
+};
+
+export type SubmitSignedPayload = {
+  settlement_id: string;
+  signed_xdr: string;
+  recipient_public_key?: string;
+  amount_brl?: number;
+  pld?: number;
+  contract_id?: string;
+};
+
+export type SettlementReceipt2 = {
+  success: boolean;
+  tx_hash: string;
+  ledger: number;
+  finality_ms: number;
+  explorer_url: string;
+  status: "SETTLED";
+};
+
+/** Prepare an unsigned XDR for USER_CONTROLLED wallets to sign locally. */
+export const apiPrepareSettlement = (payload: PrepareSettlementPayload) =>
+  apiRequest<PrepareSettlementResponse>("/api/settlement/prepare", {
+    method: "POST",
+    body: payload,
+  });
+
+/** Submit a pre-signed XDR (USER_CONTROLLED flow). */
+export const apiSubmitSignedSettlement = (payload: SubmitSignedPayload) =>
+  apiRequest<SettlementReceipt2>("/api/settlement/submit-signed", {
+    method: "POST",
+    body: payload,
+  });
+
+/** Full server-side settlement for PLATFORM_MANAGED wallets. */
+export const apiExecuteManagedSettlement = (payload: SettlementExecutePayload & { recipient_public_key?: string; amount?: number }) =>
+  apiRequest<SettlementReceipt2>("/api/settlement/execute-managed", {
     method: "POST",
     body: payload,
   });
@@ -454,7 +515,7 @@ export const apiCreateContract = (payload: {
   parties?: Array<{
     publicKey: string;
     userId?: string;
-    role: "SELLER" | "GUARANTOR" | "BROKER" | "WITNESS";
+    role: "BUYER" | "SELLER" | "GUARANTOR" | "BROKER" | "WITNESS";
     label?: string;
   }>;
 }) =>

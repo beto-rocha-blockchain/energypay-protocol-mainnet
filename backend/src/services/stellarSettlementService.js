@@ -10,6 +10,7 @@ import {
   TransactionBuilder,
 } from "@stellar/stellar-sdk";
 import { supabase } from "../lib/supabase.js";
+import { decryptSecret } from "../lib/crypto.js";
 
 import { horizon as server, NETWORK_PASSPHRASE, explorerTxUrl } from "../lib/stellar-network.js";
 const SUPPORTED_ASSETS = new Set(["XLM", "EPWR"]);
@@ -123,7 +124,10 @@ const resolvePaymentContext = (assetCode, userKeypair) => {
 
 /**
  * Resolve the sender's Keypair from the authenticated user's Supabase record.
- * Returns null if the user has no stored secret (caller falls back to custody).
+ *
+ * - PLATFORM_MANAGED: decrypts the stored AES ciphertext and returns a Keypair.
+ * - USER_CONTROLLED: throws — settlement must go through prepareUnsignedXdr().
+ * - Returns null if userId is missing (caller falls back to custody accounts).
  */
 const resolveUserKeypair = async (userId) => {
   if (!userId) return null;
@@ -131,17 +135,92 @@ const resolveUserKeypair = async (userId) => {
   try {
     const { data: user, error } = await supabase
       .from("users")
-      .select("stellar_secret_encrypted")
+      .select("stellar_secret_encrypted, wallet_mode")
       .eq("id", userId)
       .single();
 
-    if (error || !user?.stellar_secret_encrypted) return null;
+    if (error || !user) return null;
 
-    return Keypair.fromSecret(user.stellar_secret_encrypted);
-  } catch {
+    // USER_CONTROLLED wallets never have a stored secret — require XDR signing flow
+    if (user.wallet_mode === "USER_CONTROLLED") {
+      throw Object.assign(
+        new Error("USER_CONTROLLED wallet requires local signing. Use /api/settlement/prepare instead."),
+        { code: "USER_CONTROLLED_REQUIRES_SIGNATURE", status: 422 },
+      );
+    }
+
+    if (!user.stellar_secret_encrypted) return null;
+
+    // Decrypt AES ciphertext — secret used only in memory, never logged or returned
+    const rawSecret = decryptSecret(user.stellar_secret_encrypted);
+    return Keypair.fromSecret(rawSecret);
+  } catch (err) {
+    if (err.code === "USER_CONTROLLED_REQUIRES_SIGNATURE") throw err;
     return null;
   }
 };
+
+/**
+ * Prepare an unsigned transaction XDR for USER_CONTROLLED wallets.
+ * The frontend signs locally and submits via /api/settlement/submit-signed.
+ */
+export async function prepareUnsignedXdr({ senderPublicKey, recipientPublicKey, asset, amount, memo }) {
+  const assetCode = normalizeAssetCode(asset);
+  const normalizedAmount = normalizeAmount(amount);
+  const destination = recipientPublicKey;
+
+  if (!StrKey.isValidEd25519PublicKey(destination)) {
+    throw new SettlementInputError("Invalid recipient public key.", 422);
+  }
+
+  const resolvedAsset = assetCode === "XLM"
+    ? Asset.native()
+    : new Asset(assetCode, resolveIssuerPublicKey());
+
+  const account = await server.loadAccount(senderPublicKey);
+  const memoText = memo
+    ? Buffer.byteLength(memo, "utf8") <= 28 ? memo : Buffer.from(memo, "utf8").subarray(0, 28).toString("utf8")
+    : `EP-${Date.now()}`;
+
+  const tx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: NETWORK_PASSPHRASE,
+  })
+    .addOperation(
+      Operation.payment({ destination, asset: resolvedAsset, amount: normalizedAmount }),
+    )
+    .addMemo(Memo.text(memoText))
+    .setTimeout(300) // 5 minutes for the user to sign locally
+    .build();
+
+  return tx.toXDR();
+}
+
+/**
+ * Submit a pre-signed XDR transaction from a USER_CONTROLLED wallet.
+ * The frontend signed it locally using the Stellar SDK with Networks.PUBLIC.
+ */
+export async function submitSignedXdr(signedXdr) {
+  const { Transaction } = await import("@stellar/stellar-sdk");
+  const startedAt = Date.now();
+
+  try {
+    const tx = new Transaction(signedXdr, NETWORK_PASSPHRASE);
+    const submission = await server.submitTransaction(tx);
+    return {
+      txHash: submission.hash,
+      ledger: submission.ledger,
+      successful: submission.successful,
+      finalityMs: Date.now() - startedAt,
+      explorerUrl: explorerTxUrl(submission.hash),
+    };
+  } catch (error) {
+    const wrapped = new Error(horizonErrorMessage(error));
+    wrapped.status = error?.response?.status || 502;
+    wrapped.code = "STELLAR_SUBMISSION_FAILED";
+    throw wrapped;
+  }
+}
 
 const buildSettlementRecord = (payload, result, operator) => ({
   settlement_id:

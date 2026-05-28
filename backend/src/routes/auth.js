@@ -4,16 +4,15 @@ import axios from "axios";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 
-import { Keypair, Operation, TransactionBuilder, BASE_FEE } from "@stellar/stellar-sdk";
+import { Keypair, Operation, TransactionBuilder, BASE_FEE, StrKey } from "@stellar/stellar-sdk";
 
 import { supabase } from "../lib/supabase.js";
 import {
-  FRIENDBOT_URL,
-  FRIENDBOT_AVAILABLE,
   NETWORK_LABEL,
   NETWORK_PASSPHRASE,
   horizon,
 } from "../lib/stellar-network.js";
+import { encryptSecret } from "../lib/crypto.js";
 import { Asset } from "@stellar/stellar-sdk";
 import { sendWelcomeEmail, sendPasswordResetEmail, sendVerificationEmail } from "../services/emailService.js";
 import { sendWhatsAppVerificationCode } from "../services/whatsappService.js";
@@ -50,7 +49,8 @@ router.post("/register", async (req, res) => {
       coords,
       wallet_mode,
       existing_public_key,
-      existing_secret,
+      // existing_secret intentionally NOT accepted — USER_CONTROLLED wallets
+      // are identified by public key only; the secret never leaves the user's device.
       energy_type,
     } = req.body;
 
@@ -96,101 +96,101 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ success: false, error: "email already registered" });
     }
 
-    // ── Keypair resolution ───────────────────────────────────────────────────
-    let pair, publicKey, secretKey;
+    // ── Wallet mode resolution ───────────────────────────────────────────────
+    //
+    // PLATFORM_MANAGED (default): backend generates keypair, encrypts the
+    //   secret with AES (crypto.js), stores ciphertext. Frontend never sees
+    //   the secret key.
+    //
+    // USER_CONTROLLED: user provides only their public key. The backend
+    //   validates the account on Stellar Mainnet and stores ONLY the public
+    //   key. Secret key is NEVER accepted, stored, or logged.
 
-    if (wallet_mode === "link" && existing_public_key && existing_secret) {
-      // Validate provided keypair: secret must derive to the given public key
-      try {
-        const provided = Keypair.fromSecret(existing_secret);
-        if (provided.publicKey() !== existing_public_key) {
-          return res.status(400).json({
-            success: false,
-            error: "The provided secret key does not match the provided public key.",
-            code: "WALLET_KEY_MISMATCH",
-          });
-        }
-        pair = provided;
-        publicKey = existing_public_key;
-        secretKey = existing_secret;
-        console.log(`[Register] Linking existing wallet: ${publicKey}`);
-      } catch (keyErr) {
+    const resolvedMode =
+      wallet_mode === "USER_CONTROLLED" ? "USER_CONTROLLED" : "PLATFORM_MANAGED";
+
+    let publicKey;
+    let encryptedSecret = null; // null for USER_CONTROLLED — no secret stored
+
+    if (resolvedMode === "USER_CONTROLLED") {
+      // Accept only public key — reject any attempt to send a secret
+      if (!existing_public_key || !StrKey.isValidEd25519PublicKey(existing_public_key.trim())) {
         return res.status(400).json({
           success: false,
-          error: "Invalid Stellar key format. Verify your public key (G…) and secret key (S…).",
-          code: "WALLET_INVALID_KEY",
+          error: "A valid Stellar Mainnet public key (G…, 56 chars) is required.",
+          code: "INVALID_PUBLIC_KEY",
+        });
+      }
+      publicKey = existing_public_key.trim();
+
+      // Validate the account exists on Stellar Mainnet
+      try {
+        await horizon.loadAccount(publicKey);
+        console.log(`[Register] USER_CONTROLLED wallet validated on mainnet: ${publicKey}`);
+      } catch {
+        return res.status(400).json({
+          success: false,
+          error: "This Stellar account was not found on Mainnet. Fund it with at least 1 XLM and retry.",
+          code: "ACCOUNT_NOT_FOUND_ON_MAINNET",
         });
       }
     } else {
-      // Default: generate a fresh keypair
-      pair = Keypair.random();
+      // PLATFORM_MANAGED — generate fresh keypair and encrypt the secret
+      const pair = Keypair.random();
       publicKey = pair.publicKey();
-      secretKey = pair.secret();
+      // Security: encrypt before storing — NEVER store raw secret
+      encryptedSecret = encryptSecret(pair.secret());
+      console.log(`[Register] PLATFORM_MANAGED keypair generated for new account.`);
     }
 
-    // ── Account funding ──────────────────────────────────────────────────────
+    // ── Account funding (PLATFORM_MANAGED only) ──────────────────────────────
     let stellarFunded = false;
 
-    // For linked wallets: check whether the account already exists on-chain.
-    // If it does, skip funding entirely — we don't want to waste operator XLM.
-    if (wallet_mode === "link") {
-      try {
-        await horizon.loadAccount(publicKey);
-        stellarFunded = true;
-        console.log(`[Register] Linked wallet ${publicKey} already on-chain — skipping funding.`);
-      } catch {
-        console.log(`[Register] Linked wallet ${publicKey} not found on-chain — will attempt funding.`);
-      }
-    }
-
-    if (!stellarFunded) {
-      if (FRIENDBOT_AVAILABLE) {
-        // Testnet: use Friendbot for free funding
+    if (resolvedMode === "PLATFORM_MANAGED") {
+      // Mainnet: fund new account from Operator with minimum XLM (2.5 XLM)
+      const operatorSecret = (process.env.OPERATOR_SECRET || process.env.STELLAR_SECRET || "").trim();
+      if (operatorSecret) {
         try {
-          await axios.get(`${FRIENDBOT_URL}?addr=${publicKey}`, { timeout: 15000 });
+          const operatorKeypair = Keypair.fromSecret(operatorSecret);
+          const operatorAccount = await horizon.loadAccount(operatorKeypair.publicKey());
+
+          const tx = new TransactionBuilder(operatorAccount, {
+            fee: BASE_FEE,
+            networkPassphrase: NETWORK_PASSPHRASE,
+          })
+            .addOperation(
+              Operation.createAccount({
+                destination: publicKey,
+                startingBalance: "2.5",
+              }),
+            )
+            .setTimeout(30)
+            .build();
+
+          tx.sign(operatorKeypair);
+          await horizon.submitTransaction(tx);
           stellarFunded = true;
-        } catch (friendbotError) {
-          console.warn("Friendbot unavailable (non-fatal):", friendbotError.message);
-        }
-      } else {
-        // Mainnet: fund new account from Operator with minimum XLM (2.5 XLM)
-        const operatorSecret = (process.env.OPERATOR_SECRET || process.env.STELLAR_SECRET || "").trim();
-        if (operatorSecret) {
-          try {
-            const operatorKeypair = Keypair.fromSecret(operatorSecret);
-            const operatorAccount = await horizon.loadAccount(operatorKeypair.publicKey());
-
-            const tx = new TransactionBuilder(operatorAccount, {
-              fee: BASE_FEE,
-              networkPassphrase: NETWORK_PASSPHRASE,
-            })
-              .addOperation(
-                Operation.createAccount({
-                  destination: publicKey,
-                  startingBalance: "2.5", // Minimum for account + trustlines
-                }),
-              )
-              .setTimeout(30)
-              .build();
-
-            tx.sign(operatorKeypair);
-            await horizon.submitTransaction(tx);
-            stellarFunded = true;
-            console.log(`Mainnet: funded new account ${publicKey} with 2.5 XLM from Operator`);
-          } catch (fundError) {
-            console.warn("Mainnet funding failed (non-fatal):", fundError.message);
-          }
+          console.log(`[Register] PLATFORM_MANAGED account ${publicKey} funded with 2.5 XLM.`);
+        } catch (fundError) {
+          console.warn("[Register] Mainnet funding failed (non-fatal):", fundError.message);
         }
       }
+    } else {
+      // USER_CONTROLLED — account already exists on-chain (validated above)
+      stellarFunded = true;
     }
 
-    // Auto-create EPWR trustline so the account can receive the token
+    // ── Auto-create EPWR trustline (PLATFORM_MANAGED only) ───────────────────
+    // USER_CONTROLLED wallets sign their own trustline via TransactionSigningModal.
     let epwrTrustline = false;
-    if (stellarFunded) {
+    if (resolvedMode === "PLATFORM_MANAGED" && stellarFunded && encryptedSecret) {
       try {
         const issuerPK = (process.env.EPWR_ISSUER_PUBLIC_KEY || "").trim();
         if (issuerPK) {
-          const userKeypair = Keypair.fromSecret(secretKey);
+          // Decrypt to sign — secret used only in memory, not logged
+          const { decryptSecret } = await import("../lib/crypto.js");
+          const rawSecret = decryptSecret(encryptedSecret);
+          const userKeypair = Keypair.fromSecret(rawSecret);
           const userAccount = await horizon.loadAccount(publicKey);
 
           const trustTx = new TransactionBuilder(userAccount, {
@@ -208,10 +208,10 @@ router.post("/register", async (req, res) => {
           trustTx.sign(userKeypair);
           await horizon.submitTransaction(trustTx);
           epwrTrustline = true;
-          console.log(`EPWR trustline created for new account ${publicKey}`);
+          console.log(`[Register] EPWR trustline created for ${publicKey}.`);
         }
       } catch (trustError) {
-        console.warn("EPWR trustline creation failed (non-fatal):", trustError.message);
+        console.warn("[Register] EPWR trustline creation failed (non-fatal):", trustError.message);
       }
     }
 
@@ -233,7 +233,12 @@ router.post("/register", async (req, res) => {
       organization,
       roles,
       stellar_public_key: publicKey,
-      stellar_secret_encrypted: secretKey, // HACKATHON ONLY
+      // SECURITY: only PLATFORM_MANAGED wallets have an encrypted secret stored.
+      // USER_CONTROLLED: null — secret never leaves the user's device.
+      stellar_secret_encrypted: encryptedSecret,
+      wallet_mode: resolvedMode,
+      wallet_status: "ACTIVE",
+      wallet_network: "PUBLIC",
       country,
       city,
       address,
@@ -310,6 +315,8 @@ router.post("/register", async (req, res) => {
         organization: data[0].organization,
         roles: data[0].roles,
         stellar_public_key: publicKey,
+        wallet_mode: resolvedMode,
+        wallet_status: "ACTIVE",
         country: data[0].country,
         city,
         address,
@@ -317,10 +324,10 @@ router.post("/register", async (req, res) => {
         coords: data[0].coords ?? coords ?? null,
         email_verified: false,
         phone_verified: false,
-        phone: data[0].phone ?? phone ?? null,
       },
       provisioning: {
         wallet_created: true,
+        wallet_mode: resolvedMode,
         stellar_funded: stellarFunded,
         epwr_trustline: epwrTrustline,
         settlement_ready: stellarFunded && epwrTrustline,
@@ -376,6 +383,8 @@ router.post("/login", async (req, res) => {
         organization: data.organization,
         roles: data.roles,
         stellar_public_key: data.stellar_public_key,
+        wallet_mode: data.wallet_mode ?? "PLATFORM_MANAGED",
+        wallet_status: data.wallet_status ?? "ACTIVE",
         country: data.country,
         city: data.city,
         address: data.address,
@@ -383,12 +392,12 @@ router.post("/login", async (req, res) => {
         coords: data.coords ?? null,
         email_verified: !!data.email_verified,
         phone_verified: !!data.phone_verified,
-        phone: data.phone || null,
       },
       wallet: {
         publicKey: data.stellar_public_key,
         network: NETWORK_LABEL,
         funded: true,
+        walletMode: data.wallet_mode ?? "PLATFORM_MANAGED",
       },
     });
   } catch (err) {

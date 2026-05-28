@@ -58,6 +58,8 @@ import {
   apiActivateContract,
   apiRequestSettlement,
   apiExecuteContractSettlement,
+  apiPrepareSettlement,
+  apiSubmitSignedSettlement,
   apiGetMovements,
   apiReconcileContract,
   apiGetContractDocumentUrl,
@@ -65,6 +67,7 @@ import {
   type ContractMovement,
   type ContractReconciliation,
 } from "@/lib/api";
+import { TransactionSigningModal } from "@/components/TransactionSigningModal";
 import { toast } from "sonner";
 import { useOperator } from "@/store/operator";
 
@@ -211,6 +214,10 @@ function LifecycleActions({
   const [movements, setMovements] = useState<ContractMovement[]>([]);
   const [reconciliation, setReconciliation] = useState<ContractReconciliation | null>(null);
   const [reconLoading, setReconLoading] = useState(false);
+  // USER_CONTROLLED signing modal
+  const [signingModalOpen, setSigningModalOpen] = useState(false);
+  const [pendingUnsignedXdr, setPendingUnsignedXdr] = useState("");
+  const [pendingSettlementId, setPendingSettlementId] = useState("");
 
   // ── Role guards ─────────────────────────────────────────────────────────────
   const operator = useOperator((s) => s.operator);
@@ -291,7 +298,45 @@ function LifecycleActions({
   };
 
   const executeSettlement = async () => {
+    if (!dbContract) return;
     setBusy(true);
+
+    if (operator?.wallet?.walletMode === "USER_CONTROLLED") {
+      // USER_CONTROLLED: prepare unsigned XDR locally, open signing modal
+      try {
+        // Determine the settlement recipient: the other party in the contract
+        const recipientKey =
+          operator.wallet.publicKey === dbContract.buyer_public_key
+            ? dbContract.seller_public_key ?? ""
+            : dbContract.buyer_public_key ?? "";
+
+        if (!recipientKey) {
+          toast.error("Cannot determine settlement recipient from contract.");
+          setBusy(false);
+          return;
+        }
+
+        const settlementId = `CTR-${dbContract.id.slice(0, 8)}-${Date.now()}`;
+        const prep = await apiPrepareSettlement({
+          recipient_public_key: recipientKey,
+          asset: "EPWR",
+          amount: dbContract.price_brl,
+          memo: `CTR-${dbContract.id.slice(0, 8)}`,
+          contract_id: dbContract.id,
+          settlement_id: settlementId,
+        });
+        setPendingUnsignedXdr(prep.unsigned_xdr);
+        setPendingSettlementId(prep.settlement_id);
+        setSigningModalOpen(true);
+      } catch (err) {
+        toast.error("Settlement preparation failed", { description: (err as Error).message });
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
+    // PLATFORM_MANAGED: full server-side execution
     try {
       const res = await apiExecuteContractSettlement(dbContract.id);
       toast.success("Settlement executed", {
@@ -300,6 +345,27 @@ function LifecycleActions({
       onRefresh();
     } catch (err) {
       toast.error("Settlement execution failed", { description: (err as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleContractSigned = async (signedXdr: string) => {
+    setSigningModalOpen(false);
+    setBusy(true);
+    try {
+      const res = await apiSubmitSignedSettlement({
+        settlement_id: pendingSettlementId,
+        signed_xdr: signedXdr,
+        contract_id: dbContract?.id,
+        amount_brl: dbContract?.price_brl,
+      });
+      toast.success("Contract settlement executed", {
+        description: `Tx ${res.tx_hash.slice(0, 12)}… · Ledger #${res.ledger}`,
+      });
+      onRefresh();
+    } catch (err) {
+      toast.error("Contract settlement failed", { description: (err as Error).message });
     } finally {
       setBusy(false);
     }
@@ -469,6 +535,19 @@ function LifecycleActions({
         )}
       </div>
       )}
+
+      {/* USER_CONTROLLED local signing modal for contract settlement */}
+      <TransactionSigningModal
+        open={signingModalOpen}
+        unsignedXdr={pendingUnsignedXdr}
+        settlementId={pendingSettlementId}
+        onSigned={handleContractSigned}
+        onCancel={() => {
+          setSigningModalOpen(false);
+          setBusy(false);
+          toast.info("Contract settlement signing cancelled.");
+        }}
+      />
     </div>
   );
 }

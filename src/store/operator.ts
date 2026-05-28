@@ -152,11 +152,30 @@ export const ROLE_META: Record<
   },
 };
 
+export type WalletMode = "PLATFORM_MANAGED" | "USER_CONTROLLED";
+
+export type WalletStatus =
+  | "PENDING"
+  | "ACTIVE"
+  | "ACCOUNT_NOT_FOUND"
+  | "TRUSTLINE_REQUIRED"
+  | "PENDING_SIGNATURE"
+  | "SIGNATURE_REQUIRED"
+  | "READY_FOR_SETTLEMENT"
+  | "FUNDED"
+  | "PROVISIONED"
+  | "FAILED";
+
 export type StellarKeypair = {
   publicKey: string;
   network: string;
   funded: boolean;
-  status: string;
+  status: WalletStatus;
+  /** How this wallet's secret key is managed. Defaults to PLATFORM_MANAGED for
+   *  existing users; USER_CONTROLLED wallets sign transactions locally. */
+  walletMode: WalletMode;
+  /** True when the account has a valid EPWR trustline on Stellar Mainnet. */
+  hasEpwrTrustline: boolean;
 };
 
 export type OperatorCoords = { lat: number; lng: number; source: "GPS" | "MANUAL" };
@@ -210,7 +229,6 @@ type OperatorState = {
     energyType?: "SOLAR" | "HYDRO" | "SMALL_HYDRO" | "WIND" | "BIOMASS" | "NATURAL_GAS" | "NUCLEAR" | "THERMAL" | "COGENERATION";
     walletMode?: "generate" | "link";
     existingPublicKey?: string;
-    existingSecretKey?: string;
     authorityType?: AuthorityType;
   }) => Promise<OperatorIdentity>;
   setRoles: (roles: ParticipantRole[]) => void;
@@ -267,7 +285,9 @@ const identityFromSession = (session: AuthSession): OperatorIdentity => {
     publicKey: u.stellar_public_key,
     network: u.network ?? STELLAR_NETWORK,
     funded: !!u.funded,
-    status: u.wallet_status ?? (u.funded ? "FUNDED" : "PROVISIONED"),
+    status: (u.wallet_status ?? (u.funded ? "FUNDED" : "PROVISIONED")) as WalletStatus,
+    walletMode: (u.wallet_mode as WalletMode) ?? "PLATFORM_MANAGED",
+    hasEpwrTrustline: !!u.has_epwr_trustline,
   };
   return {
     operatorId: u.id,
@@ -341,7 +361,6 @@ export const useOperator = create<OperatorState>()((set, get) => ({
     energyType,
     walletMode,
     existingPublicKey,
-    existingSecretKey,
     authorityType,
   }) => {
     if (!roles.length) throw new Error("Select at least one market participant role.");
@@ -359,7 +378,6 @@ export const useOperator = create<OperatorState>()((set, get) => ({
       energy_type: energyType,
       wallet_mode: walletMode,
       existing_public_key: walletMode === "link" ? existingPublicKey : undefined,
-      existing_secret: walletMode === "link" ? existingSecretKey : undefined,
       authority_type: roles.includes("REGULATORY_AUTHORITY") ? authorityType : undefined,
     };
     const res = await apiRegister(payload);

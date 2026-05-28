@@ -103,8 +103,6 @@ function RegisterPage() {
   const [manualLng, setManualLng] = useState("");
   const [walletMode, setWalletMode] = useState<"generate" | "link">("generate");
   const [existingPublicKey, setExistingPublicKey] = useState("");
-  const [existingSecretKey, setExistingSecretKey] = useState("");
-  const [showExistingSecret, setShowExistingSecret] = useState(false);
   const [energyType, setEnergyType] = useState<
     "SOLAR" | "HYDRO" | "SMALL_HYDRO" | "WIND" | "BIOMASS" | "NATURAL_GAS" | "NUCLEAR" | "THERMAL" | "COGENERATION"
   >("SOLAR");
@@ -142,12 +140,8 @@ useEffect(() => {
 
   const linkValid = useMemo(() => {
     if (walletMode !== "link") return true;
-    const pubOk =
-      existingPublicKey.trim().startsWith("G") && existingPublicKey.trim().length === 56;
-    const secOk =
-      existingSecretKey.trim().startsWith("S") && existingSecretKey.trim().length === 56;
-    return pubOk && secOk;
-  }, [walletMode, existingPublicKey, existingSecretKey]);
+    return existingPublicKey.trim().startsWith("G") && existingPublicKey.trim().length === 56;
+  }, [walletMode, existingPublicKey]);
 
   const formValid = useMemo(
     () =>
@@ -201,7 +195,6 @@ useEffect(() => {
         energyType: roles.includes("GENERATOR") ? energyType : undefined,
         walletMode,
         existingPublicKey: walletMode === "link" ? existingPublicKey : undefined,
-        existingSecretKey: walletMode === "link" ? existingSecretKey : undefined,
       });
       setProvisionError(null);
       setStep("verify-email");
@@ -749,14 +742,14 @@ useEffect(() => {
                       {
                         id: "generate" as const,
                         icon: Zap,
-                        label: "Generate New Account",
-                        desc: "Platform generates and manages your ed25519 keypair",
+                        label: "EnergyPay Managed Wallet",
+                        desc: "Platform generates and securely manages your keypair — secret never exposed in the frontend",
                       },
                       {
                         id: "link" as const,
                         icon: KeyRound,
-                        label: "Link Existing Account",
-                        desc: "Connect your existing Stellar wallet to this identity",
+                        label: "Link Existing Wallet",
+                        desc: "Provide your public key — you sign each transaction locally, secret never stored",
                       },
                     ] as const
                   ).map((opt) => {
@@ -811,9 +804,8 @@ useEffect(() => {
                 {walletMode === "generate" && (
                   <div className="mt-2 rounded-md border border-border bg-background/40 p-2.5">
                     <p className="font-mono text-[10px] text-muted-foreground">
-                      A new ed25519 keypair will be generated and held by the EnergyPay backend.
-                      Your public key is always accessible from your profile. The frontend never
-                      receives the secret key.
+                      A new ed25519 keypair will be generated server-side, encrypted with AES-256 and stored securely by EnergyPay.
+                      Your public key is always visible in your profile. The secret key is never transmitted to or stored in the frontend.
                     </p>
                   </div>
                 )}
@@ -821,7 +813,7 @@ useEffect(() => {
                 {walletMode === "link" && (
                   <div className="mt-3 space-y-3 rounded-md border border-border bg-background/40 p-3">
                     <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                      Existing Wallet Credentials
+                      Existing Wallet — Public Key Only
                     </div>
                     <Field
                       label="Stellar Public Key (G…)"
@@ -843,43 +835,15 @@ useEffect(() => {
                           Must be a 56-character Stellar public key starting with G
                         </p>
                       )}
-                    <Field label="Secret Key (S…)" icon={<Lock className="h-3.5 w-3.5" />}>
-                      <Input
-                        type={showExistingSecret ? "text" : "password"}
-                        value={existingSecretKey}
-                        onChange={(e) => setExistingSecretKey(e.target.value.trim())}
-                        placeholder="SABC… · 56 characters"
-                        className="h-9 pl-8 pr-9 font-mono text-xs tracking-widest"
-                        maxLength={58}
-                        autoComplete="off"
-                        spellCheck={false}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowExistingSecret((v) => !v)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        {showExistingSecret ? (
-                          <EyeOff className="h-3.5 w-3.5" />
-                        ) : (
-                          <Eye className="h-3.5 w-3.5" />
-                        )}
-                      </button>
-                    </Field>
-                    {existingSecretKey &&
-                      (existingSecretKey.length !== 56 || !existingSecretKey.startsWith("S")) && (
-                        <p className="-mt-1 font-mono text-[10px] text-destructive">
-                          Must be a 56-character Stellar secret key starting with S
-                        </p>
-                      )}
-                    <div className="rounded-md border border-warning/40 bg-warning/5 p-2.5">
-                      <p className="font-mono text-[10px] uppercase tracking-widest text-warning">
-                        ⚠ Key Custody Notice
+                    <div className="rounded-md border border-primary/20 bg-primary/5 p-2.5">
+                      <p className="font-mono text-[10px] uppercase tracking-widest text-primary">
+                        Self-Custody · Zero Secret Storage
                       </p>
                       <p className="mt-1 text-[10px] text-muted-foreground">
-                        Your secret key will be stored by the EnergyPay backend to enable managed
-                        operations such as trustline creation and settlement execution. Only link a
-                        wallet you control and trust the platform to operate on your behalf.
+                        EnergyPay never stores, requests or transmits your secret key.
+                        When a transaction requires your signature, an unsigned XDR will be presented
+                        in a local signing modal — you enter your secret key, it signs in memory, and the
+                        signed transaction is sent directly to Stellar. Your secret never leaves your device.
                       </p>
                     </div>
                   </div>
@@ -887,8 +851,8 @@ useEffect(() => {
 
                 <div className="mt-1.5 font-mono text-[10px] text-muted-foreground">
                   {walletMode === "generate"
-                    ? "Backend-managed keypair · ed25519 · funded on Stellar Network"
-                    : "Self-custody import · provide public and secret keys to link"}
+                    ? "EnergyPay managed · AES-256 encrypted at rest · ed25519 · Stellar Mainnet"
+                    : "User-controlled · public key only · local signing modal for every transaction"}
                 </div>
               </div>
 
@@ -1007,13 +971,13 @@ useEffect(() => {
                     Signer custody
                   </div>
                   <div className="mt-0.5 font-mono text-[11px] text-foreground">
-                    {walletMode === "link" ? "Linked wallet" : "Backend custody"} · ed25519 ·{" "}
+                    {operator.wallet.walletMode === "USER_CONTROLLED" ? "User-controlled wallet" : "EnergyPay managed wallet"} · ed25519 ·{" "}
                     {operator.wallet.status}
                   </div>
                   <div className="mt-1 font-mono text-[10px] text-muted-foreground">
-                    {walletMode === "link"
-                      ? "Existing Stellar wallet linked to this identity. Secret key held by EnergyPay backend for managed operations."
-                      : "Secret seed is held by the EnergyPay backend. The frontend never receives the secret key."}
+                    {operator.wallet.walletMode === "USER_CONTROLLED"
+                      ? "Your public key is registered. Secret key never stored by EnergyPay — you sign each transaction locally."
+                      : "Secret key is encrypted with AES-256 and stored by EnergyPay. The frontend never receives or transmits the secret key."}
                   </div>
                 </div>
               </div>
