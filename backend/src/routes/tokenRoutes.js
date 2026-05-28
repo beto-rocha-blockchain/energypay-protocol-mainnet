@@ -16,6 +16,7 @@ import {
   sendEPWR,
 } from "../services/tokenService.js";
 
+import { decryptSecret } from "../lib/crypto.js";
 import { supabase } from "../lib/supabase.js";
 import {
   horizon,
@@ -217,8 +218,21 @@ router.post("/trustline/me", requireAuth, async (req, res) => {
       }
     }
 
+    // Decrypt AES-encrypted secret before passing to service.
+    let rawSecretForTrustline;
+    try {
+      rawSecretForTrustline = decryptSecret(user.stellar_secret_encrypted);
+      if (!rawSecretForTrustline) throw new Error("empty");
+    } catch {
+      return res.status(500).json({
+        success: false,
+        error: "Failed to decrypt wallet secret. Check MASTER_ENCRYPTION_KEY.",
+        code: "SECRET_DECRYPTION_FAILED",
+      });
+    }
+
     const result = await createTrustlineForSecret(
-      user.stellar_secret_encrypted,
+      rawSecretForTrustline,
       "user-trustline-created",
     );
 
@@ -268,7 +282,7 @@ router.post("/buy/me", requireAuth, async (req, res) => {
 
     const { data: user, error } = await supabase
       .from("users")
-      .select("id, stellar_public_key, stellar_secret_encrypted")
+      .select("id, stellar_public_key, stellar_secret_encrypted, wallet_mode")
       .eq("id", userId)
       .single();
 
@@ -280,6 +294,15 @@ router.post("/buy/me", requireAuth, async (req, res) => {
       });
     }
 
+    // USER_CONTROLLED wallets sign locally — server-side buy is not available.
+    if (user.wallet_mode === "USER_CONTROLLED") {
+      return res.status(422).json({
+        success: false,
+        error: "USER_CONTROLLED wallets cannot buy EPWR via the server. Sign the transaction locally.",
+        code: "USER_CONTROLLED_NOT_SUPPORTED",
+      });
+    }
+
     if (!user.stellar_secret_encrypted) {
       return res.status(422).json({
         success: false,
@@ -288,10 +311,20 @@ router.post("/buy/me", requireAuth, async (req, res) => {
       });
     }
 
-    const result = await buyEPWRWithXLMForUser(
-      user.stellar_secret_encrypted,
-      amount || "10",
-    );
+    // Decrypt AES-encrypted secret before passing to service.
+    let rawSecret;
+    try {
+      rawSecret = decryptSecret(user.stellar_secret_encrypted);
+      if (!rawSecret) throw new Error("empty");
+    } catch {
+      return res.status(500).json({
+        success: false,
+        error: "Failed to decrypt wallet secret. Check MASTER_ENCRYPTION_KEY.",
+        code: "SECRET_DECRYPTION_FAILED",
+      });
+    }
+
+    const result = await buyEPWRWithXLMForUser(rawSecret, amount || "10");
 
     return res.status(result.success ? 200 : 400).json({
       ...result,
@@ -322,7 +355,7 @@ router.post("/sell/me", requireAuth, async (req, res) => {
 
     const { data: user, error } = await supabase
       .from("users")
-      .select("id, stellar_public_key, stellar_secret_encrypted")
+      .select("id, stellar_public_key, stellar_secret_encrypted, wallet_mode")
       .eq("id", userId)
       .single();
 
@@ -334,6 +367,15 @@ router.post("/sell/me", requireAuth, async (req, res) => {
       });
     }
 
+    // USER_CONTROLLED wallets sign locally — server-side sell is not available.
+    if (user.wallet_mode === "USER_CONTROLLED") {
+      return res.status(422).json({
+        success: false,
+        error: "USER_CONTROLLED wallets cannot sell EPWR via the server. Sign the transaction locally.",
+        code: "USER_CONTROLLED_NOT_SUPPORTED",
+      });
+    }
+
     if (!user.stellar_secret_encrypted) {
       return res.status(422).json({
         success: false,
@@ -342,10 +384,20 @@ router.post("/sell/me", requireAuth, async (req, res) => {
       });
     }
 
-    const result = await sellEPWRForXLMForUser(
-      user.stellar_secret_encrypted,
-      amount || "10",
-    );
+    // Decrypt AES-encrypted secret before passing to service.
+    let rawSecret;
+    try {
+      rawSecret = decryptSecret(user.stellar_secret_encrypted);
+      if (!rawSecret) throw new Error("empty");
+    } catch {
+      return res.status(500).json({
+        success: false,
+        error: "Failed to decrypt wallet secret. Check MASTER_ENCRYPTION_KEY.",
+        code: "SECRET_DECRYPTION_FAILED",
+      });
+    }
+
+    const result = await sellEPWRForXLMForUser(rawSecret, amount || "10");
 
     return res.status(result.success ? 200 : 400).json({
       ...result,
