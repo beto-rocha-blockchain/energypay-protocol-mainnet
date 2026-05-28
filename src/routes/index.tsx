@@ -404,7 +404,6 @@ const ROLE_CONTEXT = {
     description: "You produce energy and sell it on the settlement network. Create sell contracts to offer your production to sellers and consumers. All settlements arrive as EPWR to your custody wallet.",
     actions: [
       { label: "Create Sell Contract", to: "/contracts/new", primary: true },
-      { label: "Generator Terminal", to: "/generator", primary: false },
       { label: "Settlement History", to: "/settlement", primary: false },
     ],
     tips: [

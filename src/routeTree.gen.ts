@@ -24,7 +24,6 @@ import { Route as OpsRouteImport } from './routes/ops'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as GridRouteImport } from './routes/grid'
-import { Route as GeneratorRouteImport } from './routes/generator'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ClearingRouteImport } from './routes/clearing'
 import { Route as AuditRouteImport } from './routes/audit'
@@ -117,11 +116,6 @@ const GridRoute = GridRouteImport.update({
   path: '/grid',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GeneratorRoute = GeneratorRouteImport.update({
-  id: '/generator',
-  path: '/generator',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
@@ -210,7 +204,6 @@ export interface FileRoutesByFullPath {
   '/audit': typeof AuditRoute
   '/clearing': typeof ClearingRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/generator': typeof GeneratorRoute
   '/grid': typeof GridRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
@@ -244,7 +237,6 @@ export interface FileRoutesByTo {
   '/audit': typeof AuditRoute
   '/clearing': typeof ClearingRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/generator': typeof GeneratorRoute
   '/grid': typeof GridRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
@@ -279,7 +271,6 @@ export interface FileRoutesById {
   '/audit': typeof AuditRoute
   '/clearing': typeof ClearingRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/generator': typeof GeneratorRoute
   '/grid': typeof GridRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
@@ -315,7 +306,6 @@ export interface FileRouteTypes {
     | '/audit'
     | '/clearing'
     | '/forgot-password'
-    | '/generator'
     | '/grid'
     | '/login'
     | '/notifications'
@@ -349,7 +339,6 @@ export interface FileRouteTypes {
     | '/audit'
     | '/clearing'
     | '/forgot-password'
-    | '/generator'
     | '/grid'
     | '/login'
     | '/notifications'
@@ -383,7 +372,6 @@ export interface FileRouteTypes {
     | '/audit'
     | '/clearing'
     | '/forgot-password'
-    | '/generator'
     | '/grid'
     | '/login'
     | '/notifications'
@@ -418,7 +406,6 @@ export interface RootRouteChildren {
   AuditRoute: typeof AuditRoute
   ClearingRoute: typeof ClearingRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
-  GeneratorRoute: typeof GeneratorRoute
   GridRoute: typeof GridRoute
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -555,13 +542,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GridRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/generator': {
-      id: '/generator'
-      path: '/generator'
-      fullPath: '/generator'
-      preLoaderRoute: typeof GeneratorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/forgot-password': {
       id: '/forgot-password'
       path: '/forgot-password'
@@ -682,7 +662,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuditRoute: AuditRoute,
   ClearingRoute: ClearingRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
-  GeneratorRoute: GeneratorRoute,
   GridRoute: GridRoute,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
