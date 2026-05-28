@@ -310,6 +310,7 @@ const identityFromSession = (session: AuthSession): OperatorIdentity => {
     fullName: u.full_name,
     organization: u.organization ?? "—",
     country: u.country ?? "—",
+    state: u.state ?? undefined,
     city: u.city ?? "—",
     coords: u.coords
       ? { lat: u.coords.lat, lng: u.coords.lng, source: u.coords.source ?? "MANUAL" }

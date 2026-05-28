@@ -100,6 +100,8 @@ export type ApiUser = {
   full_name: string;
   organization?: string;
   country?: string;
+  /** Brazilian state abbreviation (e.g. "SP", "MG", "RS"). Used for submercado ANEEL mapping. */
+  state?: string | null;
   city?: string;
   roles: string[];
   stellar_public_key: string;

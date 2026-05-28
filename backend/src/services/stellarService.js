@@ -24,6 +24,7 @@ export async function getBalance(publicKey) {
 
   return {
     balances: account.balances,
+    subentry_count: account.subentry_count ?? 0,
   };
 }
 

@@ -328,6 +328,37 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
         </Card>
       )}
 
+      {/* Unfunded account guidance — shown when Horizon confirms the account isn't on the ledger */}
+      {!error && !loading && data && !data.account_funded && (
+        <Card className="border-yellow-500/30 bg-yellow-500/5 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 text-yellow-500 shrink-0" />
+            <div className="flex-1">
+              <p className="font-mono text-[11px] uppercase tracking-widest text-yellow-500">
+                Settlement Account — Not Yet on the Ledger
+              </p>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                Your EnergyPay settlement account (<span className="font-mono text-foreground">{publicKey.slice(0, 6)}…{publicKey.slice(-6)}</span>) has not been activated on Stellar Mainnet yet.
+                To activate it, the account needs a minimum deposit of <strong>1 XLM</strong>.
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Please contact EnergyPay support or fund the account using Stellar Expert:
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <a
+                  href={stellarExpertAccount(publicKey)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-yellow-500 hover:bg-yellow-500/20 transition-colors"
+                >
+                  View on Stellar Expert <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Balance glow cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <BalanceGlowCard

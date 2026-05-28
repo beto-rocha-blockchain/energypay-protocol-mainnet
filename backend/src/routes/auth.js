@@ -330,12 +330,14 @@ router.post("/register", async (req, res) => {
         wallet_mode: resolvedMode,
         wallet_status: "ACTIVE",
         country: data[0].country,
+        state: state ?? data[0].state ?? null,
         city,
         address,
         has_solar_generation,
         coords: data[0].coords ?? coords ?? null,
         email_verified: false,
         phone_verified: false,
+        funded: stellarFunded,
       },
       provisioning: {
         wallet_created: true,
@@ -398,17 +400,21 @@ router.post("/login", async (req, res) => {
         wallet_mode: data.wallet_mode ?? "PLATFORM_MANAGED",
         wallet_status: data.wallet_status ?? "ACTIVE",
         country: data.country,
+        state: data.state ?? null,
         city: data.city,
         address: data.address,
         has_solar_generation: data.has_solar_generation,
         coords: data.coords ?? null,
         email_verified: !!data.email_verified,
         phone_verified: !!data.phone_verified,
+        // Funded = wallet_status is ACTIVE and there is a public key provisioned.
+        // The authoritative on-chain balance comes from /api/wallet/:key/balances.
+        funded: !!(data.stellar_public_key && data.wallet_status !== "FAILED"),
       },
       wallet: {
         publicKey: data.stellar_public_key,
         network: NETWORK_LABEL,
-        funded: true,
+        funded: !!(data.stellar_public_key && data.wallet_status !== "FAILED"),
         walletMode: data.wallet_mode ?? "PLATFORM_MANAGED",
       },
     });
