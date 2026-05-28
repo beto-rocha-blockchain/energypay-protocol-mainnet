@@ -118,6 +118,18 @@ const SUBSISTEMA_MAP = {
 };
 
 /**
+ * Full official region names for each Brazilian sub-market.
+ * ONS CSVs abbreviate SE as "SUDESTE", omitting Centro-Oeste.
+ * SE/CO is a single combined pricing zone — there is no separate Centro-Oeste zone.
+ */
+const NOME_MAP = {
+  SE: "Sudeste/Centro-Oeste",
+  S: "Sul",
+  NE: "Nordeste",
+  N: "Norte",
+};
+
+/**
  * GET /api/oracle/pld
  * Returns the latest CMO price per subsistema.
  */
@@ -138,7 +150,9 @@ router.get("/pld", async (_req, res) => {
     const prices = latest.map((r) => ({
       submercado: SUBSISTEMA_MAP[r.subsistema] || r.subsistema,
       subsistema: r.subsistema,
-      nome: r.nome,
+      // Use the full official region name; ONS abbreviates SE as "SUDESTE"
+      // but the correct label for the combined pricing zone is "Sudeste/Centro-Oeste".
+      nome: NOME_MAP[r.subsistema] || r.nome,
       cmo_brl_mwh: r.cmo,
       timestamp: r.timestamp,
     }));

@@ -28,6 +28,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDashboard } from "@/hooks/useDashboard";
 import { useSettlementRail } from "@/hooks/useSettlementRail";
+import { useMarketContext } from "@/hooks/useMarketContext";
 import { useOperator } from "@/store/operator";
 import { stellarExpertTx, STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import { API_BASE_URL } from "@/lib/api";
@@ -165,6 +166,7 @@ function useCounterpartyRisk() {
 }
 
 function ClearingPage() {
+  const market = useMarketContext();
   const { stats, settlements, horizon, loading, refresh } = useDashboard();
   const { health, telemetry } = useSettlementRail();
   const operator = useOperator((s) => s.operator);
@@ -186,11 +188,14 @@ function ClearingPage() {
       <div className="flex items-end justify-between">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Netting & Clearing · Risk & Collateral · Settlement Lifecycle
+            {market.clearingHouse.name} Model · Risk & Collateral · Settlement Lifecycle
           </p>
           <h1 className="font-display text-2xl font-semibold tracking-tight">
             Clearing House
           </h1>
+          <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
+            {market.clearingHouse.fullName} · {market.settlementCycle} {market.settlementWindow}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-widest">

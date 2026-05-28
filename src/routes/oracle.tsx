@@ -28,6 +28,7 @@ import { useSettlementRail } from "@/hooks/useSettlementRail";
 import { STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import { API_BASE_URL } from "@/lib/api";
 import { BrazilGridMap } from "@/components/generator/BrazilGridMap";
+import { useMarketContext } from "@/hooks/useMarketContext";
 
 export const Route = createFileRoute("/oracle")({
   head: () => ({
@@ -169,25 +170,29 @@ function usePldData() {
   return { prices, history, range, changeRange, updatedAt, source, loading, historyLoading, error, refresh };
 }
 
-/* ── Submercado colors ── */
+/* ── Submercado helpers (built from market config at runtime) ── */
 
-const SM_COLORS: Record<string, string> = {
-  SE: "oklch(0.78 0.13 215)",
-  S: "oklch(0.76 0.16 150)",
-  NE: "oklch(0.66 0.22 25)",
-  N: "oklch(0.82 0.16 75)",
-};
+/** Build color lookup from market sub-market config. */
+function buildSmColors(subMarkets: { id: string; color: string }[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const sm of subMarkets) out[sm.id] = sm.color;
+  return out;
+}
 
-const SM_LABELS: Record<string, string> = {
-  SE: "SE/CO",
-  S: "S",
-  NE: "NE",
-  N: "N",
-};
+/** Build short-label lookup from market sub-market config. */
+function buildSmLabels(subMarkets: { id: string; label: string }[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const sm of subMarkets) out[sm.id] = sm.label;
+  return out;
+}
 
 /* ── Page ── */
 
 function OraclePage() {
+  const market = useMarketContext();
+  const SM_COLORS = buildSmColors(market.subMarkets);
+  const SM_LABELS = buildSmLabels(market.subMarkets);
+
   const { stats, horizon, loading: dashLoading } = useDashboard();
   const { health } = useSettlementRail();
   const { prices, history, range, changeRange, updatedAt, source, loading: pldLoading, historyLoading, error: pldError, refresh: refreshPld } = usePldData();
@@ -209,11 +214,14 @@ function OraclePage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Oracle Center · ONS / CCEE · Real-Time CMO
+            Oracle Center · {market.gridOperator.name} / {market.clearingHouse.name} · Real-Time {market.referencePrice.costLabel}
           </p>
           <h1 className="font-display text-2xl font-semibold tracking-tight">
             Oracle & Market Data
           </h1>
+          <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
+            {market.marketType} · {market.referencePrice.label} — {market.referencePrice.fullName} · {market.currency}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-widest">
@@ -237,19 +245,22 @@ function OraclePage() {
             </Card>
           ))
         ) : prices.length > 0 ? (
-          prices.map((p) => (
-            <Card key={p.subsistema} className="border-border bg-card p-3">
-              <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                CMO · {p.submercado}
-              </p>
-              <p className="mt-1 font-mono text-2xl font-semibold text-primary">
-                R$ {p.cmo_brl_mwh.toFixed(2)}
-              </p>
-              <p className="mt-0.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                /MWh · {p.nome}
-              </p>
-            </Card>
-          ))
+          prices.map((p) => {
+            const sm = market.subMarkets.find((s) => s.id === p.subsistema);
+            return (
+              <Card key={p.subsistema} className="border-border bg-card p-3" style={{ borderTopColor: sm?.color, borderTopWidth: "2px" }}>
+                <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                  {market.referencePrice.costLabel} · {sm?.label ?? p.submercado}
+                </p>
+                <p className="mt-1 font-mono text-2xl font-semibold text-primary">
+                  {market.currencySymbol} {p.cmo_brl_mwh.toFixed(2)}
+                </p>
+                <p className="mt-0.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  /{market.energyUnit} · {sm?.name ?? p.nome}
+                </p>
+              </Card>
+            );
+          })
         ) : (
           <Card className="col-span-full border-border bg-card p-4 text-center">
             <p className="font-mono text-sm text-muted-foreground">
@@ -366,14 +377,16 @@ function OraclePage() {
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               Fonte: {source}
             </span>
-            <a
-              href="https://dados.ons.org.br/dataset/cmo-semi-horario"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-mono text-[10px] text-muted-foreground hover:text-primary"
-            >
-              dados.ons.org.br <ExternalLink className="h-3 w-3" />
-            </a>
+            {market.referencePrice.sourceUrl && (
+              <a
+                href={market.referencePrice.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-mono text-[10px] text-muted-foreground hover:text-primary"
+              >
+                {new URL(market.referencePrice.sourceUrl).hostname} <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
           </div>
         )}
       </Card>
@@ -385,9 +398,11 @@ function OraclePage() {
         {/* PLD by region */}
         <Card className="border-border bg-card p-4">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            PLD · Preço por Submercado
+            {market.referencePrice.label} · {market.referencePrice.fullName}
           </p>
-          <p className="mt-0.5 font-display text-sm font-semibold">Tempo Real · CCEE/ONS</p>
+          <p className="mt-0.5 font-display text-sm font-semibold">
+            Real-Time · {market.clearingHouse.name}/{market.gridOperator.name}
+          </p>
           <div className="mt-3 space-y-2">
             {pldLoading && prices.length === 0 ? (
               [1, 2, 3, 4].map((i) => (
@@ -395,7 +410,8 @@ function OraclePage() {
               ))
             ) : prices.length > 0 ? (
               prices.map((p) => {
-                const color = SM_COLORS[p.subsistema] ?? "oklch(0.78 0.13 215)";
+                const sm = market.subMarkets.find((s) => s.id === p.subsistema);
+                const color = sm?.color ?? SM_COLORS[p.subsistema] ?? "oklch(0.78 0.13 215)";
                 return (
                   <div
                     key={p.subsistema}
@@ -404,27 +420,24 @@ function OraclePage() {
                   >
                     <div>
                       <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                        {p.submercado} · Submercado
+                        {sm?.label ?? p.submercado} · Sub-Market
                       </p>
                       <p className="mt-0.5 font-mono text-xs font-semibold text-foreground">
-                        {p.nome}
+                        {sm?.name ?? p.nome}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p
-                        className="font-mono text-sm font-bold"
-                        style={{ color }}
-                      >
-                        R$ {p.cmo_brl_mwh.toFixed(2)}
+                      <p className="font-mono text-sm font-bold" style={{ color }}>
+                        {market.currencySymbol} {p.cmo_brl_mwh.toFixed(2)}
                       </p>
-                      <p className="font-mono text-[9px] text-muted-foreground">/MWh</p>
+                      <p className="font-mono text-[9px] text-muted-foreground">/{market.energyUnit}</p>
                     </div>
                   </div>
                 );
               })
             ) : (
               <p className="font-mono text-[11px] text-muted-foreground">
-                {pldError ? `Erro: ${pldError}` : "Carregando..."}
+                {pldError ? `Error: ${pldError}` : "Loading..."}
               </p>
             )}
           </div>
@@ -444,8 +457,8 @@ function OraclePage() {
           </p>
           <div className="mt-3 space-y-2">
             <FeedRow
-              source="ONS Open Data"
-              feed="CMO Semi-Horário"
+              source={`${market.gridOperator.name} Open Data`}
+              feed={`${market.referencePrice.costLabel} Semi-Hourly`}
               latency={null}
               status={prices.length > 0 ? "ok" : "degraded"}
             />
@@ -496,8 +509,8 @@ function OraclePage() {
           <div className="mt-3 space-y-2">
             <TelRow icon={<Gauge className="h-3.5 w-3.5" />} label="Horizon latency" value={`${horizonLatency} ms`} tone={horizonLatency < 1000 ? "ok" : "warn"} />
             <TelRow icon={<Activity className="h-3.5 w-3.5" />} label="Backend latency" value={`${backendLatency} ms`} tone={backendLatency < 500 ? "ok" : "warn"} />
-            <TelRow icon={<CheckCircle2 className="h-3.5 w-3.5" />} label="PLD feeds" value={`${prices.length} submercados`} tone={prices.length === 4 ? "ok" : "warn"} />
-            <TelRow icon={<ShieldCheck className="h-3.5 w-3.5" />} label="Data source" value="ONS" tone="ok" />
+            <TelRow icon={<CheckCircle2 className="h-3.5 w-3.5" />} label={`${market.referencePrice.label} feeds`} value={`${prices.length} / ${market.subMarkets.length} sub-markets`} tone={prices.length === market.subMarkets.length ? "ok" : "warn"} />
+            <TelRow icon={<ShieldCheck className="h-3.5 w-3.5" />} label="Data source" value={market.gridOperator.name} tone="ok" />
           </div>
         </Card>
       </div>

@@ -16,6 +16,7 @@ import {
 import { useOps } from "@/store/operations";
 import { ExecutionConsole } from "@/components/ExecutionConsole";
 import { StateMachine } from "@/components/StateMachine";
+import { useMarketContext } from "@/hooks/useMarketContext";
 
 export const Route = createFileRoute("/settlement")({
   head: () => ({
@@ -35,6 +36,7 @@ const fmtBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 });
 
 function SettlementPage() {
+  const market = useMarketContext();
   const contracts = useOps((s) => s.contracts);
   const [contractId, setContractId] = useState(contracts[0]?.id ?? "");
   const contract = contracts.find((c) => c.id === contractId) ?? contracts[0];
@@ -73,8 +75,10 @@ function SettlementPage() {
           Settlement Console
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Simulate exposure under PLD scenarios then execute atomic settlement on the Stellar
-          settlement rail.
+          Simulate exposure under {market.referencePrice.label} ({market.referencePrice.fullName}) scenarios then execute atomic settlement on the Stellar settlement rail.
+        </p>
+        <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
+          {market.clearingHouse.name} · {market.currency} · {market.settlementCycle} {market.settlementWindow} · {market.marketType}
         </p>
       </div>
 
@@ -109,7 +113,7 @@ function SettlementPage() {
                 label="Contracted Volume"
                 value={`${contract.volumeMWh.toLocaleString("pt-BR")} MWh`}
               />
-              <ReadOnly label="Contract Price" value={`R$ ${contract.priceBRL.toFixed(2)}`} />
+              <ReadOnly label="Contract Price" value={`${market.currencySymbol} ${contract.priceBRL.toFixed(2)}`} />
               <ReadOnly label="Settlement window" value={contract.window} />
               <ReadOnly label="Current state" value={contract.state} />
             </div>
@@ -117,9 +121,9 @@ function SettlementPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                  Simulated PLD
+                  Simulated {market.referencePrice.label}
                 </Label>
-                <span className="font-mono text-sm">R$ {pld.toFixed(2)} / MWh</span>
+                <span className="font-mono text-sm">{market.currencySymbol} {pld.toFixed(2)} / {market.energyUnit}</span>
               </div>
               <Slider
                 value={[pld]}
@@ -162,7 +166,7 @@ function SettlementPage() {
           <p className="mt-1 text-xs text-muted-foreground">{direction}</p>
 
           <div className="my-5 rounded-md border border-dashed border-border bg-background/40 p-3 font-mono text-[11px] text-muted-foreground">
-            settlement = (PLD − Price) × Volume
+            settlement = ({market.referencePrice.label} − Price) × Volume
             <br />= ({pld.toFixed(2)} − {contract.priceBRL.toFixed(2)}) × {contract.volumeMWh}
             <br />= <span className="text-foreground">{fmtBRL(settlement)}</span>
           </div>
