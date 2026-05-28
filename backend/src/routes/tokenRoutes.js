@@ -252,17 +252,39 @@ router.post("/trustline/me", requireAuth, async (req, res) => {
 });
 
 // Mints EPWR from issuer to distribution.
+// OPERATOR_ADMIN_KEY required — this endpoint mutates on-chain token supply.
 router.post("/mint", async (req, res) => {
-  const { amount } = req.body ?? {};
+  const adminKey = (process.env.OPERATOR_ADMIN_KEY || "").trim();
+  const provided  = (req.headers["x-admin-key"] || "").trim();
 
+  if (!adminKey || !provided || provided !== adminKey) {
+    return res.status(403).json({
+      success: false,
+      error: "Forbidden. Valid X-Admin-Key header required.",
+      code: "ADMIN_KEY_REQUIRED",
+    });
+  }
+
+  const { amount } = req.body ?? {};
   const result = await mintEPWR(amount || "1000");
   res.status(result.success ? 200 : 400).json(result);
 });
 
 // Sends EPWR from distribution to a destination account.
+// OPERATOR_ADMIN_KEY required — this endpoint moves on-chain tokens.
 router.post("/send", async (req, res) => {
-  const { destination, amount } = req.body ?? {};
+  const adminKey = (process.env.OPERATOR_ADMIN_KEY || "").trim();
+  const provided  = (req.headers["x-admin-key"] || "").trim();
 
+  if (!adminKey || !provided || provided !== adminKey) {
+    return res.status(403).json({
+      success: false,
+      error: "Forbidden. Valid X-Admin-Key header required.",
+      code: "ADMIN_KEY_REQUIRED",
+    });
+  }
+
+  const { destination, amount } = req.body ?? {};
   const result = await sendEPWR(destination, amount || "10");
   res.status(result.success ? 200 : 400).json(result);
 });
