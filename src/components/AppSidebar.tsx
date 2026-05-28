@@ -67,7 +67,7 @@ const filterItemsByRole = (items: Item[], roles: Role[]) => {
 
 const MARKET_OPS: Item[] = [
   {
-    title: "Operations",
+    title: "Operations Dashboard",
     url: "/",
     icon: LayoutDashboard,
     code: "EXE-01",
@@ -88,7 +88,7 @@ const MARKET_OPS: Item[] = [
 
 const RISK_DATA: Item[] = [
   {
-    title: "Netting & Clearing",
+    title: "Clearing House",
     url: "/clearing",
     icon: GitBranch,
     code: "RSK-01",
@@ -116,7 +116,7 @@ const SETTLEMENT: Item[] = [
     roles: ["GENERATOR", "SELLER", "INVESTOR", "UTILITY"],
   },
   {
-    title: "Settlement Engine",
+    title: "Settlement Console",
     url: "/settlement",
     icon: Calculator,
     code: "STL-02",
@@ -173,7 +173,7 @@ const TERMINALS: Item[] = [
 
 const UTILITY_OPS: Item[] = [
   {
-    title: "UC Registry",
+    title: "Consumer Registry",
     url: "/utility/uc",
     icon: MapPinned,
     code: "UTL-01",

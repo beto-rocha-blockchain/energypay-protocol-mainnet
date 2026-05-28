@@ -189,7 +189,7 @@ function ClearingPage() {
             Netting & Clearing · Risk & Collateral · Settlement Lifecycle
           </p>
           <h1 className="font-display text-2xl font-semibold tracking-tight">
-            Clearing House Console
+            Clearing House
           </h1>
         </div>
         <div className="flex items-center gap-2">

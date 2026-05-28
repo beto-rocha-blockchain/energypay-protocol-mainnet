@@ -65,7 +65,7 @@ function TreasuryPage() {
             Treasury · Settlement Rail Operations
           </p>
           <h1 className="font-display text-2xl font-semibold tracking-tight">
-            Treasury & Settlement Rails
+            Treasury & Rails
           </h1>
         </div>
         <div className="flex items-center gap-2">

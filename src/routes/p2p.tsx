@@ -505,7 +505,7 @@ function P2PPage() {
             Settlement Rails / Direct Peer-to-Peer
           </p>
           <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">
-            Direct Settlement Rail
+            Direct Settlement
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Real-time operator-to-operator settlement on Stellar. Programmable transfer

@@ -4,13 +4,8 @@ import {
   AlertTriangle,
   ArrowUpRight,
   ExternalLink,
-  FileSignature,
   Gauge,
   RefreshCw,
-  Users,
-  Zap,
-  CheckCircle2,
-  XCircle,
   Radio,
   Factory,
   TrendingUp,
@@ -199,9 +194,7 @@ function OperationsPage() {
           </p>
           <div className="mt-3 space-y-2">
             <TelRow icon={<Gauge className="h-3.5 w-3.5" />} label="Horizon latency" value={`${horizonLatency} ms`} tone={horizonLatency < 1000 ? "ok" : "warn"} />
-            <TelRow icon={<Activity className="h-3.5 w-3.5" />} label="Backend" value={health?.status === "ok" ? "ONLINE" : "OFFLINE"} tone={health?.status === "ok" ? "ok" : "warn"} />
-            <TelRow icon={<CheckCircle2 className="h-3.5 w-3.5" />} label="Settled" value={String(stats?.settled_count ?? 0)} tone="ok" />
-            <TelRow icon={<XCircle className="h-3.5 w-3.5" />} label="Failed" value={String(stats?.failed_count ?? 0)} tone={stats?.failed_count ? "warn" : "ok"} />
+            <TelRow icon={<Activity className="h-3.5 w-3.5" />} label="Backend API" value={health?.status === "ok" ? "ONLINE" : "OFFLINE"} tone={health?.status === "ok" ? "ok" : "warn"} />
           </div>
         </Card>
       </div>
@@ -476,17 +469,13 @@ const ROLE_CONTEXT = {
     accent: "border-orange-400/30 bg-orange-400/5",
     iconAccent: "text-orange-400 bg-orange-400/10 border-orange-400/30",
     label: "Utility Operations",
-    description: "You are a distribution concessionaire (concessionária). Manage your concession area, UC (Unidade Consumidora) registry, grid connections, and collect TUSD settlements from free-market participants using your distribution infrastructure.",
+    description: "",
     actions: [
-      { label: "UC Registry", to: "/utility/uc", primary: true },
+      { label: "Consumer Registry", to: "/utility/uc", primary: true },
       { label: "Grid Connections", to: "/utility/connections", primary: false },
       { label: "TUSD Settlement", to: "/utility/tusd", primary: false },
     ],
-    tips: [
-      "Issue Connection Certificates to generators and consumers in your concession area.",
-      "TUSD settlements arrive as EPWR — trackable per UC on-chain.",
-      "All free-market participants in your area flow through your distribution infrastructure.",
-    ],
+    tips: [],
   },
   REGULATORY_AUTHORITY: {
     Icon: Scale,
@@ -497,7 +486,7 @@ const ROLE_CONTEXT = {
     actions: [
       { label: "Audit & Compliance", to: "/audit", primary: true },
       { label: "Contract Registry", to: "/contracts", primary: false },
-      { label: "Settlement Engine", to: "/settlement", primary: false },
+      { label: "Settlement Console", to: "/settlement", primary: false },
     ],
     tips: [
       "Your access is strictly read-only — no execution, no wallet operations.",
@@ -510,50 +499,30 @@ const ROLE_CONTEXT = {
 function RoleContextPanel({ role }: { role: "GENERATOR" | "SELLER" | "INVESTOR" | "USER" | "UTILITY" | "REGULATORY_AUTHORITY" }) {
   const ctx = ROLE_CONTEXT[role];
   if (!ctx) return null;
-  const { Icon, accent, iconAccent, label, description, actions, tips } = ctx;
+  const { Icon, accent, iconAccent, label, actions } = ctx;
 
   return (
-    <Card className={`border ${accent} p-4`}>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+    <Card className={`border ${accent} px-4 py-3`}>
+      <div className="flex flex-wrap items-center gap-3">
         {/* Icon + label */}
-        <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:items-start sm:gap-2">
-          <div className={`flex h-9 w-9 items-center justify-center rounded-md border ${iconAccent}`}>
-            <Icon className="h-4.5 w-4.5" />
-          </div>
-          <div>
-            <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-              Role Context
-            </p>
-            <p className="font-display text-sm font-semibold leading-tight">{label}</p>
-          </div>
+        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${iconAccent}`}>
+          <Icon className="h-3.5 w-3.5" />
         </div>
-
-        {/* Description + tips */}
-        <div className="flex-1 space-y-2">
-          <p className="text-[12px] text-muted-foreground leading-relaxed">{description}</p>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {tips.map((tip) => (
-              <p key={tip} className="flex items-start gap-1.5 font-mono text-[10px] text-muted-foreground/70">
-                <span className="mt-px shrink-0 text-[8px]">▸</span>
-                {tip}
-              </p>
-            ))}
-          </div>
-        </div>
+        <p className="font-display text-sm font-semibold leading-tight">{label}</p>
 
         {/* Quick actions */}
-        <div className="flex shrink-0 flex-col gap-1.5 sm:items-end">
+        <div className="ml-auto flex flex-wrap gap-1.5">
           {actions.map((a) => (
             <Button
               key={a.to}
               asChild
               size="sm"
               variant={a.primary ? "default" : "outline"}
-              className="h-7 w-full justify-between font-mono text-[10px] uppercase tracking-widest sm:w-auto"
+              className="h-7 font-mono text-[10px] uppercase tracking-widest"
             >
               <Link to={a.to}>
                 {a.label}
-                <ArrowRight className="ml-2 h-3 w-3" />
+                <ArrowRight className="ml-1.5 h-3 w-3" />
               </Link>
             </Button>
           ))}

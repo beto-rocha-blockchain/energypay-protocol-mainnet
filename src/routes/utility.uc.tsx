@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { apiGetUtilityUC } from "@/lib/api";
-import { maskAddress, ROLE_COLORS, type ParticipantRole } from "@/store/operator";
+import { maskAddress, ROLE_COLORS, sortRoles, type ParticipantRole } from "@/store/operator";
 
 export const Route = createFileRoute("/utility/uc")({
   component: UtilityUCPage,
@@ -39,7 +39,7 @@ function UtilityUCPage() {
       <div className="flex items-center gap-3">
         <MapPinned className="h-5 w-5 text-orange-400" />
         <h1 className="font-mono text-sm uppercase tracking-widest text-orange-400">
-          UC Registry — UTL-01
+          Consumer Registry — UTL-01
         </h1>
       </div>
 
@@ -86,7 +86,7 @@ function UtilityUCPage() {
             </thead>
             <tbody>
               {users.map((user, i) => {
-                const roles: ParticipantRole[] = Array.isArray(user.roles) ? user.roles : [];
+                const roles: ParticipantRole[] = sortRoles(Array.isArray(user.roles) ? user.roles : []) as ParticipantRole[];
                 const isVerified = user.emailVerified || user.email_verified || user.phoneVerified || user.phone_verified;
                 return (
                   <tr key={user.id ?? i} className="border-b border-border/50 hover:bg-orange-400/5">

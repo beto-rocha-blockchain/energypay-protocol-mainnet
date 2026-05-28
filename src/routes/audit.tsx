@@ -77,7 +77,7 @@ function AuditPage() {
             Compliance Office · Ledger Provenance
           </p>
           <h1 className="font-display text-2xl font-semibold tracking-tight">
-            Audit & Compliance Center
+            Audit & Compliance
           </h1>
         </div>
         <div className="flex items-center gap-2">

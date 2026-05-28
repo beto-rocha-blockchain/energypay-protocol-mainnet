@@ -260,8 +260,9 @@ const buildPermissions = (roles: ParticipantRole[]) => {
   return Array.from(new Set([...base, ...rolePerms]));
 };
 
-/** Canonical display order for participant roles — single source of truth. */
-const ROLE_ORDER: ParticipantRole[] = [
+/** Canonical display order for participant roles — single source of truth.
+ *  Used for sorting role badges everywhere in the UI. */
+export const ROLE_ORDER: ParticipantRole[] = [
   "GENERATOR",
   "SELLER",
   "INVESTOR",
@@ -269,6 +270,18 @@ const ROLE_ORDER: ParticipantRole[] = [
   "USER",
   "REGULATORY_AUTHORITY",
 ];
+
+/**
+ * Sort any array of role strings into canonical display order.
+ * Unknown roles are pushed to the end.
+ */
+export function sortRoles(roles: string[]): string[] {
+  return [...roles].sort((a, b) => {
+    const ai = ROLE_ORDER.indexOf(a as ParticipantRole);
+    const bi = ROLE_ORDER.indexOf(b as ParticipantRole);
+    return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
+  });
+}
 
 const normalizeRoles = (roles: string[] | undefined): ParticipantRole[] => {
   if (!roles?.length) return ["SELLER"];

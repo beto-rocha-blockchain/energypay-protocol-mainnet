@@ -224,7 +224,7 @@ function X402Page() {
             Programmable API Monetization
           </p>
           <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight">
-            x402 Energy API Access
+            x402 API Access
           </h1>
           <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
             Demonstrates an x402-compatible HTTP 402 payment flow for premium PLD market data,

@@ -34,7 +34,7 @@ import {
   type EnergyType,
   type NodeStatus,
 } from "@/store/grid";
-import { useOperator, maskAddress, ROLE_COLORS, ROLE_META } from "@/store/operator";
+import { useOperator, maskAddress, ROLE_COLORS, ROLE_META, sortRoles } from "@/store/operator";
 import type { ParticipantRole } from "@/store/operator";
 
 // Leaflet map — client-only, loaded lazily to avoid SSR issues
@@ -144,7 +144,7 @@ function GridPage() {
             Operational Grid · Network Map
           </div>
           <h1 className="font-display text-xl font-semibold tracking-tight">
-            Settlement Network Operations Console
+            Operational Grid
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-widest">
@@ -334,7 +334,7 @@ function GridPage() {
                       {selected.organization}
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10px] uppercase tracking-widest">
-                      {selected.roles.map((r) => {
+                      {sortRoles(selected.roles).map((r) => {
                         const RIcon = ROLE_ICON[r] ?? ShieldCheck;
                         const roleColor = ROLE_COLORS[r]?.hex;
                         return (
@@ -478,7 +478,7 @@ function GridPage() {
                     <td className="px-3 py-2 font-mono text-foreground">{n.organization}</td>
                     <td className="px-3 py-2">
                       <div className="flex flex-wrap gap-x-2 gap-y-0.5">
-                        {n.roles.map((r) => (
+                        {sortRoles(n.roles).map((r) => (
                           <span
                             key={r}
                             className="font-mono text-[10px] uppercase tracking-widest"

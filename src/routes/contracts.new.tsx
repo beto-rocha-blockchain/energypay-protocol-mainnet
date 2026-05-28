@@ -66,7 +66,7 @@ const ATOMIC_OPS = [
   },
 ];
 
-import { ROLE_COLORS as _RC } from "@/store/operator";
+import { ROLE_COLORS as _RC, sortRoles } from "@/store/operator";
 // All 6 platform roles — no silent fallback to wrong color
 const ROLE_COLORS: Record<string, string> = {
   GENERATOR:            `${_RC.GENERATOR.border} ${_RC.GENERATOR.bg} ${_RC.GENERATOR.text}`,
@@ -225,6 +225,18 @@ function NewContract() {
 
   const removeParty = (publicKey: string) => {
     setParties((prev) => prev.filter((p) => p.stellar_public_key !== publicKey));
+  };
+
+  // Inline contract-role editor state
+  const [editingRoleFor, setEditingRoleFor] = useState<string | null>(null);
+
+  const changePartyRole = (publicKey: string, newRole: ContractRole) => {
+    setParties((prev) =>
+      prev.map((p) =>
+        p.stellar_public_key === publicKey ? { ...p, contractRole: newRole } : p,
+      ),
+    );
+    setEditingRoleFor(null);
   };
 
   // Derive primary counterparty for Stellar tx (depends on contract type)
@@ -461,14 +473,48 @@ function NewContract() {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className="text-[12px] font-medium text-foreground">{p.full_name}</span>
-                          <span
-                            className={cn(
-                              "rounded border px-1.5 py-0.5 font-mono text-[9px] uppercase",
-                              CONTRACT_ROLE_COLORS[p.contractRole],
-                            )}
-                          >
-                            {CONTRACT_ROLE_LABELS[p.contractRole]}
-                          </span>
+
+                          {/* Contract role — click to change inline */}
+                          {editingRoleFor === p.stellar_public_key ? (
+                            <div className="flex flex-wrap items-center gap-1">
+                              {availablePickerRoles.map((role) => (
+                                <button
+                                  key={role}
+                                  type="button"
+                                  onClick={() => changePartyRole(p.stellar_public_key, role)}
+                                  className={cn(
+                                    "rounded border px-1.5 py-0.5 font-mono text-[9px] uppercase transition-colors",
+                                    p.contractRole === role
+                                      ? CONTRACT_ROLE_COLORS[role]
+                                      : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground",
+                                  )}
+                                >
+                                  {CONTRACT_ROLE_LABELS[role]}
+                                </button>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => setEditingRoleFor(null)}
+                                className="rounded px-1 py-0.5 font-mono text-[9px] text-muted-foreground hover:text-foreground"
+                                aria-label="Cancel role change"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setEditingRoleFor(p.stellar_public_key)}
+                              title="Click to change contract role"
+                              className={cn(
+                                "rounded border px-1.5 py-0.5 font-mono text-[9px] uppercase transition-opacity hover:opacity-60",
+                                CONTRACT_ROLE_COLORS[p.contractRole],
+                              )}
+                            >
+                              {CONTRACT_ROLE_LABELS[p.contractRole]}
+                            </button>
+                          )}
+
                           <VerifiedBadges emailVerified={p.email_verified} phoneVerified={p.phone_verified} />
                         </div>
                         <div className="mt-0.5 flex flex-wrap items-center gap-2 font-mono text-[10px] text-muted-foreground">
@@ -477,7 +523,7 @@ function NewContract() {
                           <span>{p.stellar_public_key.slice(0, 8)}…{p.stellar_public_key.slice(-4)}</span>
                         </div>
                         <div className="mt-0.5 flex flex-wrap gap-1">
-                          {p.roles.map((r) => (
+                          {sortRoles(p.roles).map((r) => (
                             <span
                               key={r}
                               className={cn(
@@ -577,7 +623,7 @@ function NewContract() {
                                 </div>
                                 <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                                   <span className="flex flex-wrap gap-1">
-                                    {u.roles.map((r) => (
+                                    {sortRoles(u.roles).map((r) => (
                                       <span
                                         key={r}
                                         className={cn(

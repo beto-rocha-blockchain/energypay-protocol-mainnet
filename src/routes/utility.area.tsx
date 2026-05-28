@@ -42,9 +42,9 @@ function UtilityAreaPage() {
       {/* Description */}
       <Card className="border-orange-400/20 bg-orange-400/5 p-4">
         <p className="font-mono text-xs text-muted-foreground">
-          Áreas de concessão de distribuição registradas na plataforma EnergyPay.
-          Cada operador com role{" "}
-          <span className="text-orange-400">UTILITY</span> representa uma concessionária de distribuição.
+          Distribution concession areas registered on the EnergyPay platform.
+          Each operator with role{" "}
+          <span className="text-orange-400">UTILITY</span> represents a licensed distribution concessionaire.
         </p>
       </Card>
 
