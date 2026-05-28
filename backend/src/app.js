@@ -22,6 +22,7 @@ import contractRoutes from "./routes/contracts.js";
 import notificationRoutes from "./routes/notifications.js";
 import settlementRoutes from "./routes/settlement.js";
 import utilityRoutes from "./routes/utility.js";
+import subscriptionRoutes from "./routes/subscriptions.js";
 
 import { executeSettlement } from "./services/stellarSettlementService.js";
 import { NETWORK_NAME, IS_MAINNET } from "./lib/stellar-network.js";
@@ -52,6 +53,7 @@ app.use("/api/contracts", contractRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/settlement", settlementRoutes);
 app.use("/api/utility", utilityRoutes);
+app.use("/api/subscriptions", subscriptionRoutes);
 
 // ========================================
 // Health Check

@@ -154,6 +154,103 @@ export const ROLE_META: Record<
 
 export type WalletMode = "PLATFORM_MANAGED" | "USER_CONTROLLED";
 
+/** Internal platform access tier — entirely separate from market-participant roles.
+ *  Standard market users always have 'USER'. Admin tiers are assigned via seed script
+ *  and the /api/admin/users/:id/set-platform-role endpoint (PLATFORM_OWNER only). */
+export type PlatformRole = "PLATFORM_OWNER" | "PLATFORM_ADMIN" | "ACCOUNT_RECOVERY" | "USER";
+
+// ─── Subscription ─────────────────────────────────────────────────────────────
+export type SubscriptionPlan   = "FREE" | "OPERATOR" | "ENTERPRISE";
+export type SubscriptionStatus = "ACTIVE" | "TRIALING" | "PAST_DUE" | "CANCELLED" | "EXPIRED";
+
+export type OperatorSubscription = {
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  /** ISO date of the current billing period end (next renewal or expiry). */
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd?: boolean;
+  /** Settlement count used this period (FREE plan quota tracking). */
+  settlementsUsed?: number;
+  settlementsLimit?: number | null; // null = unlimited
+};
+
+export const SUBSCRIPTION_PLAN_META: Record<
+  SubscriptionPlan,
+  {
+    label: string;
+    priceBrl: number;
+    interval: string;
+    textColor: string;
+    dotColor: string;
+    borderColor: string;
+    bgColor: string;
+    settlementsLimit: number | null;
+    features: string[];
+  }
+> = {
+  FREE: {
+    label: "Free",
+    priceBrl: 0,
+    interval: "mês",
+    textColor: "text-muted-foreground",
+    dotColor: "bg-muted-foreground",
+    borderColor: "border-border",
+    bgColor: "bg-muted/10",
+    settlementsLimit: 5,
+    features: [
+      "5 liquidações/mês",
+      "Dashboard básico",
+      "Acesso ao grid de mercado",
+      "Suporte via comunidade",
+    ],
+  },
+  OPERATOR: {
+    label: "Operator",
+    priceBrl: 297,
+    interval: "mês",
+    textColor: "text-primary",
+    dotColor: "bg-primary",
+    borderColor: "border-primary/40",
+    bgColor: "bg-primary/5",
+    settlementsLimit: null,
+    features: [
+      "Liquidações ilimitadas",
+      "Analytics de mercado completo",
+      "Custody wallet ativa",
+      "Métricas de risco básicas",
+      "Suporte prioritário",
+      "Acesso a contratos P2P",
+    ],
+  },
+  ENTERPRISE: {
+    label: "Enterprise",
+    priceBrl: 997,
+    interval: "mês",
+    textColor: "text-violet-400",
+    dotColor: "bg-violet-400",
+    borderColor: "border-violet-400/40",
+    bgColor: "bg-violet-400/5",
+    settlementsLimit: null,
+    features: [
+      "Tudo do Operator",
+      "API x402 (50k calls/mês)",
+      "Multi-conta",
+      "Scoring de risco de contraparte (IA)",
+      "Previsibilidade de preço de mercado",
+      "Relatórios regulatórios avançados",
+      "SLA 99,9%",
+      "Suporte dedicado",
+    ],
+  },
+};
+
+export const PLATFORM_ROLE_LABEL: Record<PlatformRole, string> = {
+  PLATFORM_OWNER:    "Platform Owner",
+  PLATFORM_ADMIN:    "Platform Admin",
+  ACCOUNT_RECOVERY:  "Account Recovery",
+  USER:              "Standard User",
+};
+
 export type WalletStatus =
   | "PENDING"
   | "ACTIVE"
@@ -205,6 +302,10 @@ export type OperatorIdentity = {
   provisioningTxHash?: string | null;
   provisioningLedger?: number | null;
   settlementStatus?: string | null;
+  /** Internal platform role — 'USER' for all standard participants. */
+  platformRole: PlatformRole;
+  /** Current platform subscription. Defaults to FREE when no subscription record exists. */
+  subscription: OperatorSubscription;
 };
 
 type OperatorState = {
@@ -238,6 +339,7 @@ type OperatorState = {
   setEmailVerified: (v: boolean) => void;
   setPhoneVerified: (v: boolean) => void;
   setPhone: (phone: string) => void;
+  setSubscription: (sub: OperatorSubscription) => void;
   logout: () => void;
 };
 
@@ -331,6 +433,17 @@ const identityFromSession = (session: AuthSession): OperatorIdentity => {
     provisioningTxHash: u.provisioning_tx_hash ?? null,
     provisioningLedger: u.provisioning_ledger ?? null,
     settlementStatus: u.settlement_status ?? (u.funded ? "FUNDED" : "PROVISIONED"),
+    platformRole: (u.platform_role as PlatformRole | undefined) ?? "USER",
+    subscription: u.subscription
+      ? {
+          plan: (u.subscription.plan as SubscriptionPlan) ?? "FREE",
+          status: (u.subscription.status as SubscriptionStatus) ?? "ACTIVE",
+          currentPeriodEnd: u.subscription.current_period_end ?? undefined,
+          cancelAtPeriodEnd: !!u.subscription.cancel_at_period_end,
+          settlementsUsed: u.subscription.settlements_used ?? 0,
+          settlementsLimit: u.subscription.plan === "FREE" ? 5 : null,
+        }
+      : { plan: "FREE", status: "ACTIVE", settlementsUsed: 0, settlementsLimit: 5 },
   };
 };
 
@@ -441,6 +554,12 @@ export const useOperator = create<OperatorState>()((set, get) => ({
     const op = get().operator;
     if (!op) return;
     set({ operator: { ...op, phone, phoneVerified: false } });
+  },
+
+  setSubscription: (sub) => {
+    const op = get().operator;
+    if (!op) return;
+    set({ operator: { ...op, subscription: sub } });
   },
 
   logout: () => {

@@ -521,7 +521,15 @@ function PhoneVerificationBanner({ verified, hasPhone, emailVerified }: { verifi
         toast.success("Phone already verified!");
       } else {
         setCodeSent(true);
-        toast.success("Verification code sent via WhatsApp.");
+        if (res.dev_code) {
+          // WhatsApp sandbox fallback — show code directly so operators can test
+          toast.info(`[DEV] WhatsApp unavailable. Your code: ${res.dev_code}`, {
+            duration: 60000,
+            description: "This message only appears when Twilio is in sandbox mode.",
+          });
+        } else {
+          toast.success("Verification code sent via WhatsApp.");
+        }
       }
     } catch (err) {
       toast.error((err as Error).message || "Failed to send code.");

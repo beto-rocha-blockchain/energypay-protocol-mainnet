@@ -9,8 +9,6 @@ import {
   Radio,
   Wallet,
   GitBranch,
-  ShieldCheck,
-  Network,
   BookLock,
   Banknote,
   PlugZap,
@@ -18,6 +16,10 @@ import {
   Cable,
   MapPinned,
   FileCheck2,
+  Shield,
+  CreditCard,
+  Zap,
+  Crown,
 } from "lucide-react";
 
 import {
@@ -30,11 +32,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Button } from "@/components/ui/button";
 
-import { useOperator } from "@/store/operator";
+import { useOperator, SUBSCRIPTION_PLAN_META, type SubscriptionPlan } from "@/store/operator";
 import { BrandBadge, BrandName } from "@/components/BrandLogo";
 
 type Role = "GENERATOR" | "SELLER" | "INVESTOR" | "USER" | "UTILITY" | "REGULATORY_AUTHORITY";
@@ -212,7 +216,14 @@ const UTILITY_OPS: Item[] = [
 function Group({ label, items, path }: { label: string; items: Item[]; path: string }) {
   const navigate = useNavigate();
   const { state } = useSidebar();
-  const [open, setOpen] = useState(true);
+  // Start open only when the current path belongs to this group.
+  // Root "/" uses exact match; everything else uses startsWith so sub-routes
+  // (e.g. /contracts/new) also keep the parent group expanded on load.
+  const [open, setOpen] = useState(() =>
+    items.some((item) =>
+      item.url === "/" ? path === "/" : path.startsWith(item.url)
+    )
+  );
 
   if (items.length === 0) return null;
 
@@ -279,13 +290,125 @@ function Group({ label, items, path }: { label: string; items: Item[]; path: str
   );
 }
 
+// ── Subscription footer panel ───────────────────────────────────────────────
+
+const PLAN_ICONS: Record<SubscriptionPlan, React.ComponentType<{ className?: string }>> = {
+  FREE:       CreditCard,
+  OPERATOR:   Zap,
+  ENTERPRISE: Crown,
+};
+
+function SubscriptionPanel() {
+  const navigate  = useNavigate();
+  const { state } = useSidebar();
+  const isIconMode = state === "collapsed";
+  const operator  = useOperator((s) => s.operator);
+
+  const sub  = operator?.subscription ?? { plan: "FREE" as SubscriptionPlan, status: "ACTIVE" as const, settlementsUsed: 0, settlementsLimit: 5 };
+  const meta = SUBSCRIPTION_PLAN_META[sub.plan as SubscriptionPlan];
+  const PlanIcon = PLAN_ICONS[sub.plan as SubscriptionPlan];
+
+  const statusLabel: Record<string, string> = {
+    ACTIVE:    "ATIVO",
+    TRIALING:  "TRIAL",
+    PAST_DUE:  "ATRASO",
+    CANCELLED: "CANCEL.",
+    EXPIRED:   "EXPIRADO",
+  };
+
+  // Icon-only mode: show just a small icon button
+  if (isIconMode) {
+    return (
+      <SidebarFooter className="border-t border-sidebar-border p-2">
+        <button
+          onClick={() => navigate({ to: "/subscription" })}
+          className="flex h-8 w-8 items-center justify-center rounded-md border border-sidebar-border bg-sidebar hover:bg-sidebar-accent"
+          title={`Plano ${meta.label}`}
+        >
+          <PlanIcon className={`h-3.5 w-3.5 ${meta.textColor}`} />
+        </button>
+      </SidebarFooter>
+    );
+  }
+
+  const usedPct = sub.settlementsLimit
+    ? Math.min(100, Math.round(((sub.settlementsUsed ?? 0) / sub.settlementsLimit) * 100))
+    : 0;
+
+  const periodEndLabel = sub.currentPeriodEnd
+    ? new Date(sub.currentPeriodEnd).toLocaleDateString("pt-BR", {
+        day: "2-digit", month: "short", year: "numeric",
+      })
+    : null;
+
+  return (
+    <SidebarFooter className="border-t border-sidebar-border px-3 py-3">
+      <div className={`rounded-md border ${meta.borderColor} ${meta.bgColor} p-2.5`}>
+        {/* Header row */}
+        <div className="flex items-center justify-between gap-1">
+          <div className="flex items-center gap-1.5">
+            <span className={`h-1.5 w-1.5 rounded-full ${meta.dotColor}`} />
+            <span className={`font-mono text-[10px] font-semibold uppercase tracking-widest ${meta.textColor}`}>
+              {meta.label}
+            </span>
+          </div>
+          <span className={`rounded-sm px-1 py-0.5 font-mono text-[8px] uppercase tracking-widest ${
+            sub.status === "ACTIVE" || sub.status === "TRIALING"
+              ? "bg-success/10 text-success"
+              : "bg-destructive/10 text-destructive"
+          }`}>
+            {statusLabel[sub.status] ?? sub.status}
+          </span>
+        </div>
+
+        {/* FREE plan: settlement usage bar */}
+        {sub.plan === "FREE" && sub.settlementsLimit && (
+          <div className="mt-2 space-y-1">
+            <div className="flex justify-between">
+              <span className="font-mono text-[9px] text-muted-foreground">Liquidações</span>
+              <span className="font-mono text-[9px] text-muted-foreground">
+                {sub.settlementsUsed ?? 0}/{sub.settlementsLimit}
+              </span>
+            </div>
+            <div className="h-1 overflow-hidden rounded-full bg-sidebar-border">
+              <div
+                className={`h-full rounded-full transition-all ${usedPct >= 80 ? "bg-warning" : "bg-primary"}`}
+                style={{ width: `${usedPct}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Paid plan: renewal date or cancellation notice */}
+        {sub.plan !== "FREE" && periodEndLabel && (
+          <p className="mt-1.5 font-mono text-[9px] text-muted-foreground">
+            {sub.cancelAtPeriodEnd ? "Expira em" : "Renova em"} {periodEndLabel}
+          </p>
+        )}
+
+        <Button
+          size="sm"
+          variant="outline"
+          className={`mt-2 h-6 w-full border font-mono text-[9px] uppercase tracking-widest ${meta.borderColor} ${meta.textColor} hover:${meta.bgColor}`}
+          onClick={() => navigate({ to: "/subscription" })}
+        >
+          {sub.plan === "FREE" ? "Fazer Upgrade →" : "Gerenciar Assinatura →"}
+        </Button>
+      </div>
+    </SidebarFooter>
+  );
+}
+
 export function AppSidebar() {
   const path = useRouterState({
     select: (s) => s.location.pathname,
   });
+  const navigate = useNavigate();
 
   const operator = useOperator((s) => s.operator);
   const roles = (operator?.roles ?? []) as Role[];
+  const platformRole = operator?.platformRole ?? "USER";
+  const isAdmin = platformRole !== "USER";
 
   const marketOps = filterItemsByRole(MARKET_OPS, roles);
   const riskData = filterItemsByRole(RISK_DATA, roles);
@@ -324,8 +447,44 @@ export function AppSidebar() {
         <Group label="Market Infrastructure" items={terminals} path={path} />
 
         <Group label="Utility Operations" items={utilityOps} path={path} />
+
+        {/* Platform Admin — visible only to PLATFORM_OWNER, PLATFORM_ADMIN, ACCOUNT_RECOVERY */}
+        {isAdmin && (
+          <Collapsible open className="group/collapsible">
+            <SidebarGroup className="py-0.5">
+              <SidebarGroupLabel
+                className="px-2 font-mono text-[9.5px] font-medium tracking-[0.22em] text-violet-400/70"
+              >
+                Platform Admin
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-[2px]">
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      isActive={path === "/admin"}
+                      tooltip={{ children: "Platform Admin", className: "font-mono text-[11px]" }}
+                      className="relative h-6 cursor-pointer select-none rounded-sm pl-2 pr-1 data-[active=true]:bg-violet-500/10"
+                      onClick={() => navigate({ to: "/admin" })}
+                    >
+                      {path === "/admin" && (
+                        <span
+                          aria-hidden
+                          className="absolute left-0 top-1 bottom-1 w-[2px] rounded-r-sm bg-violet-400"
+                        />
+                      )}
+                      <Shield className="h-3.5 w-3.5 shrink-0 text-violet-400" />
+                      <span className="truncate text-[12px] leading-none">Platform Admin</span>
+                      <span className="ml-auto font-mono text-[9px] tracking-widest text-violet-400/50">ADM-01</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </Collapsible>
+        )}
       </SidebarContent>
 
+      <SubscriptionPanel />
     </Sidebar>
   );
 }

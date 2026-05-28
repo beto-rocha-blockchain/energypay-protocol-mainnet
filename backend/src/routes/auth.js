@@ -20,14 +20,46 @@ import { requireAuth } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// In-memory store for password reset tokens (keyed by token → { userId, email, expiresAt })
-// Fine for demo/hackathon; replace with DB table for production.
-const resetTokens = new Map();
+// ── Token helpers ────────────────────────────────────────────────────────────
+// All tokens/codes are persisted in Supabase so that Vercel serverless instances
+// share state correctly.  In-memory Maps were removed (migration 007).
 
-// In-memory store for reset phone-OTP confirmation
-// Keyed by reset token → { userId, hashedPassword, code, expiresAt }
-// Password is stored hashed until the OTP confirms the reset.
-const resetPhoneCodes = new Map();
+async function saveResetToken(token, userId, email) {
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+  await supabase.from("password_reset_tokens").upsert(
+    { token, user_id: userId, expires_at: expiresAt },
+    { onConflict: "token" }
+  );
+}
+
+async function getResetToken(token) {
+  const { data } = await supabase
+    .from("password_reset_tokens")
+    .select("*")
+    .eq("token", token)
+    .gt("expires_at", new Date().toISOString())
+    .single();
+  return data || null;
+}
+
+async function deleteResetToken(token) {
+  await supabase.from("password_reset_tokens").delete().eq("token", token);
+}
+
+async function saveResetPhoneCode(token, userId, hashedPassword, code) {
+  const phoneCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min
+  await supabase
+    .from("password_reset_tokens")
+    .update({ user_id: userId, hashed_password: hashedPassword, phone_code: code, phone_code_expires_at: phoneCodeExpiresAt })
+    .eq("token", token);
+}
+
+async function deleteResetPhoneCode(token) {
+  await supabase
+    .from("password_reset_tokens")
+    .update({ phone_code: null, phone_code_expires_at: null, hashed_password: null })
+    .eq("token", token);
+}
 
 // =====================================================
 // REGISTER
@@ -381,6 +413,7 @@ router.post("/login", async (req, res) => {
         roles: data.roles,
         publicKey: data.stellar_public_key,
         phone: data.phone || null,
+        platform_role: data.platform_role ?? "USER",
       },
       process.env.JWT_SECRET,
       { expiresIn: "12h" },
@@ -410,6 +443,7 @@ router.post("/login", async (req, res) => {
         // Funded = wallet_status is ACTIVE and there is a public key provisioned.
         // The authoritative on-chain balance comes from /api/wallet/:key/balances.
         funded: !!(data.stellar_public_key && data.wallet_status !== "FAILED"),
+        platform_role: data.platform_role ?? "USER",
       },
       wallet: {
         publicKey: data.stellar_public_key,
@@ -443,11 +477,7 @@ router.post("/forgot-password", async (req, res) => {
     }
 
     const token = crypto.randomBytes(32).toString("hex");
-    const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
-    resetTokens.set(token, { userId: data.id, email: data.email, expiresAt });
-
-    // Expire token after 1 hour
-    setTimeout(() => resetTokens.delete(token), 60 * 60 * 1000);
+    await saveResetToken(token, data.id, data.email);
 
     // Canonical site URL — same resolution as emailService.js
     const siteUrl =
@@ -495,8 +525,8 @@ router.post("/reset-password", async (req, res) => {
       return res.status(400).json({ success: false, error: "password must be at least 6 characters" });
     }
 
-    const entry = resetTokens.get(token);
-    if (!entry || Date.now() > entry.expiresAt) {
+    const entry = await getResetToken(token);
+    if (!entry) {
       return res.status(400).json({ success: false, error: "invalid or expired reset token" });
     }
 
@@ -504,7 +534,7 @@ router.post("/reset-password", async (req, res) => {
     const { data: user } = await supabase
       .from("users")
       .select("id, full_name, phone, phone_verified")
-      .eq("id", entry.userId)
+      .eq("id", entry.user_id)
       .single();
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -512,11 +542,9 @@ router.post("/reset-password", async (req, res) => {
     // If user has a verified phone → require OTP before committing password change
     if (user?.phone_verified && user?.phone) {
       const code = String(crypto.randomInt(100000, 1000000));
-      const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-      // Store hashed password + OTP keyed by reset token
-      resetPhoneCodes.set(token, { userId: entry.userId, hashedPassword, code, expiresAt });
-      setTimeout(() => resetPhoneCodes.delete(token), 10 * 60 * 1000);
+      // Persist hashed password + OTP in the DB row
+      await saveResetPhoneCode(token, entry.user_id, hashedPassword, code);
 
       // Send OTP via WhatsApp
       const maskedPhone = user.phone.replace(/(\+\d{2})\d+(\d{2})$/, "$1·····$2");
@@ -539,8 +567,8 @@ router.post("/reset-password", async (req, res) => {
       } catch (twilioErr) {
         // Don't block reset if WhatsApp fails — log and fall through to direct reset
         console.error("[ResetPassword] WhatsApp OTP failed:", twilioErr.message);
-        // Fall through to direct password update below
-        resetPhoneCodes.delete(token);
+        // Erase the pending phone code so we fall through cleanly
+        await deleteResetPhoneCode(token);
       }
 
       return res.json({
@@ -554,13 +582,13 @@ router.post("/reset-password", async (req, res) => {
     const { error } = await supabase
       .from("users")
       .update({ password: hashedPassword })
-      .eq("id", entry.userId);
+      .eq("id", entry.user_id);
 
     if (error) {
       return res.status(500).json({ success: false, error: error.message });
     }
 
-    resetTokens.delete(token);
+    await deleteResetToken(token);
     res.json({ success: true, message: "Password updated successfully." });
   } catch (err) {
     console.error(err);
@@ -581,35 +609,36 @@ router.post("/reset-password/confirm-phone", async (req, res) => {
       return res.status(400).json({ success: false, error: "token and code are required" });
     }
 
-    // Validate original reset token still valid
-    const resetEntry = resetTokens.get(token);
-    if (!resetEntry || Date.now() > resetEntry.expiresAt) {
+    // Validate original reset token + phone code (single DB read)
+    const resetEntry = await getResetToken(token);
+    if (!resetEntry) {
       return res.status(400).json({ success: false, error: "Reset session expired. Please start over." });
     }
 
-    // Validate phone OTP
-    const phoneEntry = resetPhoneCodes.get(token);
-    if (!phoneEntry || Date.now() > phoneEntry.expiresAt) {
+    if (!resetEntry.phone_code || !resetEntry.phone_code_expires_at) {
+      return res.status(400).json({ success: false, error: "No pending phone verification for this reset. Please start over." });
+    }
+
+    if (new Date(resetEntry.phone_code_expires_at) < new Date()) {
       return res.status(400).json({ success: false, error: "Verification code expired. Please start over." });
     }
 
-    if (String(code).trim() !== phoneEntry.code) {
+    if (String(code).trim() !== resetEntry.phone_code) {
       return res.status(400).json({ success: false, error: "Invalid verification code." });
     }
 
     // Commit the new password
     const { error } = await supabase
       .from("users")
-      .update({ password: phoneEntry.hashedPassword })
-      .eq("id", phoneEntry.userId);
+      .update({ password: resetEntry.hashed_password })
+      .eq("id", resetEntry.user_id);
 
     if (error) {
       return res.status(500).json({ success: false, error: error.message });
     }
 
-    // Clean up both tokens
-    resetTokens.delete(token);
-    resetPhoneCodes.delete(token);
+    // Clean up the reset token row entirely
+    await deleteResetToken(token);
 
     res.json({ success: true, message: "Password updated successfully." });
   } catch (err) {
@@ -1036,9 +1065,6 @@ router.post("/update-phone", async (req, res) => {
 // SEND PHONE VERIFICATION CODE
 // =====================================================
 
-// In-memory store for phone verification codes (userId → { code, expiresAt })
-const phoneVerificationCodes = new Map();
-
 router.post("/send-phone-code", async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -1072,13 +1098,13 @@ router.post("/send-phone-code", async (req, res) => {
       return res.status(400).json({ success: false, error: "No phone number registered. Update your profile first." });
     }
 
-    // Generate 6-digit code
+    // Generate 6-digit code and persist it in the DB (survives across serverless instances)
     const code = String(crypto.randomInt(100000, 1000000));
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-    phoneVerificationCodes.set(userId, { code, expiresAt });
-
-    // Expire after 10 minutes
-    setTimeout(() => phoneVerificationCodes.delete(userId), 10 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
+    await supabase
+      .from("users")
+      .update({ phone_verification_code: code, phone_verification_expires_at: expiresAt })
+      .eq("id", userId);
 
     // Send code via WhatsApp (Twilio)
     const maskedPhone = data.phone.replace(/(\+\d{2})\d+(\d{2})$/, "$1·····$2");
@@ -1139,25 +1165,38 @@ router.post("/verify-phone-code", async (req, res) => {
       return res.status(400).json({ success: false, error: "verification code is required" });
     }
 
-    const entry = phoneVerificationCodes.get(userId);
-    if (!entry || Date.now() > entry.expiresAt) {
+    const { data: userRow } = await supabase
+      .from("users")
+      .select("phone_verification_code, phone_verification_expires_at")
+      .eq("id", userId)
+      .single();
+
+    if (
+      !userRow?.phone_verification_code ||
+      !userRow?.phone_verification_expires_at ||
+      new Date(userRow.phone_verification_expires_at) < new Date()
+    ) {
       return res.status(400).json({ success: false, error: "Code expired or not found. Request a new one." });
     }
 
-    if (entry.code !== String(code).trim()) {
+    if (userRow.phone_verification_code !== String(code).trim()) {
       return res.status(400).json({ success: false, error: "Invalid code." });
     }
 
+    // Mark verified and clear the code in a single update
     const { error } = await supabase
       .from("users")
-      .update({ phone_verified: true })
+      .update({
+        phone_verified: true,
+        phone_verification_code: null,
+        phone_verification_expires_at: null,
+      })
       .eq("id", userId);
 
     if (error) {
       return res.status(500).json({ success: false, error: error.message });
     }
 
-    phoneVerificationCodes.delete(userId);
     res.json({ success: true, message: "Phone verified successfully." });
   } catch (err) {
     console.error(err);

@@ -12,6 +12,7 @@ import {
   buyEPRW,
   getOrderbook,
 } from "../services/stellarService.js";
+import { requirePlatformRole } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ const router = express.Router();
 // CREATE WALLET
 // =====================================================
 
-router.post("/create", async (req, res) => {
+router.post("/create", requirePlatformRole("PLATFORM_OWNER"), async (req, res) => {
   try {
     const wallet = createWallet();
 
@@ -328,7 +329,7 @@ router.get("/:publicKey/balances", async (req, res) => {
 // CREATE TRUSTLINE
 // =====================================================
 
-router.post("/trustline", async (req, res) => {
+router.post("/trustline", requirePlatformRole("PLATFORM_OWNER"), async (req, res) => {
   try {
     const { privateKey, issuerPublicKey } = req.body;
 
@@ -352,7 +353,7 @@ router.post("/trustline", async (req, res) => {
 // ISSUE TOKEN
 // =====================================================
 
-router.post("/issue", async (req, res) => {
+router.post("/issue", requirePlatformRole("PLATFORM_OWNER"), async (req, res) => {
   try {
     const { issuerPrivateKey, destinationPublic, amount } = req.body;
 
@@ -376,7 +377,7 @@ router.post("/issue", async (req, res) => {
 // CREATE SELL OFFER (ASK)
 // =====================================================
 
-router.post("/offer", async (req, res) => {
+router.post("/offer", requirePlatformRole("PLATFORM_OWNER"), async (req, res) => {
   try {
     const { privateKey, amount, price, issuerPublicKey } = req.body;
 
@@ -400,7 +401,7 @@ router.post("/offer", async (req, res) => {
 // CREATE BUY OFFER (BID)
 // =====================================================
 
-router.post("/buy-offer", async (req, res) => {
+router.post("/buy-offer", requirePlatformRole("PLATFORM_OWNER"), async (req, res) => {
   try {
     const { privateKey, amount, price, issuerPublicKey } = req.body;
 
@@ -424,7 +425,7 @@ router.post("/buy-offer", async (req, res) => {
 // DIRECT BUY
 // =====================================================
 
-router.post("/buy", async (req, res) => {
+router.post("/buy", requirePlatformRole("PLATFORM_OWNER"), async (req, res) => {
   try {
     const { buyerPrivateKey, issuerPublicKey, amount, maxXlm } = req.body;
 

@@ -39,15 +39,17 @@ function WalletPage() {
     "";
 
   if (!publicKey) {
+    const isAdmin = operator.platformRole !== "USER";
     return (
-      <div className="mx-auto max-w-3xl space-y-4">
-        <div className="rounded-md border border-warning/40 bg-warning/10 p-4">
-          <p className="font-mono text-[11px] uppercase tracking-widest text-warning">
-            Wallet unavailable
+      <div className="mx-auto max-w-3xl space-y-4 p-6">
+        <div className={`rounded-md border p-4 ${isAdmin ? "border-violet-500/30 bg-violet-500/5" : "border-yellow-500/30 bg-yellow-500/5"}`}>
+          <p className={`font-mono text-[11px] uppercase tracking-widest ${isAdmin ? "text-violet-400" : "text-yellow-400"}`}>
+            {isAdmin ? "Admin Account — No Settlement Wallet" : "Wallet Unavailable"}
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            This operator session does not include a valid Stellar settlement address.
-            Please sign out and provision a new settlement identity.
+            {isAdmin
+              ? "Platform admin accounts do not have an on-chain settlement wallet. This is by design — admin access is purely off-chain. Use the Platform Admin panel to manage user accounts."
+              : "This operator session does not include a valid Stellar settlement address. Please sign out and provision a new settlement identity."}
           </p>
         </div>
       </div>

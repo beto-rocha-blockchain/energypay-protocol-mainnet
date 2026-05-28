@@ -35,7 +35,7 @@ const buildError = (status: number, message: string, payload?: unknown): ApiErro
 };
 
 type RequestOptions = {
-  method?: "GET" | "POST" | "PUT" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   auth?: boolean;
   signal?: AbortSignal;
@@ -117,6 +117,19 @@ export type ApiUser = {
   settlement_status?: string | null;
   wallet_mode?: "PLATFORM_MANAGED" | "USER_CONTROLLED";
   has_epwr_trustline?: boolean;
+  /** Internal platform role — separate from market-participant roles.
+   *  'USER' = standard participant; 'PLATFORM_OWNER' / 'PLATFORM_ADMIN' / 'ACCOUNT_RECOVERY' = internal admin tiers. */
+  platform_role?: "PLATFORM_OWNER" | "PLATFORM_ADMIN" | "ACCOUNT_RECOVERY" | "USER";
+  /** Current subscription — returned by login/register/me endpoints once the billing
+   *  system is active. Absent for users with no subscription record (treated as FREE). */
+  subscription?: {
+    plan: string;
+    status: string;
+    current_period_end?: string | null;
+    cancel_at_period_end?: boolean;
+    settlements_used?: number;
+    settlements_limit?: number | null;
+  } | null;
 };
 
 export type AuthResponse = {
@@ -708,4 +721,165 @@ export const apiGetContractDocumentUrl = (contractId: string) =>
   apiRequest<{ success: boolean; document_name: string; signed_url: string }>(
     `/api/contracts/${contractId}/document`,
     { method: "GET" },
+  );
+
+/* ------------------------------------------------------------------ */
+/*  Platform Admin                                                     */
+/* ------------------------------------------------------------------ */
+
+export type PlatformRole = "PLATFORM_OWNER" | "PLATFORM_ADMIN" | "ACCOUNT_RECOVERY" | "USER";
+
+export type AdminUser = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  organization: string | null;
+  country: string | null;
+  state: string | null;
+  city: string | null;
+  phone: string | null;
+  roles: string[];
+  platform_role: PlatformRole;
+  wallet_mode: string | null;
+  wallet_status: string | null;
+  stellar_public_key: string | null;
+  email_verified: boolean;
+  phone_verified: boolean;
+  funded: boolean;
+  created_at: string;
+};
+
+export type AuditLogEntry = {
+  id: string;
+  action: string;
+  details: Record<string, unknown>;
+  ip_address: string | null;
+  created_at: string;
+  actor: { id: string; email: string; full_name: string | null } | null;
+  target: { id: string; email: string; full_name: string | null } | null;
+};
+
+export type RecoveryLink = {
+  id: string;
+  created_at: string;
+  account: { id: string; email: string; full_name: string | null; platform_role: PlatformRole };
+  recovery: { id: string; email: string; full_name: string | null; platform_role: PlatformRole };
+};
+
+export const apiAdminListUsers = (params?: { search?: string; page?: number; limit?: number; platform_role?: PlatformRole }) => {
+  const qs = new URLSearchParams();
+  if (params?.search)          qs.set("search", params.search);
+  if (params?.page)            qs.set("page", String(params.page));
+  if (params?.limit)           qs.set("limit", String(params.limit));
+  if (params?.platform_role)   qs.set("platform_role", params.platform_role);
+  return apiRequest<{ success: boolean; users: AdminUser[]; total: number; page: number; limit: number }>(
+    `/api/admin/users${qs.toString() ? `?${qs}` : ""}`,
+  );
+};
+
+export const apiAdminGetUser = (id: string) =>
+  apiRequest<{ success: boolean; user: AdminUser }>(`/api/admin/users/${id}`);
+
+export const apiAdminUpdateUser = (id: string, payload: Partial<Pick<AdminUser, "full_name" | "organization" | "phone" | "country" | "state" | "city">>) =>
+  apiRequest<{ success: boolean; user: AdminUser }>(`/api/admin/users/${id}`, { method: "PATCH", body: payload });
+
+export const apiAdminSetPassword = (id: string, newPassword: string, reason?: string) =>
+  apiRequest<{ success: boolean; message: string }>(`/api/admin/users/${id}/set-password`, {
+    method: "POST",
+    body: { new_password: newPassword, reason },
+  });
+
+export const apiAdminSetPlatformRole = (id: string, platformRole: PlatformRole) =>
+  apiRequest<{ success: boolean; platform_role: PlatformRole }>(`/api/admin/users/${id}/set-platform-role`, {
+    method: "POST",
+    body: { platform_role: platformRole },
+  });
+
+export const apiAdminAuditLog = (params?: { page?: number; limit?: number; action?: string; target_id?: string }) => {
+  const qs = new URLSearchParams();
+  if (params?.page)      qs.set("page", String(params.page));
+  if (params?.limit)     qs.set("limit", String(params.limit));
+  if (params?.action)    qs.set("action", params.action);
+  if (params?.target_id) qs.set("target_id", params.target_id);
+  return apiRequest<{ success: boolean; entries: AuditLogEntry[]; total: number }>(
+    `/api/admin/audit-log${qs.toString() ? `?${qs}` : ""}`,
+  );
+};
+
+export const apiAdminGetRecoveryLinks = () =>
+  apiRequest<{ success: boolean; links: RecoveryLink[] }>("/api/admin/recovery-links");
+
+export const apiAdminAddRecoveryLink = (accountId: string, recoveryAccountId: string) =>
+  apiRequest<{ success: boolean }>("/api/admin/recovery-links", {
+    method: "POST",
+    body: { account_id: accountId, recovery_account_id: recoveryAccountId },
+  });
+
+export const apiAdminRemoveRecoveryLink = (linkId: string) =>
+  apiRequest<{ success: boolean }>(`/api/admin/recovery-links/${linkId}`, { method: "DELETE" });
+
+// ── Subscriptions ─────────────────────────────────────────────────────────────
+
+export type SubscriptionCheckoutPixResponse = {
+  success: true;
+  payment_method: "pix";
+  pix_qr_code?: string;
+  pix_qr_code_text?: string;
+  pix_expires_at?: string;
+  payment_id?: string;
+  subscription_id?: string;
+  pix_pending?: boolean;
+  message?: string;
+};
+
+export type SubscriptionCheckoutCardResponse = {
+  success: true;
+  payment_method: "credit_card";
+  payment_url: string;
+  subscription_id?: string;
+};
+
+export type SubscriptionCheckoutResponse =
+  | SubscriptionCheckoutPixResponse
+  | SubscriptionCheckoutCardResponse;
+
+export type SubscriptionMeResponse = {
+  success: boolean;
+  subscription: {
+    plan: string;
+    status: string;
+    current_period_start?: string;
+    current_period_end?: string | null;
+    cancel_at_period_end?: boolean;
+    settlements_used: number;
+    settlements_limit: number | null;
+    gateway?: string | null;
+  };
+};
+
+export const apiSubscriptionPlans = () =>
+  apiRequest<{ success: boolean; plans: Array<{ id: string; name: string; price_brl: number; settlements_limit: number | null; features: string[] }> }>(
+    "/api/subscriptions/plans"
+  );
+
+export const apiSubscriptionMe = () =>
+  apiRequest<SubscriptionMeResponse>("/api/subscriptions/me");
+
+export const apiSubscriptionCheckout = (
+  plan_id: "operator" | "enterprise",
+  payment_method: "pix" | "credit_card"
+) =>
+  apiRequest<SubscriptionCheckoutResponse>("/api/subscriptions/checkout", {
+    method: "POST",
+    body: { plan_id, payment_method },
+  });
+
+export const apiSubscriptionCancel = () =>
+  apiRequest<{ success: boolean; message: string }>("/api/subscriptions/cancel", {
+    method: "POST",
+  });
+
+export const apiSubscriptionPaymentStatus = (paymentId: string) =>
+  apiRequest<{ success: boolean; payment_id: string; status: string; confirmed: boolean }>(
+    `/api/subscriptions/payment-status/${paymentId}`
   );

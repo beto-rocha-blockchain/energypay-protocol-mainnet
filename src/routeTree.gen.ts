@@ -13,6 +13,7 @@ import { Route as X402RouteImport } from './routes/x402'
 import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as TreasuryRouteImport } from './routes/treasury'
 import { Route as TopologyRouteImport } from './routes/topology'
+import { Route as SubscriptionRouteImport } from './routes/subscription'
 import { Route as SettlementRouteImport } from './routes/settlement'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
@@ -24,6 +25,7 @@ import { Route as GridRouteImport } from './routes/grid'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ClearingRouteImport } from './routes/clearing'
 import { Route as AuditRouteImport } from './routes/audit'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ContractsIndexRouteImport } from './routes/contracts.index'
 import { Route as UtilityUcRouteImport } from './routes/utility.uc'
@@ -56,6 +58,11 @@ const TreasuryRoute = TreasuryRouteImport.update({
 const TopologyRoute = TopologyRouteImport.update({
   id: '/topology',
   path: '/topology',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SubscriptionRoute = SubscriptionRouteImport.update({
+  id: '/subscription',
+  path: '/subscription',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettlementRoute = SettlementRouteImport.update({
@@ -111,6 +118,11 @@ const ClearingRoute = ClearingRouteImport.update({
 const AuditRoute = AuditRouteImport.update({
   id: '/audit',
   path: '/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -183,6 +195,7 @@ const ApiWalletPublicKeyActivityRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/audit': typeof AuditRoute
   '/clearing': typeof ClearingRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -194,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settlement': typeof SettlementRoute
+  '/subscription': typeof SubscriptionRoute
   '/topology': typeof TopologyRoute
   '/treasury': typeof TreasuryRoute
   '/wallet': typeof WalletRoute
@@ -213,6 +227,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/audit': typeof AuditRoute
   '/clearing': typeof ClearingRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -224,6 +239,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settlement': typeof SettlementRoute
+  '/subscription': typeof SubscriptionRoute
   '/topology': typeof TopologyRoute
   '/treasury': typeof TreasuryRoute
   '/wallet': typeof WalletRoute
@@ -244,6 +260,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/audit': typeof AuditRoute
   '/clearing': typeof ClearingRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -255,6 +272,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/settlement': typeof SettlementRoute
+  '/subscription': typeof SubscriptionRoute
   '/topology': typeof TopologyRoute
   '/treasury': typeof TreasuryRoute
   '/wallet': typeof WalletRoute
@@ -276,6 +294,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/audit'
     | '/clearing'
     | '/forgot-password'
@@ -287,6 +306,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/settlement'
+    | '/subscription'
     | '/topology'
     | '/treasury'
     | '/wallet'
@@ -306,6 +326,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/audit'
     | '/clearing'
     | '/forgot-password'
@@ -317,6 +338,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/settlement'
+    | '/subscription'
     | '/topology'
     | '/treasury'
     | '/wallet'
@@ -336,6 +358,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/audit'
     | '/clearing'
     | '/forgot-password'
@@ -347,6 +370,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/settlement'
+    | '/subscription'
     | '/topology'
     | '/treasury'
     | '/wallet'
@@ -367,6 +391,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   AuditRoute: typeof AuditRoute
   ClearingRoute: typeof ClearingRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
@@ -378,6 +403,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SettlementRoute: typeof SettlementRoute
+  SubscriptionRoute: typeof SubscriptionRoute
   TopologyRoute: typeof TopologyRoute
   TreasuryRoute: typeof TreasuryRoute
   WalletRoute: typeof WalletRoute
@@ -424,6 +450,13 @@ declare module '@tanstack/react-router' {
       path: '/topology'
       fullPath: '/topology'
       preLoaderRoute: typeof TopologyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/subscription': {
+      id: '/subscription'
+      path: '/subscription'
+      fullPath: '/subscription'
+      preLoaderRoute: typeof SubscriptionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settlement': {
@@ -501,6 +534,13 @@ declare module '@tanstack/react-router' {
       path: '/audit'
       fullPath: '/audit'
       preLoaderRoute: typeof AuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -599,6 +639,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   AuditRoute: AuditRoute,
   ClearingRoute: ClearingRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
@@ -610,6 +651,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SettlementRoute: SettlementRoute,
+  SubscriptionRoute: SubscriptionRoute,
   TopologyRoute: TopologyRoute,
   TreasuryRoute: TreasuryRoute,
   WalletRoute: WalletRoute,

@@ -1,5 +1,5 @@
 /**
- * Admin routes — account lifecycle management.
+ * Admin routes — account lifecycle management + platform user management.
  *
  * POST /api/admin/cleanup-inactive
  *   Deletes accounts that have been inactive for 7+ days:
@@ -8,9 +8,21 @@
  *
  *   For funded accounts, merges the Stellar account back into
  *   the operator, recovering the XLM reserve.
+ *
+ * ─── Platform user management (requires JWT + platform_role) ─────────────
+ * GET    /api/admin/users                       — list all users (searchable)
+ * GET    /api/admin/users/:id                   — get single user
+ * PATCH  /api/admin/users/:id                   — update profile fields
+ * POST   /api/admin/users/:id/set-password      — force password reset (OWNER)
+ * POST   /api/admin/users/:id/set-platform-role — change platform role (OWNER)
+ * GET    /api/admin/audit-log                   — view admin audit log
+ * GET    /api/admin/recovery-links              — view recovery links
+ * POST   /api/admin/recovery-links              — add recovery link (OWNER)
+ * DELETE /api/admin/recovery-links/:id          — remove recovery link (OWNER)
  */
 
 import express from "express";
+import bcrypt from "bcrypt";
 import {
   Keypair,
   Operation,
@@ -19,6 +31,7 @@ import {
 } from "@stellar/stellar-sdk";
 import { supabase } from "../lib/supabase.js";
 import { NETWORK_PASSPHRASE, horizon } from "../lib/stellar-network.js";
+import { requirePlatformRole } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -114,7 +127,10 @@ async function mergeAccountIntoOperator(userSecret, operatorPublic) {
  *   { "dry_run": true }   — preview only, don't delete
  *   { "days": 14 }        — override inactivity threshold
  */
-router.post("/cleanup-inactive", async (req, res) => {
+router.post(
+  "/cleanup-inactive",
+  requirePlatformRole("PLATFORM_OWNER"),
+  async (req, res) => {
   try {
     const operatorSecret = (
       process.env.OPERATOR_SECRET ||
@@ -277,5 +293,426 @@ router.post("/cleanup-inactive", async (req, res) => {
     });
   }
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PLATFORM USER MANAGEMENT
+// All endpoints below require a valid JWT + appropriate platform_role.
+// They never expose: password, stellar_secret_encrypted.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Safe user fields — never expose password or secret key
+const USER_SELECT =
+  "id, email, full_name, organization, country, state, city, phone, roles, " +
+  "platform_role, wallet_mode, wallet_status, wallet_network, stellar_public_key, " +
+  "email_verified, phone_verified, funded, created_at, updated_at";
+
+// Audit helper — fire-and-forget
+async function logAudit({ actorId, targetId = null, action, details = {}, ip = null }) {
+  await supabase.from("admin_audit_log").insert([{
+    actor_id:   actorId,
+    target_id:  targetId,
+    action,
+    details,
+    ip_address: ip,
+  }]).catch(err => console.error("[audit]", err.message));
+}
+
+// ─── GET /api/admin/users ────────────────────────────────────────────────────
+router.get(
+  "/users",
+  requirePlatformRole("PLATFORM_OWNER", "PLATFORM_ADMIN", "ACCOUNT_RECOVERY"),
+  async (req, res) => {
+    try {
+      const { search = "", page = "1", limit = "50", platform_role: roleFilter } = req.query;
+      const pageNum  = Math.max(1, parseInt(page, 10));
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
+      const offset   = (pageNum - 1) * limitNum;
+
+      let query = supabase
+        .from("users")
+        .select(USER_SELECT, { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limitNum - 1);
+
+      if (search) {
+        query = query.or(
+          `email.ilike.%${search}%,full_name.ilike.%${search}%,organization.ilike.%${search}%`
+        );
+      }
+      if (roleFilter) {
+        query = query.eq("platform_role", roleFilter);
+      }
+
+      const { data, count, error } = await query;
+      if (error) throw error;
+
+      res.json({ success: true, users: data ?? [], total: count ?? 0, page: pageNum, limit: limitNum });
+    } catch (err) {
+      console.error("[admin/users GET]", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+);
+
+// ─── GET /api/admin/users/:id ────────────────────────────────────────────────
+router.get(
+  "/users/:id",
+  requirePlatformRole("PLATFORM_OWNER", "PLATFORM_ADMIN", "ACCOUNT_RECOVERY"),
+  async (req, res) => {
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .select(USER_SELECT)
+        .eq("id", req.params.id)
+        .single();
+
+      if (error || !data) return res.status(404).json({ success: false, error: "User not found." });
+
+      res.json({ success: true, user: data });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+);
+
+// ─── PATCH /api/admin/users/:id ──────────────────────────────────────────────
+// Allowed profile fields: full_name, organization, phone, country, state, city
+// Allowed wallet field:   stellar_public_key — only for USER_CONTROLLED accounts
+//                         that currently have no public key (null). Validated on Horizon.
+// NOT allowed: email, password, roles, platform_role, stellar_secret_encrypted
+router.patch(
+  "/users/:id",
+  requirePlatformRole("PLATFORM_OWNER", "PLATFORM_ADMIN"),
+  async (req, res) => {
+    try {
+      const ALLOWED = ["full_name", "organization", "phone", "country", "state", "city"];
+      const update  = {};
+
+      for (const key of ALLOWED) {
+        if (req.body[key] !== undefined) update[key] = req.body[key];
+      }
+
+      // Special case: link a Stellar public key for USER_CONTROLLED accounts that have none.
+      if (req.body.stellar_public_key !== undefined) {
+        const newKey = String(req.body.stellar_public_key).trim();
+
+        // Validate format
+        const { StrKey } = await import("@stellar/stellar-sdk");
+        if (!StrKey.isValidEd25519PublicKey(newKey)) {
+          return res.status(400).json({ success: false, error: "Invalid Stellar public key (must start with G, 56 chars)." });
+        }
+
+        // Fetch current wallet state
+        const { data: target } = await supabase
+          .from("users")
+          .select("wallet_mode, stellar_public_key")
+          .eq("id", req.params.id)
+          .single();
+
+        if (!target) return res.status(404).json({ success: false, error: "User not found." });
+        if (target.wallet_mode === "PLATFORM_MANAGED") {
+          return res.status(400).json({ success: false, error: "Cannot change stellar_public_key on a PLATFORM_MANAGED wallet. Only USER_CONTROLLED accounts can link a new address." });
+        }
+        if (target.stellar_public_key) {
+          return res.status(400).json({ success: false, error: "This account already has a linked wallet. Contact the account holder to change it." });
+        }
+
+        // Check it's not already used by another account
+        const { data: conflict } = await supabase
+          .from("users")
+          .select("id, email")
+          .eq("stellar_public_key", newKey)
+          .neq("id", req.params.id)
+          .single();
+        if (conflict) {
+          return res.status(409).json({ success: false, error: `This public key is already linked to another account (${conflict.email}).` });
+        }
+
+        update.stellar_public_key = newKey;
+        update.wallet_status = "ACTIVE";
+      }
+
+      if (Object.keys(update).length === 0) {
+        return res.status(400).json({ success: false, error: "No updatable fields provided." });
+      }
+
+      // Fetch before-snapshot for audit
+      const { data: before } = await supabase
+        .from("users")
+        .select([...ALLOWED, "stellar_public_key"].join(", "))
+        .eq("id", req.params.id)
+        .single();
+
+      const { data, error } = await supabase
+        .from("users")
+        .update(update)
+        .eq("id", req.params.id)
+        .select(USER_SELECT)
+        .single();
+
+      if (error) throw error;
+
+      await logAudit({
+        actorId:  req.adminUser.id,
+        targetId: req.params.id,
+        action:   "UPDATE_PROFILE",
+        details:  { before, after: update },
+        ip:       req.ip,
+      });
+
+      res.json({ success: true, user: data });
+    } catch (err) {
+      console.error("[admin/users PATCH]", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+);
+
+// ─── POST /api/admin/users/:id/set-password ──────────────────────────────────
+// PLATFORM_OWNER only — force-sets a new password for any account.
+router.post(
+  "/users/:id/set-password",
+  requirePlatformRole("PLATFORM_OWNER"),
+  async (req, res) => {
+    try {
+      const { new_password } = req.body;
+
+      if (!new_password || new_password.length < 8) {
+        return res.status(400).json({ success: false, error: "Password must be at least 8 characters." });
+      }
+
+      // Prevent setting password on own account via this endpoint (use normal change-password)
+      if (req.params.id === req.adminUser.id) {
+        return res.status(400).json({ success: false, error: "Use the standard password change for your own account." });
+      }
+
+      const hashed = await bcrypt.hash(new_password, 10);
+
+      const { error } = await supabase
+        .from("users")
+        .update({ password: hashed })
+        .eq("id", req.params.id);
+
+      if (error) throw error;
+
+      await logAudit({
+        actorId:  req.adminUser.id,
+        targetId: req.params.id,
+        action:   "RESET_PASSWORD",
+        details:  { reason: req.body.reason ?? "Admin force reset" },
+        ip:       req.ip,
+      });
+
+      res.json({ success: true, message: "Password updated." });
+    } catch (err) {
+      console.error("[admin/set-password]", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+);
+
+// ─── POST /api/admin/users/:id/set-platform-role ─────────────────────────────
+// PLATFORM_OWNER only — promote or demote a user's platform role.
+const VALID_PLATFORM_ROLES = ["PLATFORM_OWNER", "PLATFORM_ADMIN", "ACCOUNT_RECOVERY", "USER"];
+
+router.post(
+  "/users/:id/set-platform-role",
+  requirePlatformRole("PLATFORM_OWNER"),
+  async (req, res) => {
+    try {
+      const { platform_role } = req.body;
+
+      if (!VALID_PLATFORM_ROLES.includes(platform_role)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid platform_role. Must be one of: ${VALID_PLATFORM_ROLES.join(", ")}`,
+        });
+      }
+
+      // Guard: never demote the last PLATFORM_OWNER
+      if (platform_role !== "PLATFORM_OWNER") {
+        const { count } = await supabase
+          .from("users")
+          .select("id", { count: "exact", head: true })
+          .eq("platform_role", "PLATFORM_OWNER");
+
+        const targetIsSelf = req.params.id === req.adminUser.id;
+        if (count === 1 && targetIsSelf) {
+          return res.status(400).json({
+            success: false,
+            error: "Cannot demote the last PLATFORM_OWNER. Promote another account first.",
+          });
+        }
+      }
+
+      const { data: before } = await supabase
+        .from("users")
+        .select("platform_role")
+        .eq("id", req.params.id)
+        .single();
+
+      const { error } = await supabase
+        .from("users")
+        .update({ platform_role })
+        .eq("id", req.params.id);
+
+      if (error) throw error;
+
+      await logAudit({
+        actorId:  req.adminUser.id,
+        targetId: req.params.id,
+        action:   "SET_PLATFORM_ROLE",
+        details:  { before: before?.platform_role, after: platform_role },
+        ip:       req.ip,
+      });
+
+      res.json({ success: true, platform_role });
+    } catch (err) {
+      console.error("[admin/set-platform-role]", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+);
+
+// ─── GET /api/admin/audit-log ────────────────────────────────────────────────
+router.get(
+  "/audit-log",
+  requirePlatformRole("PLATFORM_OWNER", "PLATFORM_ADMIN"),
+  async (req, res) => {
+    try {
+      const { page = "1", limit = "50", action: actionFilter, target_id } = req.query;
+      const pageNum  = Math.max(1, parseInt(page, 10));
+      const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10)));
+      const offset   = (pageNum - 1) * limitNum;
+
+      let query = supabase
+        .from("admin_audit_log")
+        .select(
+          "id, action, details, ip_address, created_at, " +
+          "actor:actor_id(id, email, full_name), " +
+          "target:target_id(id, email, full_name)",
+          { count: "exact" }
+        )
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limitNum - 1);
+
+      if (actionFilter) query = query.eq("action", actionFilter);
+      if (target_id)    query = query.eq("target_id", target_id);
+
+      const { data, count, error } = await query;
+      if (error) throw error;
+
+      res.json({ success: true, entries: data ?? [], total: count ?? 0, page: pageNum, limit: limitNum });
+    } catch (err) {
+      console.error("[admin/audit-log]", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+);
+
+// ─── GET /api/admin/recovery-links ───────────────────────────────────────────
+router.get(
+  "/recovery-links",
+  requirePlatformRole("PLATFORM_OWNER", "PLATFORM_ADMIN"),
+  async (req, res) => {
+    try {
+      const { data, error } = await supabase
+        .from("account_recovery_links")
+        .select(
+          "id, created_at, " +
+          "account:account_id(id, email, full_name, platform_role), " +
+          "recovery:recovery_account_id(id, email, full_name, platform_role)"
+        )
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      res.json({ success: true, links: data ?? [] });
+    } catch (err) {
+      console.error("[admin/recovery-links GET]", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+);
+
+// ─── POST /api/admin/recovery-links ──────────────────────────────────────────
+router.post(
+  "/recovery-links",
+  requirePlatformRole("PLATFORM_OWNER"),
+  async (req, res) => {
+    try {
+      const { account_id, recovery_account_id } = req.body;
+
+      if (!account_id || !recovery_account_id) {
+        return res.status(400).json({ success: false, error: "account_id and recovery_account_id required." });
+      }
+
+      if (account_id === recovery_account_id) {
+        return res.status(400).json({ success: false, error: "An account cannot recover itself." });
+      }
+
+      const { error } = await supabase
+        .from("account_recovery_links")
+        .insert([{ account_id, recovery_account_id, created_by: req.adminUser.id }]);
+
+      if (error) {
+        if (error.code === "23505") {
+          return res.status(409).json({ success: false, error: "Recovery link already exists." });
+        }
+        throw error;
+      }
+
+      await logAudit({
+        actorId:  req.adminUser.id,
+        targetId: account_id,
+        action:   "ADD_RECOVERY_LINK",
+        details:  { account_id, recovery_account_id },
+        ip:       req.ip,
+      });
+
+      res.json({ success: true });
+    } catch (err) {
+      console.error("[admin/recovery-links POST]", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+);
+
+// ─── DELETE /api/admin/recovery-links/:id ────────────────────────────────────
+router.delete(
+  "/recovery-links/:id",
+  requirePlatformRole("PLATFORM_OWNER"),
+  async (req, res) => {
+    try {
+      const { data: link } = await supabase
+        .from("account_recovery_links")
+        .select("id, account_id, recovery_account_id")
+        .eq("id", req.params.id)
+        .single();
+
+      if (!link) return res.status(404).json({ success: false, error: "Link not found." });
+
+      const { error } = await supabase
+        .from("account_recovery_links")
+        .delete()
+        .eq("id", req.params.id);
+
+      if (error) throw error;
+
+      await logAudit({
+        actorId:  req.adminUser.id,
+        targetId: link.account_id,
+        action:   "REMOVE_RECOVERY_LINK",
+        details:  { link_id: req.params.id, recovery_account_id: link.recovery_account_id },
+        ip:       req.ip,
+      });
+
+      res.json({ success: true });
+    } catch (err) {
+      console.error("[admin/recovery-links DELETE]", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+);
 
 export default router;
