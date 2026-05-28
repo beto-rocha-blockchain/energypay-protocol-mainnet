@@ -8,7 +8,6 @@ import {
   CalendarIcon,
   FileSignature,
   FileText,
-  Hash,
   Paperclip,
   Zap,
   Loader2,
@@ -135,7 +134,6 @@ function NewContract() {
   const pickerRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState<{
-    contractNumber: string;
     buyerKey: string;
     buyerLabel: string;
     volume: string;
@@ -143,7 +141,6 @@ function NewContract() {
     startDate?: Date;
     endDate?: Date;
   }>({
-    contractNumber: "",
     buyerKey: "",
     buyerLabel: "",
     volume: "",
@@ -300,7 +297,6 @@ function NewContract() {
       }));
 
       const res = await apiCreateContract({
-        contract_number: form.contractNumber || undefined,
         buyer_public_key: contractType === "BUY" ? form.buyerKey : buyerKeyForSell,
         seller_public_key: contractType === "BUY" ? (sellerKey || undefined) : (form.buyerKey || undefined),
         buyer_label: contractType === "BUY" ? (form.buyerLabel || undefined) : (buyerLabelForSell || undefined),
@@ -310,7 +306,7 @@ function NewContract() {
         start_date: startDate || undefined,
         end_date: endDate || undefined,
         settlement_date: toIso(settlementDate) || undefined,
-        memo: form.contractNumber ? `EP:${form.contractNumber.slice(0, 24)}` : undefined,
+        memo: undefined,
         parties: partiesPayload,
       });
 
@@ -430,24 +426,6 @@ function NewContract() {
             </div>
 
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              {/* Contract Number */}
-              <Field label="Contract Number (Physical)" id="contractNumber" className="md:col-span-2">
-                <div className="relative">
-                  <Hash className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="contractNumber"
-                    value={form.contractNumber}
-                    onChange={(e) => set("contractNumber", e.target.value)}
-                    placeholder="e.g. CCEE-2026-00412 · physical contract reference"
-                    className="bg-input pl-8 font-mono"
-                  />
-                </div>
-                <p className="mt-1 font-mono text-[10px] text-muted-foreground">
-                  Physical contract number from the real-world energy market (CCEE, ANEEL, bilateral
-                  agreement). Anchored on-chain in the atomic transaction.
-                </p>
-              </Field>
-
               {/* Operator wallet — auto-filled; role label flips with contract type */}
               <Field label={contractType === "BUY" ? "Buyer (Your Wallet)" : "Seller (Your Wallet)"} id="buyerKey" className="md:col-span-2">
                 <div className="relative">
@@ -853,7 +831,6 @@ function NewContract() {
             <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Summary</p>
             <p className="mt-1 font-display text-base font-semibold">Notional Exposure</p>
             <div className="mt-6 space-y-4 text-sm">
-              {form.contractNumber && <Row k="Contract #" v={form.contractNumber} />}
               <Row
                 k="Buyer"
                 v={form.buyerLabel || (form.buyerKey ? `${form.buyerKey.slice(0, 8)}…` : "—")}
