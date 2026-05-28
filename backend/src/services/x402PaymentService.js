@@ -92,7 +92,7 @@ export async function verifyX402Payment(paymentSignature) {
         ok: false,
         status: 402,
         code: "PAYMENT_NOT_FOUND",
-        message: "No matching Stellar Testnet payment found for this x402 request.",
+        message: `No matching payment found on Stellar mainnet. Verify: destination = ${requirement.destination}, asset = XLM (native), amount ≥ ${requirement.amount} XLM.`,
       };
     }
 
