@@ -5,8 +5,7 @@
  * Override with VITE_API_URL at build time.
  *
  * The backend is the only authority for:
- *   - wallet creation
- *   - Friendbot funding
+ *   - wallet creation and mainnet account funding
  *   - password validation
  *   - Stellar signing
  *   - transaction submission

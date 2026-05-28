@@ -2,7 +2,7 @@
  * P2P transfer validation — runs both as a frontend guard and as the
  * canonical server-side schema. Validates destination public key checksum,
  * asset whitelist, amount bounds and memo/transferId shape BEFORE any
- * Stellar Testnet submission.
+ * Stellar Mainnet submission.
  *
  * Returns a structured error code + UI-ready message so the surface in the
  * settlement terminal is always actionable.

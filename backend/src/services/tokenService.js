@@ -185,9 +185,9 @@ export async function createTrustline() {
   }
 }
 
-// Testnet-only utility.
-// Creates EPWR trustline for any test account when its secret is provided.
-// Do not use this pattern in production.
+// Creates EPWR trustline for a PLATFORM_MANAGED account via its decrypted secret.
+// Only call this for accounts whose secrets are stored server-side (PLATFORM_MANAGED).
+// Never pass USER_CONTROLLED secrets through this function.
 export async function createTrustlineForSecret(
   accountSecret,
   type = "account-trustline-created",

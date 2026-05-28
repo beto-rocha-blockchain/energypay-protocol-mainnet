@@ -78,7 +78,7 @@ const PROVISIONING_STEPS = [
   "Allocating operator identity",
   "Generating ed25519 keypair",
   "Binding settlement address to operator",
-  IS_MAINNET ? "Verifying settlement account funding" : "Funding settlement account · Friendbot",
+  "Verifying settlement account funding on Stellar Mainnet",
   "Registering market participant roles",
   "Publishing identity to Settlement Network",
 ];
@@ -332,12 +332,6 @@ useEffect(() => {
                   <span>Horizon</span>
                   <span className="text-foreground">{HORIZON_URL.replace("https://", "")}</span>
                 </div>
-                {!IS_MAINNET && (
-                  <div className="mt-1.5 flex items-center justify-between">
-                    <span>Friendbot</span>
-                    <span className="text-success">active</span>
-                  </div>
-                )}
               </div>
 
               <div className="rounded-md border border-border bg-background/40 p-3">
@@ -809,9 +803,7 @@ useEffect(() => {
                     Fund settlement account on {STELLAR_NETWORK_LABEL}
                   </span>
                   <span className="block text-[11px] text-muted-foreground">
-                    {IS_MAINNET
-                      ? "Provisions a Stellar Mainnet account for settlement operations."
-                      : "Provisions a Stellar Testnet account funded via Friendbot for settlement operations."}
+                    {"Provisions a Stellar Mainnet account for institutional settlement operations."}
                   </span>
                 </span>
               </label>
@@ -1110,7 +1102,7 @@ useEffect(() => {
                 />
                 <Mini
                   label="Funded"
-                  value={operator.wallet.funded ? (IS_MAINNET ? "Yes" : "Yes · Friendbot") : (IS_MAINNET ? "No · Pending" : "No · Friendbot failed")}
+                  value={operator.wallet.funded ? "Yes" : "No · Pending"}
                   tone={operator.wallet.funded ? "success" : undefined}
                 />
                 <Mini label="Roles" value={operator.roles.length.toString()} />

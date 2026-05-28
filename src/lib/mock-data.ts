@@ -80,8 +80,10 @@ export type Settlement = {
   status: "CONFIRMED" | "PENDING" | "FAILED";
 };
 
+/** Empty fallback arrays — real data is fetched from the backend API. */
 export const mockContracts: Contract[] = [];
 
+/** Empty fallback arrays — real data is fetched from the backend API. */
 export const mockSettlements: Settlement[] = [];
 
 export type AlertItem = {

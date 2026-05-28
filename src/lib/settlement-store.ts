@@ -39,7 +39,7 @@ export interface SettlementStore {
 
 /**
  * In-memory implementation. Lives for the lifetime of the Worker isolate —
- * good enough for testnet operations and fully replaceable by a Postgres
+ * good enough for single-worker deployments and fully replaceable by a Postgres
  * implementation backing the same interface.
  */
 class InMemorySettlementStore implements SettlementStore {

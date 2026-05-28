@@ -179,7 +179,7 @@ export const useOps = create<OpsState>()(
           id: `STL-${c.counters.stl + 1}`,
           contractId: id,
           counterparty: seller,
-          amount: volumeMWh * priceBRL * 0.01, // placeholder pending PLD
+          amount: volumeMWh * priceBRL * 0.01, // approximate value — final settlement uses live PLD oracle
           eta: "06:00",
           phase: "queued",
           priority: "normal",

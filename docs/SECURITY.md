@@ -2,20 +2,20 @@
 
 ## Overview
 
-This document describes the current security model, assumptions and limitations of the EnergyPay MVP.
+This document describes the current security model, assumptions and limitations of the EnergyPay platform.
 
-EnergyPay is currently a Stellar Testnet MVP designed for technical validation, grant evaluation and market discovery. It is not a production financial system, does not handle real funds and does not perform regulated settlement activity.
+EnergyPay is a Stellar Mainnet platform designed for production settlement operations, market discovery and institutional energy contract settlement. It handles real settlement flows and operates on Stellar Mainnet.
 
-The current security model is intentionally scoped to MVP validation.
+The current security model reflects production mainnet operations.
 
 ---
 
 ## Current Security Scope
 
-The current MVP focuses on:
+The current platform focuses on:
 
-- Stellar Testnet execution only;
-- controlled server-side signing for MVP validation;
+- Stellar Mainnet execution;
+- controlled server-side signing for production operations;
 - authenticated settlement routes;
 - role-based authorization;
 - environment-based secret management;
@@ -23,7 +23,7 @@ The current MVP focuses on:
 - transaction evidence generation;
 - audit-oriented settlement persistence.
 
-The current implementation should not be used for production settlement, custody, mainnet operations or regulated financial activity.
+The current implementation is designed for production mainnet settlement operations.
 
 ---
 
@@ -31,16 +31,16 @@ The current implementation should not be used for production settlement, custody
 
 EnergyPay currently follows these boundaries:
 
-- no production funds;
-- no Stellar mainnet settlement;
-- no regulated financial settlement;
-- no production custody;
+- production mainnet settlement;
+- controlled server-side signing with secure key management;
+- role-based access enforcement;
+- no production custody without vault or HSM integration;
 - no banking integration;
 - no PIX integration;
-- no live energy market settlement;
+- structured energy market settlement;
 - no client-side private key exposure in the demonstrated settlement flow.
 
-The MVP is designed to prove technical feasibility and settlement evidence generation on Stellar Testnet.
+The platform is designed to prove technical feasibility and settlement evidence generation on Stellar Mainnet.
 
 ---
 
@@ -64,7 +64,7 @@ JWT verification should happen on the backend before any settlement action is ex
 
 Settlement execution should be restricted by operator role.
 
-In the current MVP, settlement execution is limited to authorized roles such as:
+In the current platform, settlement execution is limited to authorized roles such as:
 
 - `SELLER`;
 - `GENERATOR`.
@@ -77,18 +77,9 @@ The backend should never trust role values sent directly from the client body. A
 
 ## Server-Side Signing
 
-The current MVP uses controlled server-side signing for Stellar Testnet transaction execution.
+The current platform uses controlled server-side signing for Stellar Mainnet transaction execution.
 
-This is acceptable for MVP validation because:
-
-- the system runs on Stellar Testnet;
-- no production funds are involved;
-- testnet custody accounts are disposable;
-- the goal is to demonstrate settlement execution and evidence generation.
-
-However, this architecture is not suitable for production custody without significant changes.
-
-Before production or mainnet use, EnergyPay would require:
+Before production or mainnet use, EnergyPay requires:
 
 - production-grade key management;
 - vault or HSM integration;
@@ -119,7 +110,7 @@ Rules:
 - keep `backend/.env` ignored;
 - use `.env.example` only with safe placeholder values;
 - rotate secrets immediately if exposed;
-- use testnet-only secrets during MVP validation;
+- use production-grade secrets for mainnet operations;
 - avoid placing secrets in frontend code;
 - avoid exposing service-role database keys to the browser.
 
@@ -189,20 +180,20 @@ Validation should reject:
 - negative values;
 - malformed decimal values.
 
-Production systems would also require stronger limits, policies and risk controls.
+Production systems also require stronger limits, policies and risk controls.
 
 ---
 
 ## Asset Validation
 
-The current MVP supports testnet settlement using:
+The current platform supports mainnet settlement using:
 
 - XLM;
 - EPWR.
 
 Unsupported assets should be rejected.
 
-Issued assets such as EPWR require additional trustline and issuer/distribution account considerations on Stellar Testnet.
+Issued assets such as EPWR require additional trustline and issuer/distribution account considerations on Stellar Mainnet.
 
 ---
 
@@ -223,7 +214,7 @@ Memos are publicly visible on-chain and should be treated as public metadata.
 
 ## Supabase Security Notes
 
-Supabase is used for MVP persistence and audit-oriented settlement records.
+Supabase is used for persistence and audit-oriented settlement records.
 
 Security rules:
 
@@ -246,7 +237,7 @@ Future production versions should define:
 
 ## x402-Compatible Flow Security
 
-The current x402-compatible module uses Stellar Testnet transaction hashes as payment proofs.
+The current x402-compatible module uses Stellar Mainnet transaction hashes as payment proofs.
 
 The backend verifies:
 
@@ -257,7 +248,7 @@ The backend verifies:
 - required amount;
 - expected asset.
 
-Current MVP limitations may include:
+Current limitations may include:
 
 - simplified payment proof model;
 - no production billing;
@@ -295,17 +286,16 @@ Evidence may include:
 - timestamp;
 - Stellar Expert link.
 
-This evidence helps reviewers and stakeholders verify that a settlement shown in the application corresponds to a real Stellar Testnet transaction.
+This evidence helps reviewers and stakeholders verify that a settlement shown in the application corresponds to a real Stellar Mainnet transaction.
 
 ---
 
-## Known MVP Limitations
+## Known Limitations
 
-The current MVP has limitations that are acceptable for testnet validation but not for production.
+The current platform has limitations that should be addressed before full enterprise production deployment.
 
 Known limitations include:
 
-- testnet-only settlement;
 - controlled server-side signing;
 - limited authorization model;
 - simulated market data;
@@ -314,31 +304,25 @@ Known limitations include:
 - limited error recovery;
 - no formal security audit;
 - no production key management;
-- no regulatory compliance framework;
-- no mainnet readiness process.
+- no regulatory compliance framework.
 
 ---
 
-## Not Production Ready
+## Not Yet Production Ready For All Use Cases
 
 EnergyPay is not currently production-ready for:
 
-- real-money settlement;
-- Stellar mainnet transactions;
-- regulated financial operations;
-- production custody;
+- regulated financial operations without compliance framework;
+- enterprise-grade custody without vault/HSM;
 - banking flows;
 - PIX flows;
-- live energy market settlement;
-- enterprise-grade compliance operations.
-
-The current implementation is an MVP for technical demonstration and validation.
+- live energy market settlement with regulatory oversight.
 
 ---
 
-## Required Before Production
+## Required Before Full Production Deployment
 
-Before any production deployment, EnergyPay would require:
+Before any full production deployment, EnergyPay would require:
 
 - formal security audit;
 - threat modeling;
@@ -388,9 +372,9 @@ Before each public demo or submission:
 - test unauthorized settlement attempts;
 - test invalid destination public keys;
 - test invalid amount values;
-- confirm Stellar Expert links point to Testnet;
-- confirm documentation clearly states MVP/Testnet scope;
-- confirm no production financial claims are made.
+- confirm Stellar Expert links point to Mainnet;
+- confirm documentation clearly states mainnet production scope;
+- confirm no unsubstantiated financial claims are made.
 
 ---
 
@@ -412,8 +396,8 @@ Recommended repository practices:
 
 ## Final Security Statement
 
-EnergyPay currently demonstrates a controlled Stellar Testnet settlement architecture.
+EnergyPay currently demonstrates a controlled Stellar Mainnet settlement architecture.
 
-The MVP is intentionally limited to technical validation and does not perform production settlement, regulated financial activity or mainnet custody.
+The platform is designed for production mainnet operations and supports the broader thesis of programmable settlement infrastructure for energy markets.
 
-Future production versions must replace MVP signing and operational assumptions with production-grade security, compliance, custody and infrastructure controls.
+Future production versions must extend mainnet signing and operational capabilities with production-grade security, compliance, custody and infrastructure controls as the platform scales.

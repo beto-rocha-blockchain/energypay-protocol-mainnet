@@ -2,11 +2,11 @@
 
 ## Why Stellar Fits EnergyPay
 
-EnergyPay needs a payment rail with low fees, short finality, issued assets and public auditability. Stellar maps well to this prototype because it supports native XLM, issued assets such as EPWR, memo fields for reconciliation references, account-level trustlines and Horizon APIs for ledger reads.
+EnergyPay needs a payment rail with low fees, short finality, issued assets and public auditability. Stellar maps well to this platform because it supports native XLM, issued assets such as EPWR, memo fields for reconciliation references, account-level trustlines and Horizon APIs for ledger reads.
 
 ## Current Usage In This Repo
 
-- Horizon Testnet account reads power wallet balances and activity.
+- Horizon Mainnet account reads power wallet balances and activity.
 - `STELLAR_SECRET` signs XLM settlement payments.
 - `ISSUER_SECRET` identifies the EPWR issuer.
 - `DISTRIBUTION_SECRET` signs EPWR distribution payments.
@@ -17,7 +17,7 @@ EnergyPay needs a payment rail with low fees, short finality, issued assets and 
 - Issued assets require the destination account to create a trustline before it can receive EPWR.
 - Stellar memo text is limited to 28 bytes, so settlement references must be short.
 - Sequence numbers are account scoped, so concurrent signing from the same custody account needs queueing or retry handling.
-- Testnet Friendbot is useful for onboarding demos but is not a production funding model.
+- Operator wallet funding is required for mainnet accounts and should be managed through proper treasury operations.
 
 ## Production Questions
 

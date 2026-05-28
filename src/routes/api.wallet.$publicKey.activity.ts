@@ -3,7 +3,7 @@
  *
  *   GET /api/wallet/:publicKey/activity?limit=20
  *
- * Pulls the latest Stellar operations directly from Horizon (testnet) and
+ * Pulls the latest Stellar operations directly from Horizon (Stellar Mainnet) and
  * normalizes them into a compact `ActivityEvent` shape consumed by the
  * institutional activity feed UI.
  */
@@ -101,7 +101,7 @@ const classifyOp = (op: HorizonOp, account: string): ActivityEvent => {
       amount = op.starting_balance ?? null;
       asset = "XLM";
       counterparty = op.funder ?? null;
-      detail = `Friendbot/funder seeded ${amount ?? "—"} XLM into the settlement account.`;
+      detail = `Operator-funded: ${amount ?? "—"} XLM seeded into the settlement account on Stellar Mainnet.`;
       severity = successful ? "ok" : "critical";
       break;
     }

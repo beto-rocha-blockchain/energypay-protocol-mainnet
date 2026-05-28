@@ -1,27 +1,32 @@
 /**
- * StatusBar — sticky bottom ticker with live market data.
+ * StatusBar — sticky bottom ticker with live market & platform data.
  *
- * Real-time data sources (no mocks):
- *   · CoinGecko public API  → BTC/BRL · BTC/USD · ETH/BRL · USDC/BRL
+ * Data sources (no mocks):
+ *   · CoinGecko public API  → XLM/BRL · XLM/USD · USDC/BRL
  *   · /api/oracle/pld       → PLD SE/CO · S · NE · N  (ONS CMO semi-horário)
+ *   · /api/health           → Stellar Mainnet · Horizon latency
+ *
+ * Personalisation:
+ *   · User's submercado (derived from operator.state) appears first, highlighted.
+ *   · Role label appended at the end of each cycle.
+ *   · When not logged in, defaults to SE/CO as primary submercado.
  *
  * Behaviour:
  *   - Items scroll continuously (CSS marquee, duplicated for seamless loop).
  *   - Scrolling pauses on hover so values can be read.
- *   - Crypto refreshes every 30 s; PLD every 5 min (backend caches 10 min).
+ *   - Crypto refreshes every 30 s; PLD every 5 min; health every 30 s.
  *   - All values degrade to "—" when the upstream is unreachable.
- *   - The bar is always visible: the root layout uses h-screen + overflow-hidden.
  */
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { API_BASE_URL } from "@/lib/api";
+import { useOperator, type ParticipantRole } from "@/store/operator";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type CryptoData = {
-  btc_brl:  number | null;
-  btc_usd:  number | null;
-  eth_brl:  number | null;
+  xlm_brl:  number | null;
+  xlm_usd:  number | null;
   usdc_brl: number | null;
 };
 
@@ -30,36 +35,70 @@ type PldEntry = {
   cmo_brl_mwh: number;
 };
 
+type HealthData = {
+  horizon_latency_ms: number | null;
+  online: boolean;
+};
+
 type MarketSnap = {
   crypto:    CryptoData;
   pld:       PldEntry[];
+  health:    HealthData;
   updatedAt: string | null;
   loading:   boolean;
 };
 
 type TickerItem = {
-  label:   string;
-  value:   string;
-  accent?: boolean;   // PLD values rendered in success colour
+  label:    string;
+  value:    string;
+  accent?:  boolean;   // PLD values in success colour
+  primary?: boolean;   // User's own submercado — stronger highlight
+  dim?:     boolean;   // Secondary/role label items
 };
+
+// ─── Brazil submercado mapping (ANEEL) ────────────────────────────────────────
+
+const STATE_TO_SUB: Record<string, string> = {
+  // Sudeste / Centro-Oeste
+  SP: "SE/CO", RJ: "SE/CO", MG: "SE/CO", ES: "SE/CO",
+  GO: "SE/CO", DF: "SE/CO", MT: "SE/CO", MS: "SE/CO",
+  // Sul
+  PR: "S", SC: "S", RS: "S",
+  // Nordeste (note: SE = Sergipe → NE)
+  MA: "NE", PI: "NE", CE: "NE", RN: "NE", PB: "NE",
+  PE: "NE", AL: "NE", SE: "NE", BA: "NE",
+  // Norte
+  AM: "N", AC: "N", RR: "N", RO: "N", PA: "N", AP: "N", TO: "N",
+};
+
+// ─── Role labels ──────────────────────────────────────────────────────────────
+
+const ROLE_LABEL: Partial<Record<ParticipantRole, string>> = {
+  GENERATOR:            "GEN · SELL-SIDE",
+  SELLER:               "SELLER · ACTIVE",
+  INVESTOR:             "INVESTOR",
+  USER:                 "CONSUMER · ACL",
+  UTILITY:              "UTILITY · GRID",
+  REGULATORY_AUTHORITY: "REGULATORY · READ-ONLY",
+};
+
+const primaryRole = (roles: ParticipantRole[]): ParticipantRole | null =>
+  (["GENERATOR", "SELLER", "INVESTOR", "UTILITY", "USER", "REGULATORY_AUTHORITY"] as ParticipantRole[])
+    .find((r) => roles.includes(r)) ?? null;
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
 const BRL = new Intl.NumberFormat("pt-BR", {
-  style: "currency", currency: "BRL", maximumFractionDigits: 0,
-});
-const BRL2 = new Intl.NumberFormat("pt-BR", {
   style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2,
 });
 const USD = new Intl.NumberFormat("en-US", {
-  style: "currency", currency: "USD", maximumFractionDigits: 0,
+  style: "currency", currency: "USD", minimumFractionDigits: 4, maximumFractionDigits: 4,
 });
 const MWH = new Intl.NumberFormat("pt-BR", {
   minimumFractionDigits: 2, maximumFractionDigits: 2,
 });
 
 const fmtBRL  = (v: number) => BRL.format(v);
-const fmtBRL2 = (v: number) => BRL2.format(v);
 const fmtUSD  = (v: number) => USD.format(v);
 const fmtMWh  = (v: number) => `R$ ${MWH.format(v)}/MWh`;
 
@@ -67,7 +106,7 @@ const fmtMWh  = (v: number) => `R$ ${MWH.format(v)}/MWh`;
 
 const COINGECKO =
   "https://api.coingecko.com/api/v3/simple/price" +
-  "?ids=bitcoin,usd-coin,ethereum&vs_currencies=brl,usd&precision=2";
+  "?ids=stellar,usd-coin&vs_currencies=brl,usd&precision=4";
 
 async function fetchCrypto(): Promise<CryptoData> {
   const ctrl  = new AbortController();
@@ -77,10 +116,9 @@ async function fetchCrypto(): Promise<CryptoData> {
     if (!res.ok) throw new Error(`CoinGecko ${res.status}`);
     const d = await res.json();
     return {
-      btc_brl:  d.bitcoin?.brl       ?? null,
-      btc_usd:  d.bitcoin?.usd       ?? null,
-      eth_brl:  d.ethereum?.brl      ?? null,
-      usdc_brl: d["usd-coin"]?.brl   ?? null,
+      xlm_brl:  d.stellar?.brl     ?? null,
+      xlm_usd:  d.stellar?.usd     ?? null,
+      usdc_brl: d["usd-coin"]?.brl ?? null,
     };
   } finally {
     clearTimeout(timer);
@@ -100,57 +138,119 @@ async function fetchPld(): Promise<PldEntry[]> {
   }
 }
 
+async function fetchHealth(): Promise<HealthData> {
+  const ctrl  = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 5_000);
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/health`, {
+      signal: ctrl.signal,
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) return { horizon_latency_ms: null, online: false };
+    const d = await res.json();
+    const latency =
+      typeof d?.horizon?.latency_ms === "number"
+        ? d.horizon.latency_ms
+        : typeof d?.latency_ms === "number"
+          ? d.latency_ms
+          : null;
+    return { horizon_latency_ms: latency, online: true };
+  } catch {
+    return { horizon_latency_ms: null, online: false };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ─── Item builder ─────────────────────────────────────────────────────────────
 
 const PLD_ORDER = ["SE/CO", "S", "NE", "N"] as const;
 
-function buildItems(snap: MarketSnap): TickerItem[] {
-  const { crypto, pld } = snap;
+function buildItems(
+  snap:        MarketSnap,
+  userSub:     string | null,
+  roles:       ParticipantRole[],
+): TickerItem[] {
+  const { crypto, pld, health } = snap;
+  const items: TickerItem[] = [];
 
-  return [
-    // ── Crypto ──
-    {
-      label: "BTC",
-      value: crypto.btc_brl != null ? fmtBRL(crypto.btc_brl) : "—",
-    },
-    {
-      label: "BTC · USD",
-      value: crypto.btc_usd != null ? fmtUSD(crypto.btc_usd) : "—",
-    },
-    {
-      label: "ETH",
-      value: crypto.eth_brl != null ? fmtBRL(crypto.eth_brl) : "—",
-    },
-    {
-      label: "USDC / BRL",
-      value: crypto.usdc_brl != null ? fmtBRL2(crypto.usdc_brl) : "—",
-    },
-    // ── PLD ──
-    ...PLD_ORDER.map((sub) => {
-      const entry = pld.find((p) => p.submercado === sub);
-      return {
-        label: `PLD ${sub}`,
-        value: entry != null ? fmtMWh(entry.cmo_brl_mwh) : "—",
-        accent: true,
-      };
-    }),
-  ];
+  // ── PLD: user's submercado first (highlighted), others follow ──
+  const orderedSubs = userSub
+    ? [userSub, ...PLD_ORDER.filter((s) => s !== userSub)]
+    : [...PLD_ORDER];
+
+  for (const sub of orderedSubs) {
+    const entry = pld.find((p) => p.submercado === sub);
+    items.push({
+      label:   `PLD ${sub}`,
+      value:   entry != null ? fmtMWh(entry.cmo_brl_mwh) : "—",
+      accent:  true,
+      primary: sub === userSub,
+    });
+  }
+
+  // ── XLM/BRL — settlement token ──
+  items.push({
+    label: "XLM · BRL",
+    value: crypto.xlm_brl != null ? fmtBRL(crypto.xlm_brl) : "—",
+  });
+
+  // ── XLM/USD — for investors / international reference ──
+  if (roles.includes("INVESTOR") || roles.includes("SELLER") || roles.length === 0) {
+    items.push({
+      label: "XLM · USD",
+      value: crypto.xlm_usd != null ? fmtUSD(crypto.xlm_usd) : "—",
+    });
+  }
+
+  // ── USDC/BRL — BRL stability reference ──
+  items.push({
+    label: "USDC · BRL",
+    value: crypto.usdc_brl != null ? fmtBRL(crypto.usdc_brl) : "—",
+  });
+
+  // ── Horizon rail latency ──
+  items.push({
+    label: "STELLAR · MAINNET",
+    value: health.online
+      ? health.horizon_latency_ms != null
+        ? `${health.horizon_latency_ms} ms`
+        : "ONLINE"
+      : "CHECKING…",
+    dim: !health.online,
+  });
+
+  // ── Role context label ──
+  const role = primaryRole(roles);
+  if (role) {
+    const label = ROLE_LABEL[role];
+    if (label) {
+      items.push({ label: "ROLE", value: label, dim: true });
+    }
+  }
+
+  return items;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const CRYPTO_INTERVAL_MS = 30_000;   // 30 s
-const PLD_INTERVAL_MS    = 5 * 60_000; // 5 min
+const CRYPTO_INTERVAL_MS  = 30_000;
+const PLD_INTERVAL_MS     = 5 * 60_000;
+const HEALTH_INTERVAL_MS  = 30_000;
 
 export function StatusBar() {
+  const operator    = useOperator((s) => s.operator);
+  const userSub     = operator?.state ? (STATE_TO_SUB[operator.state.toUpperCase()] ?? "SE/CO") : null;
+  const roles       = operator?.roles ?? [];
+
   const [snap, setSnap] = useState<MarketSnap>({
-    crypto:    { btc_brl: null, btc_usd: null, eth_brl: null, usdc_brl: null },
+    crypto:    { xlm_brl: null, xlm_usd: null, usdc_brl: null },
     pld:       [],
+    health:    { horizon_latency_ms: null, online: false },
     updatedAt: null,
     loading:   true,
   });
 
-  // Crypto — refresh every 30 s
   const refreshCrypto = useCallback(async () => {
     try {
       const crypto = await fetchCrypto();
@@ -162,34 +262,34 @@ export function StatusBar() {
           hour: "2-digit", minute: "2-digit", second: "2-digit",
         }),
       }));
-    } catch {
-      /* keep previous values, don't set loading */
-    }
+    } catch { /* keep previous */ }
   }, []);
 
-  // PLD — refresh every 5 min
   const refreshPld = useCallback(async () => {
     try {
       const pld = await fetchPld();
       setSnap((prev) => ({ ...prev, pld }));
-    } catch {
-      /* keep previous values */
-    }
+    } catch { /* keep previous */ }
   }, []);
 
-  // Initial load: fetch both in parallel
+  const refreshHealth = useCallback(async () => {
+    try {
+      const health = await fetchHealth();
+      setSnap((prev) => ({ ...prev, health }));
+    } catch { /* keep previous */ }
+  }, []);
+
+  // Initial load: fetch all three in parallel
   const initialised = useRef(false);
   useEffect(() => {
     if (initialised.current) return;
     initialised.current = true;
 
-    Promise.allSettled([fetchCrypto(), fetchPld()]).then(([c, p]) => {
+    Promise.allSettled([fetchCrypto(), fetchPld(), fetchHealth()]).then(([c, p, h]) => {
       setSnap({
-        crypto:
-          c.status === "fulfilled"
-            ? c.value
-            : { btc_brl: null, btc_usd: null, eth_brl: null, usdc_brl: null },
-        pld: p.status === "fulfilled" ? p.value : [],
+        crypto:    c.status === "fulfilled" ? c.value : { xlm_brl: null, xlm_usd: null, usdc_brl: null },
+        pld:       p.status === "fulfilled" ? p.value : [],
+        health:    h.status === "fulfilled" ? h.value : { horizon_latency_ms: null, online: false },
         updatedAt: new Date().toLocaleTimeString("pt-BR", {
           hour: "2-digit", minute: "2-digit", second: "2-digit",
         }),
@@ -198,19 +298,22 @@ export function StatusBar() {
     });
   }, []);
 
-  // Crypto interval
   useEffect(() => {
     const id = setInterval(refreshCrypto, CRYPTO_INTERVAL_MS);
     return () => clearInterval(id);
   }, [refreshCrypto]);
 
-  // PLD interval
   useEffect(() => {
     const id = setInterval(refreshPld, PLD_INTERVAL_MS);
     return () => clearInterval(id);
   }, [refreshPld]);
 
-  const items = buildItems(snap);
+  useEffect(() => {
+    const id = setInterval(refreshHealth, HEALTH_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [refreshHealth]);
+
+  const items = buildItems(snap, userSub, roles);
 
   return (
     <div className="flex h-8 shrink-0 items-center border-t border-border bg-sidebar/90 backdrop-blur">
@@ -236,8 +339,6 @@ export function StatusBar() {
             Carregando dados de mercado…
           </span>
         ) : (
-          /* Inner div is twice as wide (content duplicated).
-             translateX(-50%) moves exactly one copy off-screen, loops seamlessly. */
           <div className="animate-ep-ticker flex items-center">
             <TickerContent items={items} />
             {/* Seamless duplicate */}
@@ -246,12 +347,19 @@ export function StatusBar() {
         )}
       </div>
 
-      {/* ── Fixed right: last update timestamp ────────────── */}
-      {snap.updatedAt && (
-        <div className="shrink-0 border-l border-border px-3 font-mono text-[8.5px] uppercase tracking-[0.15em] text-muted-foreground/50 h-full flex items-center">
-          {snap.updatedAt}
-        </div>
-      )}
+      {/* ── Fixed right: submercado label + last update ────── */}
+      <div className="shrink-0 border-l border-border px-3 h-full flex items-center gap-2">
+        {userSub && operator && (
+          <span className="font-mono text-[8.5px] uppercase tracking-[0.15em] text-success/70">
+            {userSub}
+          </span>
+        )}
+        {snap.updatedAt && (
+          <span className="font-mono text-[8.5px] uppercase tracking-[0.15em] text-muted-foreground/50">
+            {snap.updatedAt}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -263,7 +371,6 @@ function TickerContent({ items }: { items: TickerItem[] }) {
     <>
       {items.map((item, i) => (
         <span key={i} className="flex items-baseline shrink-0">
-          {/* Separator before each item except the first */}
           {i > 0 && (
             <span className="mx-3 font-mono text-[8px] text-muted-foreground/30 select-none">
               ·
@@ -274,7 +381,13 @@ function TickerContent({ items }: { items: TickerItem[] }) {
           </span>
           <span
             className={`font-mono text-[10px] tabular-nums font-medium ${
-              item.accent ? "text-success" : "text-foreground/85"
+              item.primary
+                ? "text-success font-semibold"
+                : item.accent
+                  ? "text-success/80"
+                  : item.dim
+                    ? "text-muted-foreground/60"
+                    : "text-foreground/85"
             }`}
           >
             {item.value}

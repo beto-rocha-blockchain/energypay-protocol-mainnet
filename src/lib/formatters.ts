@@ -94,7 +94,7 @@ export const fmtTxHash = (hash: string | undefined | null): string => {
 export const stellarExpertUrl = (
   hashOrAccount: string,
   kind: "tx" | "account" | "ledger" | "asset" = "tx",
-  network: "public" | "testnet" = "testnet",
+  network: "public" | "testnet" = "public",
 ): string => {
   const base = `https://stellar.expert/explorer/${network}`;
   switch (kind) {

@@ -3,7 +3,7 @@
  *
  *   GET /api/wallet/:publicKey/balances
  *
- * Reads the live account from Horizon (testnet) and returns:
+ * Reads the live account from Horizon (Stellar Mainnet) and returns:
  *   - full per-asset balance entries (with issuer + trustline limit)
  *   - convenience summary { xlm, eprw } for backwards compatibility
  *   - account funded state, subentry count, latency telemetry

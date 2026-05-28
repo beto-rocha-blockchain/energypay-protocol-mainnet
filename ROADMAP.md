@@ -6,9 +6,9 @@
 - Keep build and lint green.
 - Document current architecture, runtime boundaries and operational flows.
 
-## Phase 1 - Testnet Settlement Reliability
+## Phase 1 - Mainnet Settlement Reliability
 
-- Finalize P2P settlement against Stellar Testnet for XLM and EPWR.
+- Finalize P2P settlement against Stellar Mainnet for XLM and EPWR.
 - Add idempotency persistence outside process memory.
 - Normalize settlement receipts across backend and TanStack gateway.
 - Add integration tests for invalid destination, invalid amount, unauthorized operator and Horizon rejection.
@@ -38,5 +38,5 @@
 
 - Run external security review.
 - Add key rotation and incident procedures.
-- Move from Stellar Testnet to controlled mainnet pilot.
+- Expand mainnet operations to additional market segments.
 - Define compliance, custody and operational support responsibilities.

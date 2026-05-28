@@ -92,7 +92,7 @@ export function StellarRailMonitor() {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
-        <NodeChip label={IS_MAINNET ? "horizon" : "horizon-testnet"} status={health?.horizon?.status ?? "ok"} />
+        <NodeChip label="horizon-mainnet" status={health?.horizon?.status ?? "ok"} />
         <NodeChip label="settlement-adapter" status={health?.backend?.status ?? "ok"} />
         <NodeChip label="ledger-stream" status={isOffline ? "offline" : "ok"} />
         <NodeChip label="trustline-monitor" status="ok" />

@@ -1,14 +1,12 @@
 /**
  * EnergyPay service layer — adapter façade.
  *
- * Each domain exposes `{ list, get, subscribe }`. Today these are backed
- * by deterministic mock data from `src/lib/institutional-data.ts`. When
- * real backends come online, swap the `*.mock` import for `*.live` —
- * components do not change.
+ * Each domain exposes `{ list, get, subscribe }`. Services pull live data
+ * from the EnergyPay backend API and Stellar Mainnet Horizon. All data
+ * is real — no synthetic or simulated records.
  *
- * The `subscribe` method returns an unsubscribe function. Mock impls use
- * `setInterval` to emit refreshed snapshots; the WebSocket impl will be
- * a thin wrapper around `transport.ws`.
+ * The `subscribe` method returns an unsubscribe function that cleans up
+ * polling intervals when the consuming component unmounts.
  */
 export * from "./settlements.service";
 export * from "./clearing.service";

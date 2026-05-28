@@ -2,11 +2,9 @@
 
 ## Programmable Settlement Infrastructure for Energy Markets
 
-EnergyPay is a programmable settlement and reconciliation infrastructure for energy contracts, using Stellar as a verifiable financial rail for contract execution, audit evidence, and future energy API monetization.
+EnergyPay is a programmable settlement and reconciliation infrastructure for energy contracts, using Stellar Mainnet as a verifiable financial rail for contract execution, audit evidence, and energy API monetization.
 
-The project demonstrates how bilateral energy settlement obligations can move from fragmented manual workflows into a digital, auditable and programmable settlement process.
-
-EnergyPay is being built as part of the Stellar 37 ecosystem journey, with an initial MVP focused on Stellar Testnet settlement execution, digital contract registration, transaction evidence, and operational auditability.
+The project demonstrates how bilateral energy settlement obligations can move from fragmented manual workflows into a digital, auditable and programmable settlement process — operating on real Stellar Mainnet transactions.
 
 ---
 
@@ -33,7 +31,7 @@ As the free energy market expands, especially in markets such as Brazil, partici
 
 EnergyPay introduces a programmable settlement layer for energy contracts.
 
-The platform allows energy market participants to register digital settlement obligations, execute simulated settlements on Stellar Testnet, and verify the full transaction lifecycle through audit dashboards, transaction hashes, ledger numbers, memos and Stellar Expert links.
+The platform allows energy market participants to register digital settlement obligations, execute settlements on Stellar Mainnet, and verify the full transaction lifecycle through audit dashboards, transaction hashes, ledger numbers, memos and Stellar Expert links.
 
 EnergyPay is not just a tokenization prototype.
 
@@ -44,18 +42,18 @@ It is designed as an operational and financial infrastructure layer for:
 - reconciliation automation;
 - audit evidence generation;
 - settlement lifecycle monitoring;
-- future machine-to-machine energy payments;
+- machine-to-machine energy payments;
 - premium energy market API monetization.
 
 ---
 
-## Current MVP
+## Settlement Flow
 
-The current MVP demonstrates a complete testnet-based workflow:
+The platform executes a complete mainnet workflow:
 
 1. A bilateral energy settlement obligation is represented inside the platform.
 2. The user executes a programmable settlement flow.
-3. The backend submits a real transaction to Stellar Testnet.
+3. The backend submits a real transaction to Stellar Mainnet.
 4. The system returns verifiable transaction evidence.
 5. The settlement event is displayed with txHash, ledger, memo, status and Stellar Expert link.
 6. The audit trail can be used to support reconciliation and operational verification.
@@ -65,10 +63,10 @@ The current MVP demonstrates a complete testnet-based workflow:
 ## Live Demo
 
 **Application:**  
-[EnergyPay Live Demo](https://energypay-protocol.vercel.app/)
+[EnergyPay — energypay-protocol-mainnet.vercel.app](https://energypay-protocol-mainnet.vercel.app/)
 
 **GitHub Repository:**  
-[energypay-protocol](https://github.com/beto-rocha-blockchain/energypay-protocol)
+[energypay-protocol-mainnet](https://github.com/beto-rocha-blockchain/energypay-protocol-mainnet)
 
 ---
 
@@ -93,9 +91,9 @@ This creates the digital foundation required before settlement execution.
 
 ---
 
-### Stellar Testnet Settlement Rail
+### Stellar Mainnet Settlement Rail
 
-EnergyPay connects energy contract obligations to Stellar Testnet settlement execution.
+EnergyPay connects energy contract obligations to Stellar Mainnet settlement execution.
 
 The settlement rail captures and displays:
 
@@ -110,19 +108,20 @@ The settlement rail captures and displays:
 - settlement status;
 - Stellar Expert explorer link.
 
-This makes each settlement event externally verifiable.
+This makes each settlement event externally verifiable on Stellar Mainnet.
 
 ---
 
 ### Direct Settlement
 
-The Direct Settlement module allows users to execute a payment flow through Stellar Testnet and receive real transaction evidence.
+The Direct Settlement module allows users to execute a payment flow through Stellar Mainnet and receive real transaction evidence.
 
 The current implementation supports settlement execution with:
 
 - Stellar SDK;
-- Horizon Testnet;
-- temporary server-side signing architecture for MVP validation on Stellar Testnet;
+- Horizon Mainnet (`horizon.stellar.org`);
+- server-side signing for PLATFORM_MANAGED wallets;
+- local signing modal for USER_CONTROLLED wallets;
 - transaction submission;
 - txHash return;
 - ledger confirmation;
@@ -153,24 +152,22 @@ This layer is intended to help market participants verify what happened, when it
 
 EnergyPay also demonstrates an x402-compatible payment flow for premium energy market APIs.
 
-The current implementation uses Stellar Testnet transactions as verifiable payment proofs for API access.
-
 The x402-compatible flow demonstrates:
 
 1. A protected API resource returns HTTP 402 Payment Required.
 2. The backend provides payment requirement metadata.
-3. A Stellar Testnet payment is executed.
+3. A Stellar Mainnet payment is executed by the user.
 4. The transaction hash is submitted as payment proof.
-5. The backend verifies memo, destination, amount and transaction success through Horizon.
+5. The backend verifies memo, destination, amount and transaction success through Horizon Mainnet.
 6. Premium energy market data access is unlocked.
 
-This module shows how future energy APIs, oracle feeds and market data services could be monetized through programmable payment rails.
+This module shows how future energy APIs, oracle feeds and market data services can be monetized through programmable payment rails on Stellar Mainnet.
 
 ---
 
 ## Architecture Overview
 
-EnergyPay combines a modern web application with Stellar-based settlement execution.
+EnergyPay combines a modern web application with Stellar Mainnet settlement execution.
 
 ```txt
 Energy Contract Obligation
@@ -181,7 +178,7 @@ Settlement Instruction
         ↓
 Backend Settlement Engine
         ↓
-Stellar Testnet / Horizon
+Stellar Mainnet / Horizon (horizon.stellar.org)
         ↓
 txHash + Ledger + Memo
         ↓
@@ -194,10 +191,10 @@ Audit Dashboard + Reconciliation Evidence
 
 ### Frontend
 
-- React
+- React 19
 - TypeScript
-- Vite
-- TanStack Router / TanStack Start
+- Vite + TanStack Start
+- TanStack Router
 - Zustand
 - Tailwind CSS
 - Radix UI
@@ -209,16 +206,16 @@ Audit Dashboard + Reconciliation Evidence
 - Node.js
 - Express
 - Stellar SDK
-- Horizon Testnet
+- Horizon Mainnet (`horizon.stellar.org`)
 - Supabase
 
 ### Blockchain / Settlement
 
-- Stellar Testnet
+- Stellar Mainnet (PUBLIC network)
 - Stellar SDK
-- Stellar Expert
-- XLM testnet payments
-- EPWR testnet asset support
+- Stellar Expert (`stellar.expert/explorer/public`)
+- XLM native payments
+- EPWR issued asset support
 
 ### Infrastructure
 
@@ -234,25 +231,28 @@ The current implementation includes:
 
 - authenticated settlement route;
 - role-based settlement authorization;
-- Stellar Testnet transaction creation;
-- backend-side transaction signing;
-- Horizon transaction submission;
+- Stellar Mainnet transaction creation;
+- backend-side transaction signing (PLATFORM_MANAGED wallets);
+- local signing support (USER_CONTROLLED wallets);
+- Horizon Mainnet transaction submission;
 - txHash and ledger capture;
-- Stellar Expert link generation;
+- Stellar Expert link generation (mainnet explorer);
 - settlement memo support;
 - destination public key validation;
-- supported asset validation;
+- supported asset validation (XLM, EPWR);
+- AES-encrypted secret key storage for PLATFORM_MANAGED wallets;
 - Supabase settlement persistence;
 - x402-compatible HTTP 402 payment flow;
-- payment proof validation through Horizon;
+- payment proof validation through Horizon Mainnet;
+- ONS oracle integration (real-time Brazilian PLD/CMO data);
 - frontend execution logs;
 - audit-oriented UI.
 
 ---
 
-## Stellar Testnet Evidence
+## Stellar Mainnet Evidence
 
-EnergyPay uses Stellar Testnet to provide verifiable settlement evidence.
+EnergyPay uses Stellar Mainnet to provide verifiable settlement evidence.
 
 Each successful settlement can generate:
 
@@ -265,34 +265,33 @@ Each successful settlement can generate:
 - asset;
 - status;
 - finality time;
-- Stellar Expert transaction URL.
+- Stellar Expert transaction URL (`/explorer/public/tx/…`).
 
-This allows reviewers, partners and stakeholders to independently verify settlement execution.
+This allows reviewers, partners and stakeholders to independently verify settlement execution on the live Stellar network.
 
 ---
 
 ## Security Notes
 
-EnergyPay is currently a testnet MVP and should not be used for production financial settlement.
-
 Current security-oriented decisions include:
 
-- backend-side transaction signing;
+- backend-side transaction signing only (no private keys in the browser);
+- AES encryption for PLATFORM_MANAGED wallet secrets;
+- USER_CONTROLLED wallets sign locally — secrets never leave the client;
 - no private key exposure in frontend execution flows;
 - environment-based secret management;
 - role-based authorization for settlement execution;
 - Stellar public key validation;
 - amount and asset validation;
-- explicit separation between testnet MVP and production/mainnet operations.
+- REGULATORY_AUTHORITY role is read-only by design.
 
 Future production versions would require:
 
 - formal security audit;
-- stronger custody architecture;
+- stronger custody architecture (HSM / MPC);
 - regulated compliance review;
 - KYC/KYB workflows;
-- production-grade key management;
-- mainnet readiness review;
+- production-grade key management vault;
 - banking/fiat integration assessment;
 - legal and regulatory validation.
 
@@ -300,27 +299,27 @@ Future production versions would require:
 
 ## What Is In Scope Now
 
-The current EnergyPay MVP focuses on:
+The current EnergyPay platform operates on Stellar Mainnet and includes:
 
 - digital energy contract registration;
-- Stellar Testnet settlement execution;
-- Direct Settlement flow;
-- txHash, ledger and memo evidence;
-- Stellar Expert verification;
+- Stellar Mainnet settlement execution;
+- Direct Settlement flow (P2P and contract-based);
+- EPWR issued-asset support on mainnet;
+- real txHash, ledger and memo evidence;
+- Stellar Expert mainnet verification;
 - audit dashboard;
 - settlement lifecycle visualization;
 - x402-compatible API access demonstration;
-- demo-ready operational interface.
+- ONS oracle integration (live Brazilian PLD/CMO);
+- role-based and region-aware interface.
 
 ---
 
 ## What Is Not In Scope Yet
 
-The current MVP does not claim to provide:
+The current platform does not claim to provide:
 
-- production mainnet settlement;
 - regulated financial operations;
-- real-money energy market settlement;
 - full clearing house operation;
 - collateral management;
 - margin engine;
@@ -337,17 +336,18 @@ These are future roadmap areas that require additional technical, legal, financi
 
 ## Roadmap
 
-### Phase 1 — MVP Settlement Infrastructure
+### Phase 1 — Mainnet Settlement Infrastructure ✅
 
 - Digital contract registry
-- Stellar Testnet settlement rail
-- Direct Settlement
+- Stellar Mainnet settlement rail
+- Direct Settlement (XLM + EPWR)
 - Audit dashboard
 - Transaction evidence package
+- ONS oracle integration (live PLD)
 
 ### Phase 2 — Institutional Refinement
 
-- Improved contract lifecycle
+- Improved contract lifecycle management
 - Enhanced reconciliation workflows
 - Better audit evidence exports
 - Stakeholder-facing dashboards
@@ -371,15 +371,15 @@ These are future roadmap areas that require additional technical, legal, financi
 ### Phase 5 — Production Readiness
 
 - Security audit
-- Mainnet planning
 - Compliance review
 - Enterprise integrations
 - Market pilot preparation
+- KYC/KYB workflows
 
 ### Phase 6 — Energy Financial Infrastructure
 
 - Stablecoin settlement rails
-- Energy API monetization
+- Energy API monetization (x402 at scale)
 - Machine-to-machine payments
 - Oracle-based settlement triggers
 - Energy financial products
@@ -412,14 +412,15 @@ As energy markets become more dynamic and decentralized, settlement infrastructu
 
 Stellar provides a strong foundation for EnergyPay because it is optimized for fast, low-cost and verifiable financial transactions.
 
-EnergyPay uses Stellar to demonstrate:
+EnergyPay uses Stellar Mainnet to demonstrate:
 
-- programmable settlement execution;
-- fast transaction confirmation;
+- programmable settlement execution on a live network;
+- fast transaction confirmation (~5s finality);
 - public transaction verification;
 - ledger-based auditability;
 - interoperable payment infrastructure;
-- future stablecoin and asset-based settlement rails.
+- issued-asset support (EPWR);
+- stablecoin and asset-based settlement rails.
 
 Stellar acts as the financial execution rail, while EnergyPay provides the energy-specific workflow, registry, audit and reconciliation layer.
 
@@ -441,28 +442,29 @@ Market Validation / Business Lead
 
 ## Project Status
 
-EnergyPay is currently in active development.
+EnergyPay is currently in active development on Stellar Mainnet.
 
 Current status:
 
-- MVP operational;
-- Stellar Testnet settlement working;
+- platform operational on Stellar Mainnet;
+- Mainnet settlement execution working (XLM + EPWR);
 - Direct Settlement flow implemented;
-- x402-compatible API flow implemented;
+- x402-compatible API flow implemented (mainnet payment proofs);
 - institutional frontend deployed on Vercel;
+- ONS oracle live (real Brazilian PLD/CMO data);
+- role-based and region-aware interface;
 - audit-oriented workflow in place;
-- stakeholder validation initiated with energy market participants;
-- Instawards SOW and pilot documentation in progress.
+- stakeholder validation initiated with energy market participants.
 
 ---
 
 ## Disclaimer
 
-EnergyPay is currently an experimental MVP running on Stellar Testnet.
+EnergyPay is an experimental platform running on Stellar Mainnet, intended for demonstration, validation and technical development purposes.
 
-The platform is intended for demonstration, validation and technical development purposes only.
+It does not currently perform regulated financial settlement, does not operate as a licensed clearing house, payment institution or energy market operator.
 
-It does not currently perform regulated financial settlement, does not operate with production funds and does not represent a licensed clearing house, payment institution or energy market operator.
+Settlement transactions executed through this platform use real Stellar Mainnet accounts and real XLM/EPWR. Users are responsible for the management and security of their settlement addresses.
 
 ---
 

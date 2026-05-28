@@ -2,27 +2,27 @@
  * Stellar helper utilities — frontend-only, NO secret key handling.
  *
  * The frontend never generates, holds, transports or signs with secret keys.
- * Wallet provisioning, ed25519 signing, Friendbot funding and Horizon
- * submission are all performed exclusively by the backend in-memory.
+ * Wallet provisioning, ed25519 signing and Horizon submission are all
+ * performed exclusively by the backend in-memory.
  *
- * Network detection: reads VITE_STELLAR_NETWORK at build time.
- *   "mainnet" → Stellar public network
- *   anything else (or unset) → Stellar testnet (default)
+ * This platform operates exclusively on Stellar Mainnet (PUBLIC network).
+ * Network detection reads VITE_STELLAR_NETWORK at build time; defaults to
+ * "mainnet" when unset. Only an explicit "testnet" value switches the URL.
  */
 
 import { StrKey } from "@stellar/stellar-sdk";
 
-const raw = (import.meta.env.VITE_STELLAR_NETWORK ?? "testnet").toString().toLowerCase().trim();
-export const IS_MAINNET = raw === "mainnet" || raw === "public";
+const raw = (import.meta.env.VITE_STELLAR_NETWORK ?? "mainnet").toString().toLowerCase().trim();
+export const IS_MAINNET = raw !== "testnet";
 
 export const HORIZON_URL = IS_MAINNET
   ? "https://horizon.stellar.org"
   : "https://horizon-testnet.stellar.org";
 
-export const STELLAR_NETWORK = IS_MAINNET ? "STELLAR_MAINNET" : "STELLAR_TESTNET";
-export const STELLAR_NETWORK_LABEL = IS_MAINNET ? "Stellar Mainnet" : "Stellar Testnet";
+export const STELLAR_NETWORK = "STELLAR_MAINNET";
+export const STELLAR_NETWORK_LABEL = "Stellar Mainnet";
 
-const EXPLORER_SEGMENT = IS_MAINNET ? "public" : "testnet";
+const EXPLORER_SEGMENT = "public";
 
 /** Validate a Stellar G... ed25519 public key using StrKey checksum. */
 export const isValidPublicKey = (key: string): boolean => {

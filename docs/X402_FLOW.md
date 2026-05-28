@@ -2,24 +2,24 @@
 
 ## Overview
 
-This document explains the x402-compatible API access flow implemented in the current EnergyPay MVP.
+This document explains the x402-compatible API access flow implemented in the current EnergyPay platform.
 
 EnergyPay is primarily focused on programmable settlement and reconciliation infrastructure for energy contracts. The x402-compatible module is an adjacent innovation layer that demonstrates how future paid energy APIs, oracle feeds and market data services could be monetized through programmable payment proofs.
 
-The current implementation uses Stellar Testnet transactions as verifiable payment proofs for API access.
+The current implementation uses Stellar Mainnet transactions as verifiable payment proofs for API access.
 
 ---
 
 ## Current Scope
 
-The current x402-compatible flow is designed for MVP validation and demonstration purposes.
+The current x402-compatible flow is designed for production operations and demonstration purposes.
 
 It demonstrates:
 
 - a protected energy market API resource;
 - HTTP 402 Payment Required response;
 - payment requirement metadata;
-- Stellar Testnet payment proof using txHash;
+- Stellar Mainnet payment proof using txHash;
 - backend verification through Horizon;
 - memo, destination and amount validation;
 - access granted after payment proof verification.
@@ -56,7 +56,7 @@ Backend returns HTTP 402 Payment Required
         ↓
 Frontend displays payment requirement
         ↓
-User provides Stellar Testnet payment proof
+User provides Stellar Mainnet payment proof
         ↓
 Backend verifies txHash through Horizon
         ↓
@@ -71,7 +71,7 @@ Frontend displays premium energy market data
 
 ## Protected Resource
 
-The current MVP demonstrates a protected API resource for premium energy market data.
+The current platform demonstrates a protected API resource for premium energy market data.
 
 Example protected resource:
 
@@ -81,7 +81,7 @@ Example protected resource:
 
 The PLD feed is used as a demonstration of how premium energy market data could require payment before access.
 
-The current data is for MVP demonstration and should not be interpreted as production-grade market data.
+The current data is for demonstration and should not be interpreted as production-grade market data without additional market data integration.
 
 ---
 
@@ -112,12 +112,12 @@ resource
 
 A payment requirement tells the client what payment must be made before the protected resource can be accessed.
 
-In the current MVP, a payment requirement may include:
+In the current platform, a payment requirement may include:
 
 ```json
 {
-  "scheme": "stellar-testnet",
-  "network": "stellar-testnet",
+  "scheme": "stellar-mainnet",
+  "network": "stellar-mainnet",
   "asset": "XLM",
   "amount": "0.0001",
   "destination": "G...",
@@ -127,33 +127,33 @@ In the current MVP, a payment requirement may include:
 }
 ```
 
-The user or client must provide proof of a Stellar Testnet transaction matching these requirements.
+The user or client must provide proof of a Stellar Mainnet transaction matching these requirements.
 
 ---
 
 ## Payment Proof
 
-The current MVP uses a Stellar Testnet transaction hash as payment proof.
+The current platform uses a Stellar Mainnet transaction hash as payment proof.
 
 The payment proof is submitted through a request header:
 
 ```txt
-PAYMENT-SIGNATURE: stellar-testnet:<txHash>
+PAYMENT-SIGNATURE: stellar-mainnet:<txHash>
 ```
 
 Example:
 
 ```txt
-PAYMENT-SIGNATURE: stellar-testnet:PASTE_TX_HASH_HERE
+PAYMENT-SIGNATURE: stellar-mainnet:PASTE_TX_HASH_HERE
 ```
 
-The backend extracts the txHash and verifies it through Horizon Testnet.
+The backend extracts the txHash and verifies it through Horizon Mainnet.
 
 ---
 
 ## Backend Verification
 
-After receiving the payment proof, the backend checks the Stellar Testnet transaction.
+After receiving the payment proof, the backend checks the Stellar Mainnet transaction.
 
 Verification includes:
 
@@ -181,7 +181,7 @@ A successful response may include:
 {
   "status": "ACCESS_GRANTED",
   "protocol": "x402-compatible",
-  "network": "stellar-testnet",
+  "network": "stellar-mainnet",
   "resource": "premium-pld-feed",
   "payment": {
     "ok": true,
@@ -192,7 +192,7 @@ A successful response may include:
     "asset": "XLM",
     "amount": "0.0001",
     "memo": "X402-PLD",
-    "explorer_url": "https://stellar.expert/explorer/testnet/tx/example_tx_hash"
+    "explorer_url": "https://stellar.expert/explorer/mainnet/tx/example_tx_hash"
   },
   "data": {
     "market": "Brazil Free Energy Market",
@@ -204,7 +204,7 @@ A successful response may include:
 }
 ```
 
-The response connects the API access event to verifiable Stellar Testnet payment evidence.
+The response connects the API access event to verifiable Stellar Mainnet payment evidence.
 
 ---
 
@@ -218,7 +218,7 @@ The user can:
 2. request the protected PLD feed without payment proof;
 3. receive HTTP 402 Payment Required metadata;
 4. view the required asset, amount, memo and destination;
-5. paste a Stellar Testnet txHash;
+5. paste a Stellar Mainnet txHash;
 6. retry the API request with the payment proof header;
 7. receive access granted after backend verification;
 8. inspect ledger, amount, source, destination and Stellar Expert link.
@@ -227,7 +227,7 @@ The user can:
 
 ## x402 Status Endpoint
 
-The current MVP may expose a status endpoint such as:
+The current platform may expose a status endpoint such as:
 
 ```txt
 /api/x402/status
@@ -258,7 +258,7 @@ GET /api/x402/pld without payment proof
         ↓
 Backend returns HTTP 402 Payment Required
         ↓
-User provides Stellar Testnet txHash
+User provides Stellar Mainnet txHash
         ↓
 GET /api/x402/pld with PAYMENT-SIGNATURE header
         ↓
@@ -279,7 +279,7 @@ EnergyPay core focuses on:
 
 - digital energy contract obligations;
 - settlement instructions;
-- Stellar Testnet settlement execution;
+- Stellar Mainnet settlement execution;
 - transaction evidence;
 - audit and reconciliation workflows.
 
@@ -291,17 +291,17 @@ The x402-compatible module demonstrates a future monetization path for:
 - automated market data services;
 - programmable API consumption.
 
-This separation is important because the EnergyPay MVP should be understood primarily as settlement and reconciliation infrastructure.
+This separation is important because the EnergyPay platform should be understood primarily as settlement and reconciliation infrastructure.
 
 ---
 
 ## What Is Real
 
-The current x402-compatible MVP can demonstrate:
+The current x402-compatible platform can demonstrate:
 
 - HTTP 402 Payment Required response;
 - payment requirement metadata;
-- Stellar Testnet txHash as payment proof;
+- Stellar Mainnet txHash as payment proof;
 - Horizon-based transaction verification;
 - memo validation;
 - destination validation;
@@ -312,19 +312,17 @@ The current x402-compatible MVP can demonstrate:
 
 ---
 
-## What Is Simulated or MVP-Scoped
+## What Is Simulated or Demo-Scoped
 
-The current x402-compatible flow may include simulated or MVP-scoped elements such as:
+The current x402-compatible flow may include simulated or demo-scoped elements such as:
 
 - simulated PLD data;
-- testnet-only payment;
 - demo payment destination;
-- non-production payment verification;
 - simplified payment proof format;
 - no production billing;
 - no regulated financial activity.
 
-This is acceptable for MVP validation as long as it is clearly presented as an experimental testnet module.
+This is acceptable for demonstration purposes as long as it is clearly presented as a demonstration module.
 
 ---
 
@@ -335,26 +333,24 @@ EnergyPay does not currently claim that the x402-compatible module is:
 - a production billing system;
 - a regulated payment product;
 - a full commercial API gateway;
-- a mainnet payment system;
 - a final implementation of production API monetization;
 - a substitute for compliance, billing, taxation or financial controls.
 
-The current implementation is a technical demonstration of payment-gated API access using Stellar Testnet evidence.
+The current implementation is a technical demonstration of payment-gated API access using Stellar Mainnet evidence.
 
 ---
 
 ## Security Boundaries
 
-The current x402-compatible module follows testnet MVP boundaries.
+The current x402-compatible module follows mainnet operations boundaries.
 
 Security-oriented notes:
 
-- no production funds are used;
-- verification is performed through Horizon Testnet;
+- verification is performed through Horizon Mainnet;
 - payment proof is based on txHash inspection;
 - expected memo, destination and amount are validated;
 - secrets must remain server-side;
-- testnet accounts should be treated as disposable;
+- mainnet accounts must be protected with production-grade key management;
 - production use would require stronger billing, replay protection, identity, compliance and monitoring.
 
 ---
@@ -373,7 +369,7 @@ STELLAR_DESTINATION=
 Rules:
 
 - do not commit real secret values;
-- use testnet public keys and testnet configuration for MVP validation;
+- use mainnet public keys and mainnet configuration for production operations;
 - keep sensitive values in environment variables;
 - rotate exposed credentials immediately;
 - design a stronger payment and billing architecture before production usage.
@@ -388,7 +384,7 @@ A reviewer can validate the x402-compatible flow by checking:
 - Does the protected resource return HTTP 402 without payment proof?
 - Does the backend return payment requirement metadata?
 - Does the frontend display asset, amount, memo and destination?
-- Can a Stellar Testnet txHash be submitted as payment proof?
+- Can a Stellar Mainnet txHash be submitted as payment proof?
 - Does the backend verify the transaction through Horizon?
 - Does the backend check memo, destination, amount and success?
 - Does the response return ACCESS_GRANTED after valid proof?
@@ -418,7 +414,7 @@ Required Memo:
 PASTE_MEMO_HERE
 
 Payment Proof Header:
-PAYMENT-SIGNATURE: stellar-testnet:<txHash>
+PAYMENT-SIGNATURE: stellar-mainnet:<txHash>
 
 Transaction Hash:
 PASTE_TX_HASH_HERE
@@ -450,20 +446,18 @@ Future versions of this module could evolve toward:
 - machine-to-machine energy market workflows;
 - enterprise integration with billing and accounting systems.
 
-These future directions are outside the current MVP scope.
-
 ---
 
 ## Summary
 
-The EnergyPay x402-compatible module demonstrates how a protected energy market API can be unlocked through verifiable Stellar Testnet payment evidence.
+The EnergyPay x402-compatible module demonstrates how a protected energy market API can be unlocked through verifiable Stellar Mainnet payment evidence.
 
 ```txt
 Protected API Request
         ↓
 HTTP 402 Payment Required
         ↓
-Stellar Testnet Payment Proof
+Stellar Mainnet Payment Proof
         ↓
 Horizon Verification
         ↓

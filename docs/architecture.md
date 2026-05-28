@@ -5,7 +5,7 @@ EnergyPay is split into two runnable surfaces:
 - Frontend and edge gateway: TanStack Start, React, TanStack Router, React Query and Zustand under `src/`.
 - Settlement backend: Express, Supabase and Stellar SDK under `backend/`.
 
-The frontend renders the institutional operating system. The backend owns account provisioning, JWT issuance, controlled Stellar Testnet signing and transaction submission.
+The frontend renders the institutional operating system. The backend owns account provisioning, JWT issuance, controlled Stellar Mainnet signing and transaction submission.
 
 ## Runtime Layers
 
@@ -24,8 +24,8 @@ State is split across:
 Server routes in `src/routes/api.*.ts` provide same-origin APIs for the UI:
 
 - `/api/health` probes the settlement backend and Stellar Horizon.
-- `/api/wallet/:publicKey/balances` reads balances from Horizon Testnet.
-- `/api/wallet/:publicKey/activity` reads recent operations from Horizon Testnet.
+- `/api/wallet/:publicKey/balances` reads balances from Horizon Mainnet.
+- `/api/wallet/:publicKey/activity` reads recent operations from Horizon Mainnet.
 - `/api/p2p/validate` validates a P2P settlement intent, applies authorization checks from JWT claims, and proxies to the backend.
 - `/api/settlements/telemetry` exposes in-memory adapter telemetry.
 
@@ -36,21 +36,21 @@ The gateway does not hold Stellar secret keys. It validates, normalizes and prox
 `backend/src/app.js` exposes:
 
 - `/api/auth/register` and `/api/auth/login`.
-- `/api/wallet/*` for testnet wallet utilities.
+- `/api/wallet/*` for mainnet wallet utilities.
 - `/api/token/*` for EPWR trustline, minting and balances.
 - `/api/p2p/transfer` for authenticated P2P settlement.
 - `/api/settlement/execute` for legacy settlement execution.
 
-The backend verifies JWTs with `JWT_SECRET`, signs Stellar Testnet transactions in a controlled MVP environment, submits them to Horizon Testnet and writes best-effort audit rows to Supabase.
+The backend verifies JWTs with `JWT_SECRET`, signs Stellar Mainnet transactions in a controlled production environment, submits them to Horizon Mainnet and writes best-effort audit rows to Supabase.
 
-### 4. Stellar Testnet
+### 4. Stellar Mainnet
 
 Stellar is used for:
 
 - XLM custody payments from `STELLAR_SECRET`.
 - EPWR issued-asset payments from `DISTRIBUTION_SECRET`.
 - EPWR issuer derivation from `ISSUER_SECRET` or an explicit issuer public key.
-- Public account reads through Horizon Testnet.
+- Public account reads through Horizon Mainnet.
 
 ## P2P Settlement Flow
 
@@ -102,6 +102,6 @@ The in-memory gateway store is intentionally replaceable. For production, replac
 - `backend/.env` stays local and ignored.
 - P2P backend routes verify JWT signatures before signing transactions.
 - The backend overwrites `sender_user_id` from the verified token instead of trusting the client body.
-- Testnet custody accounts must be treated as disposable until key management is moved to a proper vault or HSM.
+- Mainnet custody accounts must be protected with proper vault or HSM key management.
   
-This architecture is intended for Stellar Testnet MVP validation and is not a production custody or regulated settlement architecture.
+This architecture supports Stellar Mainnet production operations and institutional settlement workflows.
