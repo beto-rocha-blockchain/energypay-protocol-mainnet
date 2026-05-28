@@ -257,6 +257,24 @@ router.post("/", requireAuth, async (req, res) => {
 
     if (error) throw error;
 
+    // Async risk check — does not block contract creation
+    // Stores result for immediate display in the UI
+    if (!alreadySettled && buyer_public_key && Number(volume_mwh) > 0 && Number(price_brl) > 0) {
+      const effectivePld = pld_brl != null ? Number(pld_brl) : Number(price_brl);
+      const { verifyCounterpartyRisk } = await import("../services/riskVerificationService.js");
+      verifyCounterpartyRisk(buyer_public_key, Number(volume_mwh), effectivePld)
+        .then(async (risk) => {
+          await supabase.from("contracts").update({
+            risk_status: risk.riskStatus,
+            collateral_required_brl: risk.requiredCollateralBrl,
+            collateral_available_epwr: risk.availableEpwr,
+            coverage_ratio: risk.coverageRatio,
+            risk_verified_at: new Date().toISOString(),
+          }).eq("id", contract.id);
+        })
+        .catch((e) => console.warn("[Contracts] Risk check non-fatal:", e.message));
+    }
+
     // First movement
     await addMovement(contract.id, {
       fromState: null,
@@ -576,6 +594,55 @@ router.post("/:id/execute-settlement", requireAuth, async (req, res) => {
         .eq("id", instrCheck.id);
     }
 
+    // ── PRE-SETTLEMENT RISK ENFORCEMENT ──
+    // Block settlement when collateral is insufficient (only when EPWR_ISSUER_PUBLIC_KEY is set).
+    if (process.env.EPWR_ISSUER_PUBLIC_KEY && contract.buyer_public_key &&
+        contract.volume_mwh > 0 && (contract.pld_brl > 0 || contract.price_brl > 0)) {
+      try {
+        const { verifyCounterpartyRisk } = await import("../services/riskVerificationService.js");
+        const effectivePld = Number(contract.pld_brl || contract.price_brl);
+        const risk = await verifyCounterpartyRisk(
+          contract.buyer_public_key,
+          Number(contract.volume_mwh),
+          effectivePld,
+        );
+
+        // Persist latest risk assessment before deciding
+        await supabase.from("contracts").update({
+          risk_status: risk.riskStatus,
+          collateral_required_brl: risk.requiredCollateralBrl,
+          collateral_available_epwr: risk.availableEpwr,
+          coverage_ratio: risk.coverageRatio,
+          risk_verified_at: new Date().toISOString(),
+        }).eq("id", req.params.id);
+
+        if (!risk.authorized) {
+          // Revert state to previous (undo BROADCASTING transition)
+          await supabase
+            .from("contracts")
+            .update({ state: contract.state })
+            .eq("id", req.params.id);
+
+          await addMovement(req.params.id, {
+            fromState: "BROADCASTING",
+            toState: contract.state,
+            actorUserId: userId,
+            notes: `Settlement blocked by pre-settlement risk check: ${risk.riskStatus} — ${risk.reason}`,
+          });
+
+          return res.status(402).json({
+            success: false,
+            error: "Settlement blocked: insufficient counterparty collateral.",
+            code: "INSUFFICIENT_COLLATERAL",
+            risk,
+          });
+        }
+      } catch (riskErr) {
+        // Risk check failure is non-fatal for execute-settlement — log and proceed
+        console.warn("[Contracts] execute-settlement risk check non-fatal:", riskErr.message);
+      }
+    }
+
     // ── STELLAR TX ──
     const t0 = Date.now();
     const result = await atomicTokenizeContract({
@@ -677,6 +744,11 @@ router.post("/:id/execute-settlement", requireAuth, async (req, res) => {
         ledger: result.ledger,
         finality_ms: finalityMs,
         status: "SETTLED",
+        // Pre-settlement risk audit columns
+        energy_qty_mwh: Number(contract.volume_mwh),
+        epwr_amount: Number(contract.volume_mwh) * Number(contract.pld_brl || contract.price_brl),
+        counterparty_risk_verified: settled.risk_status === "CLEARED",
+        risk_status: settled.risk_status || "BYPASSED",
       })
       .catch((err) => console.warn("settlements insert non-fatal:", err.message));
 

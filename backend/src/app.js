@@ -21,6 +21,7 @@ import oracleRoutes from "./routes/oracle.js";
 import contractRoutes from "./routes/contracts.js";
 import notificationRoutes from "./routes/notifications.js";
 import settlementRoutes from "./routes/settlement.js";
+import utilityRoutes from "./routes/utility.js";
 
 import { executeSettlement } from "./services/stellarSettlementService.js";
 import { NETWORK_NAME, IS_MAINNET } from "./lib/stellar-network.js";
@@ -50,6 +51,7 @@ app.use("/api/oracle", oracleRoutes);
 app.use("/api/contracts", contractRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/settlement", settlementRoutes);
+app.use("/api/utility", utilityRoutes);
 
 // ========================================
 // Health Check

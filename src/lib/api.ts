@@ -317,6 +317,51 @@ export const apiSubmitP2PTransfer = (payload: P2PTransferPayload) =>
     body: payload,
   });
 
+// ─── Pre-Settlement Risk Verification ──────────────────────────────────────
+
+export type RiskStatus =
+  | "PENDING"
+  | "CLEARED"
+  | "INSUFFICIENT_COLLATERAL"
+  | "NO_EPWR_TRUSTLINE"
+  | "ACCOUNT_NOT_FOUND"
+  | "VERIFICATION_FAILED"
+  | "BYPASSED";
+
+export interface RiskVerificationResult {
+  authorized: boolean;
+  riskStatus: RiskStatus;
+  reason: string;
+  financialExposureBrl: number;
+  requiredCollateralBrl: number;
+  requiredCollateralEpwr: number;
+  availableEpwr: number;
+  coverageRatio: number;
+  marginPct: number;
+}
+
+export const apiPreVerifyRisk = (payload: {
+  buyer_public_key: string;
+  volume_mwh: number;
+  pld_brl: number;
+  contract_id?: string;
+}): Promise<{ success: boolean } & RiskVerificationResult> =>
+  apiRequest("/api/settlement/pre-verify", { method: "POST", body: payload });
+
+// ─── Utility API ────────────────────────────────────────────────────────────
+
+export const apiGetUtilityUC = () =>
+  apiRequest<{ success: boolean; users: any[] }>("/api/utility/uc");
+
+export const apiGetUtilityConnections = () =>
+  apiRequest<{ success: boolean; contracts: any[] }>("/api/utility/connections");
+
+export const apiGetUtilityTusd = () =>
+  apiRequest<{ success: boolean; settlements: any[] }>("/api/utility/tusd");
+
+export const apiGetUtilityParticipants = () =>
+  apiRequest<{ success: boolean; participants: any[] }>("/api/utility/participants");
+
 /**
  * Server-side validated submission. Hits the local TanStack gateway
  * `/api/p2p/validate` (same origin), which validates the payload against the

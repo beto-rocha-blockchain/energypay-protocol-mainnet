@@ -126,6 +126,23 @@ router.post("/execute-managed", requireAuth, async (req, res) => {
       sender_user_id: req.operator?.sub ?? req.operator?.id,
     };
 
+    // Non-blocking risk check — enriches audit record but does NOT block P2P settlements
+    let riskResult = null;
+    const { volume_mwh, pld_brl, recipient_public_key } = req.body;
+    if (volume_mwh != null && pld_brl != null && recipient_public_key) {
+      try {
+        const { verifyCounterpartyRisk } = await import("../services/riskVerificationService.js");
+        riskResult = await verifyCounterpartyRisk(recipient_public_key, volume_mwh, pld_brl);
+        if (!riskResult.authorized) {
+          console.warn(
+            `[Settlement] execute-managed risk warning: ${riskResult.riskStatus} — ${riskResult.reason}`,
+          );
+        }
+      } catch (riskErr) {
+        console.warn("[Settlement] execute-managed risk check non-fatal:", riskErr.message);
+      }
+    }
+
     const result = await executeSettlement(payload, { operator: req.operator });
 
     return res.json({
@@ -135,10 +152,47 @@ router.post("/execute-managed", requireAuth, async (req, res) => {
       finality_ms: result.finalityMs,
       explorer_url: explorerTxUrl(result.txHash),
       status: "SETTLED",
+      counterparty_risk_verified: riskResult != null,
+      risk_status: riskResult?.riskStatus ?? "BYPASSED",
     });
   } catch (err) {
     const status = err.status || 500;
     return res.status(status).json({ success: false, error: err.message, code: err.code });
+  }
+});
+
+// ─── Pre-verify counterparty risk ─────────────────────────────────────────────
+// Advisory check — does NOT execute any transaction.
+// Call this before activating or settling a contract to assess collateral.
+
+router.post("/pre-verify", requireAuth, async (req, res) => {
+  try {
+    const { buyer_public_key, volume_mwh, pld_brl, contract_id } = req.body;
+
+    if (!buyer_public_key || volume_mwh == null || pld_brl == null) {
+      return res.status(400).json({
+        success: false,
+        error: "buyer_public_key, volume_mwh and pld_brl are required.",
+      });
+    }
+
+    const { verifyCounterpartyRisk } = await import("../services/riskVerificationService.js");
+    const result = await verifyCounterpartyRisk(buyer_public_key, volume_mwh, pld_brl);
+
+    // Optionally persist result to contract if contract_id provided
+    if (contract_id) {
+      await supabase.from("contracts").update({
+        risk_status: result.riskStatus,
+        collateral_required_brl: result.requiredCollateralBrl,
+        collateral_available_epwr: result.availableEpwr,
+        coverage_ratio: result.coverageRatio,
+        risk_verified_at: new Date().toISOString(),
+      }).eq("id", contract_id);
+    }
+
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 
