@@ -52,16 +52,6 @@ function WalletPage() {
         organization={operator.organization}
         funded={operator.funded || operator.wallet?.funded}
       />
-
-      <div className="rounded-md border border-border bg-card p-4">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          Wallet modules
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Token allocation and blockchain activity modules are temporarily disabled
-          in the production demo while the live wallet feed is stabilized.
-        </p>
-      </div>
     </div>
   );
 }

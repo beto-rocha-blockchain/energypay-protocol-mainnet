@@ -3,6 +3,17 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Radio, Activity } from "lucide-react";
 import { useSettlementRail } from "@/hooks/useSettlementRail";
+import { useMarketContext } from "@/hooks/useMarketContext";
+
+/* ── Types ── */
+
+type SubMarketPrice = {
+  subsistema: string;
+  submercado: string;
+  nome: string;
+  cmo_brl_mwh: number;
+  timestamp?: string;
+};
 
 type RegionData = {
   id: string;
@@ -14,10 +25,16 @@ type RegionData = {
   labelDy: number;
 };
 
+/* ── Geographic region nodes (5 SIN macro-regions for map accuracy) ── */
+
 /**
  * Geographic center of each macro-region projected onto the SVG coordinate space.
  * Projection: equirectangular, x = (74 + lon) * 10, y = (5.5 - lat) * 10.
  * labelDx/Dy offset the text label relative to the node so it doesn't overlap the outline.
+ *
+ * NOTE: For CCEE pricing there are 4 sub-markets (N, NE, SE/CO, S).
+ * CO and SE are separate geographic SINs but share the SE/CO pricing zone.
+ * The map shows all 5 geographic regions; the sidebar uses 4 CCEE sub-markets.
  */
 const REGIONS: RegionData[] = [
   { id: "N",  name: "Norte",        abbr: "N",  cx: 95,  cy: 105, labelDx: 12,  labelDy: -4  },
@@ -74,19 +91,44 @@ const BLUE = "#38bdf8";
 const BLUE_DIM = "rgba(56,189,248,0.55)";
 const BLUE_GLOW = "rgba(56,189,248,0.25)";
 
-export function BrazilGridMap() {
+/* ── Date formatter ── */
+
+function fmtUpdatedAt(ts: string): string {
+  const parts = ts.split(" ");
+  if (parts.length === 2) {
+    const [, m, d] = parts[0].split("-");
+    return `${d}/${m} ${parts[1].slice(0, 5)}`;
+  }
+  return ts;
+}
+
+/* ── Props ── */
+
+type Props = {
+  /** Optional live PLD prices — when supplied the sidebar shows price per sub-market. */
+  prices?: SubMarketPrice[];
+  /** Timestamp of the last PLD data point, for display in the sidebar footer. */
+  updatedAt?: string | null;
+};
+
+/* ── Component ── */
+
+export function BrazilGridMap({ prices, updatedAt }: Props = {}) {
   const [tick, setTick] = useState(0);
   const { health } = useSettlementRail();
+  const market = useMarketContext();
 
   useEffect(() => {
     const id = window.setInterval(() => setTick((t) => t + 1), 3_000);
     return () => window.clearInterval(id);
   }, []);
 
-  // All regions derive status from real rail health
+  void tick; // keeps the 3-second heartbeat animating node pulses
+
   const railOk = health?.status === "ok";
 
-  const data = useMemo(
+  // 5 geographic region nodes for the SVG map
+  const mapNodes = useMemo(
     () =>
       REGIONS.map((r) => ({
         ...r,
@@ -95,8 +137,23 @@ export function BrazilGridMap() {
     [railOk],
   );
 
+  // 4 CCEE pricing sub-markets for the sidebar
+  const sidebarItems = useMemo(() => {
+    return market.subMarkets.map((sm) => {
+      const price = prices?.find((p) => p.subsistema === sm.id);
+      return {
+        ...sm,
+        status: railOk ? ("ONLINE" as const) : ("OFFLINE" as const),
+        price: price?.cmo_brl_mwh ?? null,
+      };
+    });
+  }, [market.subMarkets, prices, railOk]);
+
+  const showPrices = !!prices && prices.length > 0;
+
   return (
     <Card className="border-border bg-card p-4">
+      {/* Card header */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -113,13 +170,13 @@ export function BrazilGridMap() {
           </Badge>
           <Badge variant="outline" className="border-border">
             <Radio className="mr-1.5 h-3 w-3" style={{ color: BLUE }} />
-            5 Subsystems
+            {market.subMarkets.length} Sub-Markets
           </Badge>
         </div>
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Map */}
+        {/* SVG map — 5 geographic regions */}
         <div className="relative overflow-hidden rounded-md border border-border bg-background/40 lg:col-span-2">
           <div className="terminal-grid-bg absolute inset-0 opacity-40" />
           <svg viewBox="-15 -15 430 430" className="relative h-[400px] w-full">
@@ -176,7 +233,7 @@ export function BrazilGridMap() {
             })}
 
             {/* Region nodes */}
-            {data.map((r) => {
+            {mapNodes.map((r) => {
               const statusColor = r.status === "ONLINE" ? BLUE : "#f87171";
               const lx = r.cx + r.labelDx;
               const ly = r.cy + r.labelDy;
@@ -237,33 +294,74 @@ export function BrazilGridMap() {
           </svg>
         </div>
 
-        {/* Region status sidebar */}
-        <div className="space-y-2">
-          {data.map((r) => {
-            const isOnline = r.status === "ONLINE";
+        {/* Unified sidebar — 4 CCEE pricing sub-markets with status + PLD price */}
+        <div className="flex flex-col gap-2">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            {showPrices
+              ? `${market.referencePrice.label} · ${market.clearingHouse.name}/${market.gridOperator.name}`
+              : `${market.clearingHouse.name} Sub-Markets · Settlement Status`}
+          </p>
+
+          {sidebarItems.map((sm) => {
+            const isOnline = sm.status === "ONLINE";
             return (
-              <div key={r.id} className="rounded-md border border-border bg-background/40 p-2.5">
+              <div
+                key={sm.id}
+                className="rounded-md border border-border bg-background/40 px-3 py-2.5"
+                style={{ borderLeftColor: sm.color, borderLeftWidth: "2.5px" }}
+              >
+                {/* Row 1: label + status */}
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-xs">
+                  <span className="flex items-center gap-1.5">
                     <span
                       className="inline-block h-1.5 w-1.5 rounded-full animate-pulse"
-                      style={{ background: isOnline ? BLUE : "#f87171" }}
+                      style={{ background: isOnline ? sm.color : "#f87171" }}
                     />
-                    {r.name}
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                      {sm.label}
+                    </span>
                   </span>
                   <span
                     className="font-mono text-[9px] uppercase tracking-widest"
                     style={{ color: isOnline ? BLUE : "#f87171" }}
                   >
-                    {r.status}
+                    {sm.status}
                   </span>
                 </div>
-                <p className="mt-1 font-mono text-[10px] text-muted-foreground">
-                  Subsystem {r.abbr} · Settlement rail {isOnline ? "connected" : "disconnected"}
+
+                {/* Row 2: full name */}
+                <p className="mt-0.5 font-mono text-xs font-semibold text-foreground">
+                  {sm.name}
                 </p>
+
+                {/* Row 3: PLD price (when available) or rail status */}
+                {showPrices ? (
+                  sm.price !== null ? (
+                    <p className="mt-1 font-mono text-sm font-bold" style={{ color: sm.color }}>
+                      {market.currencySymbol} {sm.price.toFixed(2)}
+                      <span className="ml-1 font-mono text-[9px] font-normal text-muted-foreground">
+                        /{market.energyUnit}
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="mt-1 font-mono text-[10px] text-muted-foreground/60">
+                      Aguardando dados…
+                    </p>
+                  )
+                ) : (
+                  <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+                    Settlement rail {isOnline ? "connected" : "disconnected"}
+                  </p>
+                )}
               </div>
             );
           })}
+
+          {updatedAt && (
+            <p className="mt-auto pt-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60">
+              Atualizado · {fmtUpdatedAt(updatedAt)}
+            </p>
+          )}
         </div>
       </div>
     </Card>
