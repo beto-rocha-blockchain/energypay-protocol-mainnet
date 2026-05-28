@@ -851,12 +851,14 @@ function ContractsList() {
               </DialogHeader>
 
               <div className="overflow-y-auto px-5 py-4 space-y-5">
-                <div>
-                  <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                    Settlement state machine
-                  </p>
-                  <StateMachine current={selected.state} failed={selected.state === "FAILED"} />
-                </div>
+                {selected.state !== "SETTLED" && selected.state !== "FAILED" && (
+                  <div>
+                    <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Settlement state machine
+                    </p>
+                    <StateMachine current={selected.state} failed={false} />
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-stretch">
                   <div className="flex h-full flex-col rounded-md border border-border bg-card p-3.5 text-sm">
