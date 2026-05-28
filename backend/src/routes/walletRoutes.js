@@ -30,8 +30,6 @@ router.post("/create", async (req, res) => {
 
       wallet: {
         publicKey: wallet.publicKey,
-        secretKey: wallet.secretKey,
-
         network: NETWORK_LABEL,
         funded: true,
       },
