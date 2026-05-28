@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { format, differenceInCalendarDays, addDays } from "date-fns";
 import {
   ArrowRight,
+  ArrowLeftRight,
   CalendarIcon,
   FileSignature,
   FileText,
@@ -77,10 +78,11 @@ const ROLE_COLORS: Record<string, string> = {
   REGULATORY_AUTHORITY: `${_RC.REGULATORY_AUTHORITY.border} ${_RC.REGULATORY_AUTHORITY.bg} ${_RC.REGULATORY_AUTHORITY.text}`,
 };
 
-const CONTRACT_ROLES = ["SELLER", "GUARANTOR", "BROKER", "WITNESS"] as const;
+const CONTRACT_ROLES = ["BUYER", "SELLER", "GUARANTOR", "BROKER", "WITNESS"] as const;
 type ContractRole = (typeof CONTRACT_ROLES)[number];
 
 const CONTRACT_ROLE_LABELS: Record<ContractRole, string> = {
+  BUYER: "Buyer",
   SELLER: "Seller",
   GUARANTOR: "Guarantor",
   BROKER: "Broker",
@@ -88,6 +90,7 @@ const CONTRACT_ROLE_LABELS: Record<ContractRole, string> = {
 };
 
 const CONTRACT_ROLE_COLORS: Record<ContractRole, string> = {
+  BUYER: "border-accent/40 bg-accent/10 text-accent",
   SELLER: "border-primary/40 bg-primary/10 text-primary",
   GUARANTOR: "border-warning/40 bg-warning/10 text-warning",
   BROKER: "border-success/40 bg-success/10 text-success",
@@ -146,6 +149,7 @@ function NewContract() {
     volume: "",
     price: "",
   });
+  const [contractType, setContractType] = useState<"BUY" | "SELL">("BUY");
   const [submitting, setSubmitting] = useState(false);
   // Optional physical document to attach after contract creation
   const [documentFile, setDocumentFile] = useState<File | null>(null);
@@ -184,6 +188,12 @@ function NewContract() {
     }
   }, [myPublicKey]);
 
+  // Reset parties and picker role whenever the contract type flips
+  useEffect(() => {
+    setParties([]);
+    setPickerRole(contractType === "BUY" ? "SELLER" : "BUYER");
+  }, [contractType]);
+
   // Close picker on outside click
   useEffect(() => {
     if (!pickerOpen) return;
@@ -220,10 +230,20 @@ function NewContract() {
     setParties((prev) => prev.filter((p) => p.stellar_public_key !== publicKey));
   };
 
-  // Derive primary seller for Stellar tx
+  // Derive primary counterparty for Stellar tx (depends on contract type)
   const primarySeller = parties.find((p) => p.contractRole === "SELLER");
   const sellerKey = primarySeller?.stellar_public_key ?? "";
   const sellerLabel = primarySeller?.full_name ?? "";
+
+  const primaryBuyer = parties.find((p) => p.contractRole === "BUYER");
+  const buyerKeyForSell = primaryBuyer?.stellar_public_key ?? "";
+  const buyerLabelForSell = primaryBuyer?.full_name ?? "";
+
+  // Roles available in the counterparty picker — depends on which side the operator is on
+  const availablePickerRoles: ContractRole[] =
+    contractType === "BUY"
+      ? ["SELLER", "GUARANTOR", "BROKER", "WITNESS"]
+      : ["BUYER", "GUARANTOR", "BROKER", "WITNESS"];
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -251,11 +271,15 @@ function NewContract() {
       return;
     }
     if (parties.length === 0) {
-      toast.error("Add at least one contract party (Seller, Guarantor, or Broker).");
+      toast.error("Add at least one contract party.");
       return;
     }
-    if (!primarySeller) {
+    if (contractType === "BUY" && !primarySeller) {
       toast.error("At least one party with the SELLER role is required.");
+      return;
+    }
+    if (contractType === "SELL" && !primaryBuyer) {
+      toast.error("At least one party with the BUYER role is required.");
       return;
     }
 
@@ -277,10 +301,10 @@ function NewContract() {
 
       const res = await apiCreateContract({
         contract_number: form.contractNumber || undefined,
-        buyer_public_key: form.buyerKey,
-        seller_public_key: sellerKey || undefined,
-        buyer_label: form.buyerLabel || undefined,
-        seller_label: sellerLabel || undefined,
+        buyer_public_key: contractType === "BUY" ? form.buyerKey : buyerKeyForSell,
+        seller_public_key: contractType === "BUY" ? (sellerKey || undefined) : (form.buyerKey || undefined),
+        buyer_label: contractType === "BUY" ? (form.buyerLabel || undefined) : (buyerLabelForSell || undefined),
+        seller_label: contractType === "BUY" ? (sellerLabel || undefined) : (form.buyerLabel || undefined),
         volume_mwh: Number(form.volume),
         price_brl: Number(form.price),
         start_date: startDate || undefined,
@@ -370,6 +394,33 @@ function NewContract() {
         </p>
       </div>
 
+      {/* Contract type selector */}
+      <div className="flex items-center gap-2">
+        <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          Contract Type
+        </span>
+        <div className="ml-2 flex overflow-hidden rounded-md border border-border">
+          {(["BUY", "SELL"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setContractType(t)}
+              className={cn(
+                "px-4 py-1.5 font-mono text-[10px] uppercase tracking-widest transition-colors",
+                contractType === t
+                  ? t === "BUY"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-destructive/80 text-white"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {t === "BUY" ? "Buy Contract" : "Sell Contract"}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <form onSubmit={submit}>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <Card className="border-border bg-card p-6 lg:col-span-2">
@@ -397,8 +448,8 @@ function NewContract() {
                 </p>
               </Field>
 
-              {/* Buyer — auto-filled */}
-              <Field label="Buyer (Your Wallet)" id="buyerKey" className="md:col-span-2">
+              {/* Operator wallet — auto-filled; role label flips with contract type */}
+              <Field label={contractType === "BUY" ? "Buyer (Your Wallet)" : "Seller (Your Wallet)"} id="buyerKey" className="md:col-span-2">
                 <div className="relative">
                   <Wallet className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -490,7 +541,7 @@ function NewContract() {
                       <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-md border border-border bg-card shadow-lg">
                         {/* Role selector */}
                         <div className="flex gap-1 border-b border-border p-2">
-                          {CONTRACT_ROLES.map((role) => (
+                          {availablePickerRoles.map((role) => (
                             <button
                               key={role}
                               type="button"
@@ -583,7 +634,9 @@ function NewContract() {
 
                   {parties.length === 0 && (
                     <p className="font-mono text-[10px] text-muted-foreground">
-                      Add at least one Seller. Guarantors and Brokers are optional.
+                      {contractType === "BUY"
+                        ? "Add at least one Seller. Guarantors and Brokers are optional."
+                        : "Add at least one Buyer. Guarantors and Brokers are optional."}
                     </p>
                   )}
                 </div>
@@ -846,7 +899,13 @@ function NewContract() {
               type="submit"
               className="mt-6 w-full"
               size="lg"
-              disabled={!datesValid || !form.buyerKey || !primarySeller || submitting || !!pendingContractId}
+              disabled={
+                !datesValid ||
+                !form.buyerKey ||
+                (contractType === "BUY" ? !primarySeller : !primaryBuyer) ||
+                submitting ||
+                !!pendingContractId
+              }
             >
               {submitting ? (
                 <>
