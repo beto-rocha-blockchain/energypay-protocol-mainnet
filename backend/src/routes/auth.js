@@ -42,6 +42,7 @@ router.post("/register", async (req, res) => {
       phone,
       roles,
       country,
+      state,
       city,
       address,
       organization,
@@ -249,10 +250,11 @@ router.post("/register", async (req, res) => {
       phone_verified: false,
     };
 
-    // Try with phone + energy_type; fall back gracefully if columns don't exist yet.
+    // Try with all optional extras; fall back gracefully if any column doesn't exist yet.
     let data, error;
     const withExtras = {
       ...baseInsert,
+      ...(state ? { state } : {}),
       ...(phone ? { phone } : {}),
       ...(resolvedEnergyType ? { energy_type: resolvedEnergyType } : {}),
     };
@@ -261,8 +263,14 @@ router.post("/register", async (req, res) => {
 
     if (error && (error.message?.includes("energy_type") || error.code === "42703")) {
       console.warn("[Auth] energy_type column not found — retrying without it.");
-      const withoutEnergyType = { ...baseInsert, ...(phone ? { phone } : {}) };
+      const withoutEnergyType = { ...baseInsert, ...(state ? { state } : {}), ...(phone ? { phone } : {}) };
       ({ data, error } = await supabase.from("users").insert([withoutEnergyType]).select());
+    }
+
+    if (error && (error.message?.includes("state") || error.code === "42703")) {
+      console.warn("[Auth] state column not found — retrying without it.");
+      const withoutState = { ...baseInsert, ...(phone ? { phone } : {}) };
+      ({ data, error } = await supabase.from("users").insert([withoutState]).select());
     }
 
     if (error && (error.message?.includes("phone") || error.code === "42703")) {

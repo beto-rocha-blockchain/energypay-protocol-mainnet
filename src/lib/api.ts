@@ -130,6 +130,7 @@ export type RegisterPayload = {
   phone?: string;
   organization: string;
   country: string;
+  state?: string;
   city: string;
   roles: string[];
   coords?: { lat: number; lng: number; source: "GPS" | "MANUAL" };

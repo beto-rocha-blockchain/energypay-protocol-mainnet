@@ -186,6 +186,7 @@ export type OperatorIdentity = {
   fullName: string;
   organization: string;
   country: string;
+  state?: string;
   city: string;
   coords?: OperatorCoords;
   settlementAddress: string;
@@ -222,6 +223,7 @@ type OperatorState = {
     phone?: string;
     organization: string;
     country: string;
+    state?: string;
     city: string;
     roles: ParticipantRole[];
     coords?: OperatorCoords;
@@ -367,6 +369,7 @@ export const useOperator = create<OperatorState>()((set, get) => ({
     phone,
     organization,
     country,
+    state,
     city,
     roles,
     coords,
@@ -384,6 +387,7 @@ export const useOperator = create<OperatorState>()((set, get) => ({
       phone: phone || undefined,
       organization,
       country,
+      state: state || undefined,
       city,
       roles,
       coords,

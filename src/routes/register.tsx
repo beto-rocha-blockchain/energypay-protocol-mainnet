@@ -1,5 +1,13 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { COUNTRIES, getStates, getCities } from "@/lib/geo";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { stellarExpertAccount, STELLAR_NETWORK_LABEL, HORIZON_URL, IS_MAINNET } from "@/lib/stellar";
 import {
   Zap,
@@ -92,6 +100,7 @@ function RegisterPage() {
   const [showPw, setShowPw] = useState(false);
   const [organization, setOrganization] = useState("");
   const [country, setCountry] = useState("");
+  const [state, setState] = useState("");
   const [city, setCity] = useState("");
   const [roles, setRoles] = useState<ParticipantRole[]>([]);
   const [fund, setFund] = useState(true);
@@ -143,6 +152,10 @@ useEffect(() => {
     return existingPublicKey.trim().startsWith("G") && existingPublicKey.trim().length === 56;
   }, [walletMode, existingPublicKey]);
 
+  const availableStates = useMemo(() => getStates(country), [country]);
+  const availableCities = useMemo(() => getCities(country, state || undefined), [country, state]);
+  const stateRequired = availableStates.length > 0;
+
   const formValid = useMemo(
     () =>
       fullName.trim() &&
@@ -150,11 +163,12 @@ useEffect(() => {
       password.length >= 6 &&
       organization.trim() &&
       country.trim() &&
+      (!stateRequired || state.trim()) &&
       city.trim() &&
       roles.length > 0 &&
       phoneValid &&
       linkValid,
-    [fullName, email, password, organization, country, city, roles, phoneValid, linkValid],
+    [fullName, email, password, organization, country, state, stateRequired, city, roles, phoneValid, linkValid],
   );
 
   const provisioningSteps = useMemo(
@@ -188,6 +202,7 @@ useEffect(() => {
         phone: phone.trim() || undefined,
         organization,
         country,
+        state: state.trim() || undefined,
         city,
         roles,
         fund,
@@ -486,26 +501,98 @@ useEffect(() => {
                       className="h-9 pl-8 font-mono text-xs"
                     />
                   </Field>
-                  <Field label="Country" icon={<Globe2 className="h-3.5 w-3.5" />}>
-                    <Input
+
+                  {/* Country */}
+                  <GeoSelectField label="Country" icon={<Globe2 className="h-3.5 w-3.5" />}>
+                    <Select
                       value={country}
-                      onChange={(e) => setCountry(e.target.value)}
-                      placeholder="Brazil"
-                      className="h-9 pl-8 font-mono text-xs"
-                    />
-                  </Field>
-                  <Field
-                    label="City"
-                    icon={<MapPin className="h-3.5 w-3.5" />}
-                    className="md:col-span-2"
-                  >
-                    <Input
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder="São Paulo"
-                      className="h-9 pl-8 font-mono text-xs"
-                    />
-                  </Field>
+                      onValueChange={(v) => { setCountry(v); setState(""); setCity(""); }}
+                    >
+                      <SelectTrigger className="h-9 bg-input font-mono text-xs">
+                        <SelectValue placeholder="Select country…" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {COUNTRIES.map((c) => (
+                          <SelectItem key={c.code} value={c.code} className="font-mono text-xs">
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </GeoSelectField>
+
+                  {/* State / Province — only shown when the selected country has states */}
+                  {stateRequired ? (
+                    <GeoSelectField label="State / Province" icon={<MapPin className="h-3.5 w-3.5" />}>
+                      <Select
+                        value={state}
+                        onValueChange={(v) => { setState(v); setCity(""); }}
+                        disabled={!country}
+                      >
+                        <SelectTrigger className="h-9 bg-input font-mono text-xs">
+                          <SelectValue placeholder="Select state…" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {availableStates.map((s) => (
+                            <SelectItem key={s.code} value={s.code} className="font-mono text-xs">
+                              {s.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </GeoSelectField>
+                  ) : (
+                    /* Spacer so City stays in col 3 when State is absent */
+                    <div />
+                  )}
+
+                  {/* City */}
+                  <GeoSelectField label="City" icon={<MapPin className="h-3.5 w-3.5" />}>
+                    {availableCities.length > 0 ? (
+                      <Select
+                        value={city}
+                        onValueChange={setCity}
+                        disabled={!country || (stateRequired && !state)}
+                      >
+                        <SelectTrigger className="h-9 bg-input font-mono text-xs">
+                          <SelectValue placeholder={
+                            !country ? "Select country first…"
+                            : stateRequired && !state ? "Select state first…"
+                            : "Select city…"
+                          } />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {availableCities.map((c) => (
+                            <SelectItem key={c} value={c} className="font-mono text-xs">
+                              {c}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="__other__" className="font-mono text-xs text-muted-foreground">
+                            Other…
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder="City name"
+                        className="h-9 font-mono text-xs"
+                        disabled={!country}
+                      />
+                    )}
+                    {/* Free-text fallback when "Other…" is selected */}
+                    {city === "__other__" && (
+                      <Input
+                        autoFocus
+                        placeholder="Enter city name…"
+                        className="mt-1.5 h-9 font-mono text-xs"
+                        onChange={(e) => {
+                          if (e.target.value) setCity(e.target.value);
+                        }}
+                      />
+                    )}
+                  </GeoSelectField>
                 </div>
               </div>
 
@@ -1325,6 +1412,29 @@ function Field({
         </span>
         {children}
       </div>
+    </div>
+  );
+}
+
+/** Lightweight wrapper for Select-based geo fields (no absolute-positioned icon). */
+function GeoSelectField({
+  label,
+  icon,
+  children,
+  className = "",
+}: {
+  label: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`space-y-1.5 ${className}`}>
+      <Label className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+        <span className="text-muted-foreground/70">{icon}</span>
+        {label}
+      </Label>
+      {children}
     </div>
   );
 }
