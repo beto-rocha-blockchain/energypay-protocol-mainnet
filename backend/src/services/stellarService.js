@@ -1,5 +1,5 @@
 import StellarSdk from "@stellar/stellar-sdk";
-import { horizon as server, NETWORK_PASSPHRASE, FRIENDBOT_URL, FRIENDBOT_AVAILABLE, explorerTxUrl } from "../lib/stellar-network.js";
+import { horizon as server, NETWORK_PASSPHRASE, explorerTxUrl } from "../lib/stellar-network.js";
 
 const EPRW = "EPWR";
 
@@ -13,14 +13,9 @@ export function createWallet() {
   };
 }
 
-// 💸 Fund account
-export async function fundAccount(publicKey) {
-  if (!FRIENDBOT_AVAILABLE) {
-    throw new Error("Friendbot is only available on Stellar Testnet. Fund this account manually on mainnet.");
-  }
-  const response = await fetch(`${FRIENDBOT_URL}?addr=${publicKey}`);
-
-  return response.json();
+// 💸 Fund account (mainnet-only — Friendbot does not exist on mainnet)
+export async function fundAccount(_publicKey) {
+  throw new Error("Friendbot is not available on Stellar Mainnet. Fund accounts via the operator wallet (createAccount operation).");
 }
 
 // 💰 Saldo
