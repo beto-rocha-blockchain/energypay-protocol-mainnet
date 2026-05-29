@@ -15,6 +15,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
+  Mail,
+  Ban,
 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
@@ -46,6 +48,9 @@ import {
   apiAdminUpdateUser,
   apiAdminSetPassword,
   apiAdminSetPlatformRole,
+  apiAdminSetEmail,
+  apiAdminBlockUser,
+  apiAdminUnblockUser,
   apiAdminAuditLog,
   apiAdminGetRecoveryLinks,
   apiAdminRemoveRecoveryLink,
@@ -104,6 +109,20 @@ function timeAgo(iso: string) {
   if (hrs < 24)   return `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
   return `${days}d ago`;
+}
+
+/**
+ * Client-side mirror of the backend recovery matrix (best-effort, for showing/
+ * hiding the "recover password" button). The server is the source of truth:
+ *   • common USER  → only OWNER
+ *   • ADMIN/RECOVERY → OWNER or ADMIN
+ *   • OWNER        → OWNER/ADMIN may try; server allows only the linked recoverer
+ */
+function uiCanRecover(operatorEmail: string, operatorRole: PlatformRole, target: AdminUser): boolean {
+  if (operatorEmail.toLowerCase() === target.email.toLowerCase()) return false;
+  const t = target.platform_role;
+  if (t === "USER") return operatorRole === "PLATFORM_OWNER";
+  return operatorRole === "PLATFORM_OWNER" || operatorRole === "PLATFORM_ADMIN";
 }
 
 // ─── Edit Profile Modal ───────────────────────────────────────────────────────
@@ -361,9 +380,129 @@ function SetRoleModal({
   );
 }
 
+// ─── Change Email Modal (OWNER only) ──────────────────────────────────────────
+
+function ChangeEmailModal({
+  user,
+  onClose,
+  onSaved,
+}: {
+  user: AdminUser;
+  onClose: () => void;
+  onSaved: (id: string, email: string) => void;
+}) {
+  const [email, setEmail]   = useState("");
+  const [saving, setSaving] = useState(false);
+  const valid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) && email.trim().toLowerCase() !== user.email.toLowerCase();
+
+  const handleSave = async () => {
+    if (!valid) return;
+    setSaving(true);
+    try {
+      const res = await apiAdminSetEmail(user.id, email.trim());
+      toast.success("Email updated — the new address must be re-verified.");
+      onSaved(user.id, res.email);
+      onClose();
+    } catch (err) {
+      toast.error((err as Error).message || "Failed to change email.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-sm">
+            <Mail className="h-4 w-4 text-primary" /> Change Email
+          </DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">Current: {user.email}</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3 py-2">
+          <div className="grid gap-1">
+            <label className="font-mono text-[11px] text-muted-foreground">New email</label>
+            <Input type="email" autoComplete="off" value={email} onChange={e => setEmail(e.target.value)} className="h-8 text-sm" placeholder="user@example.com" />
+          </div>
+          <div className="flex items-start gap-2 rounded border border-yellow-500/30 bg-yellow-500/5 p-3">
+            <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-yellow-400" />
+            <p className="text-xs text-yellow-300/80">
+              Changing the email resets verification (the new address must be re-verified) and is recorded in the audit trail.
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button size="sm" onClick={handleSave} disabled={saving || !valid}>{saving ? "Saving…" : "Change Email"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Block Account Modal (OWNER + ADMIN) ───────────────────────────────────────
+
+function BlockModal({
+  user,
+  onClose,
+  onBlocked,
+}: {
+  user: AdminUser;
+  onClose: () => void;
+  onBlocked: (id: string) => void;
+}) {
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleBlock = async () => {
+    setSaving(true);
+    try {
+      await apiAdminBlockUser(user.id, reason || undefined);
+      toast.success("Account blocked — the user can no longer log in.");
+      onBlocked(user.id);
+      onClose();
+    } catch (err) {
+      toast.error((err as Error).message || "Failed to block account.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-sm">
+            <Ban className="h-4 w-4 text-red-400" /> Block Account
+          </DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">{user.email}</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3 py-2">
+          <div className="grid gap-1">
+            <label className="font-mono text-[11px] text-muted-foreground">Reason (optional)</label>
+            <Input value={reason} onChange={e => setReason(e.target.value)} className="h-8 text-sm" placeholder="e.g. Abuse / fraud / user request" />
+          </div>
+          <div className="flex items-start gap-2 rounded border border-red-500/30 bg-red-500/5 p-3">
+            <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-red-400" />
+            <p className="text-xs text-red-300/80">
+              A blocked account cannot log in (existing sessions expire within 12h). Recorded in the audit trail.
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button size="sm" variant="destructive" onClick={handleBlock} disabled={saving}>{saving ? "Blocking…" : "Block Account"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Users Tab ───────────────────────────────────────────────────────────────
 
-function UsersTab({ isOwner }: { isOwner: boolean }) {
+function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; operatorRole: PlatformRole }) {
+  const isOwner = operatorRole === "PLATFORM_OWNER";
+  const isAdmin = operatorRole === "PLATFORM_OWNER" || operatorRole === "PLATFORM_ADMIN";
   const [users, setUsers]       = useState<AdminUser[]>([]);
   const [total, setTotal]       = useState(0);
   const [page, setPage]         = useState(1);
@@ -372,6 +511,8 @@ function UsersTab({ isOwner }: { isOwner: boolean }) {
   const [editUser, setEditUser] = useState<AdminUser | null>(null);
   const [pwdUser, setPwdUser]   = useState<AdminUser | null>(null);
   const [roleUser, setRoleUser] = useState<AdminUser | null>(null);
+  const [emailUser, setEmailUser] = useState<AdminUser | null>(null);
+  const [blockUser, setBlockUser] = useState<AdminUser | null>(null);
   const limit = 50;
 
   const load = useCallback(async () => {
@@ -390,6 +531,16 @@ function UsersTab({ isOwner }: { isOwner: boolean }) {
   useEffect(() => { load(); }, [load]);
 
   const pages = Math.ceil(total / limit);
+
+  const handleUnblock = async (id: string) => {
+    try {
+      await apiAdminUnblockUser(id);
+      setUsers(us => us.map(u => u.id === id ? { ...u, account_status: "ACTIVE" } : u));
+      toast.success("Account unblocked.");
+    } catch (err) {
+      toast.error((err as Error).message || "Failed to unblock account.");
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -446,6 +597,11 @@ function UsersTab({ isOwner }: { isOwner: boolean }) {
                     <TableCell><PlatformBadge role={u.platform_role} /></TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-0.5">
+                        {u.account_status === "BLOCKED" && (
+                          <span className="w-fit rounded border border-red-500/40 bg-red-500/15 px-1 py-px font-mono text-[9px] font-semibold text-red-400">
+                            BLOCKED
+                          </span>
+                        )}
                         {u.stellar_public_key
                           ? <span className="font-mono text-[10px]">{u.wallet_status ?? "—"}</span>
                           : <span className="rounded border border-yellow-500/30 bg-yellow-500/10 px-1 py-px font-mono text-[9px] text-yellow-400">no wallet</span>
@@ -464,33 +620,37 @@ function UsersTab({ isOwner }: { isOwner: boolean }) {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                          onClick={() => setEditUser(u)}
-                          title="Edit profile"
-                        >
-                          <Edit2 className="h-3 w-3" />
-                        </Button>
+                        {isAdmin && (
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                            onClick={() => setEditUser(u)} title="Edit profile">
+                            <Edit2 className="h-3 w-3" />
+                          </Button>
+                        )}
+                        {uiCanRecover(operatorEmail, operatorRole, u) && (
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-yellow-400"
+                            onClick={() => setPwdUser(u)} title="Recover password (reset)">
+                            <Key className="h-3 w-3" />
+                          </Button>
+                        )}
+                        {isAdmin && u.platform_role !== "PLATFORM_OWNER" && u.email !== operatorEmail && (
+                          u.account_status === "BLOCKED"
+                            ? <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-green-400"
+                                onClick={() => handleUnblock(u.id)} title="Unblock account">
+                                <CheckCircle2 className="h-3 w-3" />
+                              </Button>
+                            : <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-red-400"
+                                onClick={() => setBlockUser(u)} title="Block account">
+                                <Ban className="h-3 w-3" />
+                              </Button>
+                        )}
                         {isOwner && (
                           <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-yellow-400"
-                              onClick={() => setPwdUser(u)}
-                              title="Reset password"
-                            >
-                              <Key className="h-3 w-3" />
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-sky-400"
+                              onClick={() => setEmailUser(u)} title="Change email">
+                              <Mail className="h-3 w-3" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-violet-400"
-                              onClick={() => setRoleUser(u)}
-                              title="Set platform role"
-                            >
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-violet-400"
+                              onClick={() => setRoleUser(u)} title="Set platform role">
                               <UserCog className="h-3 w-3" />
                             </Button>
                           </>
@@ -531,6 +691,20 @@ function UsersTab({ isOwner }: { isOwner: boolean }) {
           user={roleUser}
           onClose={() => setRoleUser(null)}
           onSaved={(id, role) => setUsers(us => us.map(u => u.id === id ? { ...u, platform_role: role } : u))}
+        />
+      )}
+      {emailUser && (
+        <ChangeEmailModal
+          user={emailUser}
+          onClose={() => setEmailUser(null)}
+          onSaved={(id, email) => setUsers(us => us.map(u => u.id === id ? { ...u, email, email_verified: false } : u))}
+        />
+      )}
+      {blockUser && (
+        <BlockModal
+          user={blockUser}
+          onClose={() => setBlockUser(null)}
+          onBlocked={id => setUsers(us => us.map(u => u.id === id ? { ...u, account_status: "BLOCKED" } : u))}
         />
       )}
     </div>
@@ -810,7 +984,7 @@ function AdminPage() {
         </div>
 
         <div className="p-4">
-          {tab === "users"    && <UsersTab    isOwner={isOwner} />}
+          {tab === "users"    && <UsersTab    operatorEmail={operator.email} operatorRole={operator.platformRole} />}
           {tab === "audit"    && <AuditLogTab />}
           {tab === "recovery" && <RecoveryLinksTab isOwner={isOwner} />}
         </div>

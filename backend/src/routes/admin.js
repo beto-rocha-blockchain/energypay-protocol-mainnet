@@ -303,7 +303,8 @@ router.post(
 // Safe user fields — never expose password or secret key
 const USER_SELECT =
   "id, email, full_name, organization, country, state, city, phone, roles, " +
-  "platform_role, wallet_mode, wallet_status, wallet_network, stellar_public_key, " +
+  "platform_role, account_status, blocked_at, blocked_reason, " +
+  "wallet_mode, wallet_status, wallet_network, stellar_public_key, " +
   "email_verified, phone_verified, funded, created_at, updated_at";
 
 // Audit helper — fire-and-forget
@@ -315,6 +316,46 @@ async function logAudit({ actorId, targetId = null, action, details = {}, ip = n
     details,
     ip_address: ip,
   }]).catch(err => console.error("[audit]", err.message));
+}
+
+/**
+ * Recovery permission model — who may reset (recover) whose password.
+ *   • common USER                        → only PLATFORM_OWNER
+ *   • PLATFORM_ADMIN / ACCOUNT_RECOVERY  → PLATFORM_OWNER or any PLATFORM_ADMIN (admin↔admin)
+ *   • PLATFORM_OWNER                     → only an account explicitly linked to it in
+ *                                          account_recovery_links (the designated owner-
+ *                                          recovery agent — seeded as roberto in migration 011)
+ * Never allowed on one's own account.
+ * actor = req.adminUser { id, platformRole }; target = { id, platform_role }.
+ */
+async function canRecover(actor, target) {
+  if (actor.id === target.id) {
+    return { ok: false, error: "Use the standard password change for your own account." };
+  }
+  const targetRole = target.platform_role ?? "USER";
+
+  if (targetRole === "PLATFORM_OWNER") {
+    const { data } = await supabase
+      .from("account_recovery_links")
+      .select("id")
+      .eq("account_id", target.id)
+      .eq("recovery_account_id", actor.id)
+      .maybeSingle();
+    return data
+      ? { ok: true }
+      : { ok: false, error: "Only the designated recovery account can recover a PLATFORM_OWNER." };
+  }
+
+  if (targetRole === "PLATFORM_ADMIN" || targetRole === "ACCOUNT_RECOVERY") {
+    return (actor.platformRole === "PLATFORM_OWNER" || actor.platformRole === "PLATFORM_ADMIN")
+      ? { ok: true }
+      : { ok: false, error: "Insufficient permission to recover this account." };
+  }
+
+  // common USER
+  return actor.platformRole === "PLATFORM_OWNER"
+    ? { ok: true }
+    : { ok: false, error: "Only a PLATFORM_OWNER can recover common users." };
 }
 
 // ─── GET /api/admin/users ────────────────────────────────────────────────────
@@ -469,10 +510,12 @@ router.patch(
 );
 
 // ─── POST /api/admin/users/:id/set-password ──────────────────────────────────
-// PLATFORM_OWNER only — force-sets a new password for any account.
+// RECOVER a user's password. Gate allows OWNER + ADMIN; canRecover() enforces the
+// recovery matrix per target (admins recover admins; OWNER recovers common+admin;
+// only the designated link recovers an OWNER). Email/role changes stay OWNER-only.
 router.post(
   "/users/:id/set-password",
-  requirePlatformRole("PLATFORM_OWNER"),
+  requirePlatformRole("PLATFORM_OWNER", "PLATFORM_ADMIN"),
   async (req, res) => {
     try {
       const { new_password } = req.body;
@@ -481,10 +524,15 @@ router.post(
         return res.status(400).json({ success: false, error: "Password must be at least 8 characters." });
       }
 
-      // Prevent setting password on own account via this endpoint (use normal change-password)
-      if (req.params.id === req.adminUser.id) {
-        return res.status(400).json({ success: false, error: "Use the standard password change for your own account." });
-      }
+      const { data: target } = await supabase
+        .from("users")
+        .select("id, email, platform_role")
+        .eq("id", req.params.id)
+        .single();
+      if (!target) return res.status(404).json({ success: false, error: "User not found." });
+
+      const perm = await canRecover(req.adminUser, target);
+      if (!perm.ok) return res.status(403).json({ success: false, error: perm.error });
 
       const hashed = await bcrypt.hash(new_password, 10);
 
@@ -498,14 +546,115 @@ router.post(
       await logAudit({
         actorId:  req.adminUser.id,
         targetId: req.params.id,
-        action:   "RESET_PASSWORD",
-        details:  { reason: req.body.reason ?? "Admin force reset" },
+        action:   "RECOVER_PASSWORD",
+        details:  { reason: req.body.reason ?? "Admin recovery", target_role: target.platform_role ?? "USER" },
         ip:       req.ip,
       });
 
       res.json({ success: true, message: "Password updated." });
     } catch (err) {
       console.error("[admin/set-password]", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+);
+
+// ─── POST /api/admin/users/:id/block ─────────────────────────────────────────
+// OWNER + ADMIN — block an account (blocked accounts cannot log in).
+// PLATFORM_OWNER accounts and your own account are protected.
+router.post(
+  "/users/:id/block",
+  requirePlatformRole("PLATFORM_OWNER", "PLATFORM_ADMIN"),
+  async (req, res) => {
+    try {
+      if (req.params.id === req.adminUser.id) {
+        return res.status(400).json({ success: false, error: "You cannot block your own account." });
+      }
+      const { data: target } = await supabase
+        .from("users").select("id, platform_role").eq("id", req.params.id).single();
+      if (!target) return res.status(404).json({ success: false, error: "User not found." });
+      if (target.platform_role === "PLATFORM_OWNER") {
+        return res.status(403).json({ success: false, error: "PLATFORM_OWNER accounts cannot be blocked." });
+      }
+
+      const { error } = await supabase
+        .from("users")
+        .update({ account_status: "BLOCKED", blocked_at: new Date().toISOString(), blocked_reason: req.body.reason ?? null })
+        .eq("id", req.params.id);
+      if (error) throw error;
+
+      await logAudit({
+        actorId: req.adminUser.id, targetId: req.params.id,
+        action: "BLOCK_USER", details: { reason: req.body.reason ?? null }, ip: req.ip,
+      });
+      res.json({ success: true });
+    } catch (err) {
+      console.error("[admin/block]", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+);
+
+// ─── POST /api/admin/users/:id/unblock ───────────────────────────────────────
+router.post(
+  "/users/:id/unblock",
+  requirePlatformRole("PLATFORM_OWNER", "PLATFORM_ADMIN"),
+  async (req, res) => {
+    try {
+      const { error } = await supabase
+        .from("users")
+        .update({ account_status: "ACTIVE", blocked_at: null, blocked_reason: null })
+        .eq("id", req.params.id);
+      if (error) throw error;
+
+      await logAudit({
+        actorId: req.adminUser.id, targetId: req.params.id,
+        action: "UNBLOCK_USER", details: {}, ip: req.ip,
+      });
+      res.json({ success: true });
+    } catch (err) {
+      console.error("[admin/unblock]", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+);
+
+// ─── POST /api/admin/users/:id/set-email ─────────────────────────────────────
+// PLATFORM_OWNER only — change a user's email (resets email verification).
+router.post(
+  "/users/:id/set-email",
+  requirePlatformRole("PLATFORM_OWNER"),
+  async (req, res) => {
+    try {
+      const email = String(req.body.email ?? "").trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        return res.status(400).json({ success: false, error: "Invalid email address." });
+      }
+      if (req.params.id === req.adminUser.id) {
+        return res.status(400).json({ success: false, error: "Use your own account settings to change your email." });
+      }
+
+      const { data: conflict } = await supabase
+        .from("users").select("id").eq("email", email).neq("id", req.params.id).maybeSingle();
+      if (conflict) return res.status(409).json({ success: false, error: "That email is already in use." });
+
+      const { data: before } = await supabase
+        .from("users").select("email").eq("id", req.params.id).single();
+      if (!before) return res.status(404).json({ success: false, error: "User not found." });
+
+      const { error } = await supabase
+        .from("users")
+        .update({ email, email_verified: false, email_verification_token: null })
+        .eq("id", req.params.id);
+      if (error) throw error;
+
+      await logAudit({
+        actorId: req.adminUser.id, targetId: req.params.id,
+        action: "SET_EMAIL", details: { before: before.email, after: email }, ip: req.ip,
+      });
+      res.json({ success: true, email });
+    } catch (err) {
+      console.error("[admin/set-email]", err);
       res.status(500).json({ success: false, error: err.message });
     }
   }

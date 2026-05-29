@@ -405,6 +405,15 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ success: false, error: "invalid credentials" });
     }
 
+    // Blocked accounts cannot start a new session.
+    if (data.account_status === "BLOCKED") {
+      return res.status(403).json({
+        success: false,
+        error: "ACCOUNT_BLOCKED",
+        message: "This account has been blocked. Contact platform support.",
+      });
+    }
+
     const token = jwt.sign(
       {
         sub: data.id,

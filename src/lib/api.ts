@@ -746,6 +746,9 @@ export type AdminUser = {
   phone: string | null;
   roles: string[];
   platform_role: PlatformRole;
+  account_status: "ACTIVE" | "BLOCKED" | null;
+  blocked_at: string | null;
+  blocked_reason: string | null;
   wallet_mode: string | null;
   wallet_status: string | null;
   stellar_public_key: string | null;
@@ -800,6 +803,21 @@ export const apiAdminSetPlatformRole = (id: string, platformRole: PlatformRole) 
     method: "POST",
     body: { platform_role: platformRole },
   });
+
+export const apiAdminSetEmail = (id: string, email: string) =>
+  apiRequest<{ success: boolean; email: string }>(`/api/admin/users/${id}/set-email`, {
+    method: "POST",
+    body: { email },
+  });
+
+export const apiAdminBlockUser = (id: string, reason?: string) =>
+  apiRequest<{ success: boolean }>(`/api/admin/users/${id}/block`, {
+    method: "POST",
+    body: { reason },
+  });
+
+export const apiAdminUnblockUser = (id: string) =>
+  apiRequest<{ success: boolean }>(`/api/admin/users/${id}/unblock`, { method: "POST" });
 
 export const apiAdminAuditLog = (params?: { page?: number; limit?: number; action?: string; target_id?: string }) => {
   const qs = new URLSearchParams();
