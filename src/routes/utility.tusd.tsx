@@ -4,9 +4,14 @@ import { Card } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { apiGetUtilityTusd } from "@/lib/api";
+import { RequireRole } from "@/components/RequireRole";
 
 export const Route = createFileRoute("/utility/tusd")({
-  component: UtilityTusdPage,
+  component: () => (
+    <RequireRole role="UTILITY">
+      <UtilityTusdPage />
+    </RequireRole>
+  ),
 });
 
 function maskTxHash(hash: string) {

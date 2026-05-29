@@ -179,7 +179,7 @@ router.post("/checkout", requireAuth, async (req, res) => {
     }
 
     const userId = req.operator.sub || req.operator.id;
-    const { plan_id, payment_method } = req.body;
+    const { plan_id, payment_method, cpf_cnpj } = req.body;
 
     if (!plan_id || !payment_method) {
       return res.status(400).json({ success: false, error: "plan_id and payment_method are required" });
@@ -199,6 +199,22 @@ router.post("/checkout", requireAuth, async (req, res) => {
 
     if (planErr || !plan) return res.status(404).json({ success: false, error: "Plan not found" });
     if (userErr || !user) return res.status(404).json({ success: false, error: "User not found" });
+
+    // Asaas requires a CPF/CNPJ on the customer to issue PIX/card charges. If the
+    // user has none on file, accept one from this request, validate length,
+    // persist it, and use it. Otherwise ask the client to collect it.
+    if (!user.cpf_cnpj) {
+      const digits = String(cpf_cnpj || "").replace(/\D/g, "");
+      if (digits.length !== 11 && digits.length !== 14) {
+        return res.status(400).json({
+          success: false,
+          error: "CPF_CNPJ_REQUIRED",
+          message: "Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido para emitir a cobrança.",
+        });
+      }
+      await supabase.from("users").update({ cpf_cnpj: digits }).eq("id", userId);
+      user.cpf_cnpj = digits; // getOrCreateAsaasCustomer reads cpf_cnpj from here
+    }
 
     const client = asaasClient();
 

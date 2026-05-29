@@ -84,8 +84,8 @@ export function BrandBadge({
       <defs>
         {/* Bolt: colors driven by CSS vars — blue in dark mode, green in light mode */}
         <linearGradient id={boltId} x1="50" y1="10" x2="50" y2="90" gradientUnits="userSpaceOnUse">
-          <stop offset="0%"   style={{ stopColor: "var(--brand-bolt-start, #6AE619)" }} />
-          <stop offset="100%" style={{ stopColor: "var(--brand-bolt-end,   #00CCEE)" }} />
+          <stop offset="0%"   style={{ stopColor: "var(--brand-bolt-start, #66E619)" }} />
+          <stop offset="100%" style={{ stopColor: "var(--brand-bolt-end,   #00C8EE)" }} />
         </linearGradient>
       </defs>
 
@@ -128,7 +128,7 @@ export function BrandName({ size = "md" }: { size?: Size }) {
   return (
     <span
       style={{
-        fontFamily: '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',
+        fontFamily: "var(--font-brand)",
         fontSize: FONT_SIZE[size],
         fontWeight: 700,
         letterSpacing: size === "lg" ? "0.04em" : "0.06em",

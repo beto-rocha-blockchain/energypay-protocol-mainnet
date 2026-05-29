@@ -23,6 +23,9 @@ import notificationRoutes from "./routes/notifications.js";
 import settlementRoutes from "./routes/settlement.js";
 import utilityRoutes from "./routes/utility.js";
 import subscriptionRoutes from "./routes/subscriptions.js";
+import cryptoBillingRoutes from "./routes/cryptoBilling.js";
+import cardRoutes from "./routes/cards.js";
+import billingDocumentRoutes from "./routes/billingDocuments.js";
 
 import { executeSettlement } from "./services/stellarSettlementService.js";
 import { NETWORK_NAME, IS_MAINNET } from "./lib/stellar-network.js";
@@ -54,6 +57,10 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/settlement", settlementRoutes);
 app.use("/api/utility", utilityRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
+// Billing extensions (isolated — no settlement/custody coupling)
+app.use("/api/billing/crypto", cryptoBillingRoutes);
+app.use("/api/billing/cards", cardRoutes);
+app.use("/api/billing/documents", billingDocumentRoutes);
 
 // ========================================
 // Health Check

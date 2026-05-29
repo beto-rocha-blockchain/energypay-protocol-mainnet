@@ -39,10 +39,12 @@ type RequestOptions = {
   body?: unknown;
   auth?: boolean;
   signal?: AbortSignal;
+  /** Extra headers to merge (e.g. x-step-up-token for maximum-security routes). */
+  headers?: Record<string, string>;
 };
 
 export async function apiRequest<T = unknown>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, auth = true, signal } = opts;
+  const { method = "GET", body, auth = true, signal, headers: extraHeaders } = opts;
   const headers: Record<string, string> = {
     Accept: "application/json",
   };
@@ -52,6 +54,8 @@ export async function apiRequest<T = unknown>(path: string, opts: RequestOptions
     const session = getSession();
     if (session?.token) headers.Authorization = `Bearer ${session.token}`;
   }
+
+  if (extraHeaders) Object.assign(headers, extraHeaders);
 
   let res: Response;
   try {
@@ -867,11 +871,12 @@ export const apiSubscriptionMe = () =>
 
 export const apiSubscriptionCheckout = (
   plan_id: "operator" | "enterprise",
-  payment_method: "pix" | "credit_card"
+  payment_method: "pix" | "credit_card",
+  cpf_cnpj?: string
 ) =>
   apiRequest<SubscriptionCheckoutResponse>("/api/subscriptions/checkout", {
     method: "POST",
-    body: { plan_id, payment_method },
+    body: { plan_id, payment_method, ...(cpf_cnpj ? { cpf_cnpj } : {}) },
   });
 
 export const apiSubscriptionCancel = () =>
@@ -883,3 +888,234 @@ export const apiSubscriptionPaymentStatus = (paymentId: string) =>
   apiRequest<{ success: boolean; payment_id: string; status: string; confirmed: boolean }>(
     `/api/subscriptions/payment-status/${paymentId}`
   );
+
+/* ------------------------------------------------------------------ */
+/*  Step-up authentication (maximum-security re-confirmation)         */
+/* ------------------------------------------------------------------ */
+
+export type StepUpResponse = {
+  success: boolean;
+  step_up_token: string;
+  scope: "step-up";
+  expires_in: number;
+};
+
+/** Re-confirm the account password → short-lived step-up token (5 min). */
+export const apiStepUp = (password: string) =>
+  apiRequest<StepUpResponse>("/api/auth/step-up", {
+    method: "POST",
+    body: { password },
+  });
+
+/* ------------------------------------------------------------------ */
+/*  Crypto billing — isolated XLM / USDC subscription payments        */
+/* ------------------------------------------------------------------ */
+
+export type CryptoBillingAsset = "XLM" | "USDC";
+
+export type CryptoInvoice = {
+  id: string;
+  plan_id: string;
+  asset: CryptoBillingAsset;
+  asset_code: string;
+  asset_issuer: string | null;
+  expected_amount: string;
+  amount_brl: number;
+  exchange_rate: string | null;
+  rate_source: string | null;
+  treasury_public_key: string;
+  payment_reference: string;
+  memo: string;
+  status: "PENDING_PAYMENT" | "PAID" | "EXPIRED" | "FAILED";
+  tx_hash?: string | null;
+  ledger?: number | null;
+  amount_received?: string | null;
+  confirmed_at?: string | null;
+  explorer_url?: string | null;
+  expires_at?: string | null;
+  created_at?: string | null;
+  treasury_explorer_url?: string;
+};
+
+/** Create a crypto payment invoice (no wallet is debited — external transfer). */
+export const apiCreateCryptoInvoice = (plan_id: "operator" | "enterprise", asset: CryptoBillingAsset) =>
+  apiRequest<{ success: boolean; invoice: CryptoInvoice }>("/api/billing/crypto/invoice", {
+    method: "POST",
+    body: { plan_id, asset },
+  });
+
+export const apiGetCryptoInvoice = (id: string) =>
+  apiRequest<{ success: boolean; invoice: CryptoInvoice }>(`/api/billing/crypto/invoice/${id}`);
+
+/** Read-only Horizon verification — confirms the on-chain payment, if any. */
+export const apiVerifyCryptoInvoice = (id: string) =>
+  apiRequest<{ success: boolean; status: CryptoInvoice["status"]; invoice: CryptoInvoice; note?: string }>(
+    `/api/billing/crypto/invoice/${id}/verify`,
+    { method: "POST" },
+  );
+
+/* ------------------------------------------------------------------ */
+/*  Payment cards (tokenised — max 5, step-up gated)                  */
+/* ------------------------------------------------------------------ */
+
+export type PaymentCard = {
+  id: string;
+  brand: string | null;
+  last4: string | null;
+  holder_name: string | null;
+  exp_month: string | null;
+  exp_year: string | null;
+  is_default: boolean;
+  created_at: string | null;
+};
+
+export type AddCardPayload = {
+  holder_name: string;
+  number: string;
+  expiry_month: string;
+  expiry_year: string;
+  ccv: string;
+  postal_code?: string;
+  address_number?: string;
+  phone?: string;
+};
+
+export const apiListCards = () =>
+  apiRequest<{ success: boolean; cards: PaymentCard[]; count: number; max: number }>(
+    "/api/billing/cards",
+  );
+
+/** Tokenise + save a card. Requires a step-up token. PAN/CVV never persisted. */
+export const apiAddCard = (payload: AddCardPayload, stepUpToken: string) =>
+  apiRequest<{ success: boolean; card: PaymentCard }>("/api/billing/cards", {
+    method: "POST",
+    body: payload,
+    headers: { "x-step-up-token": stepUpToken },
+  });
+
+export const apiDeleteCard = (id: string, stepUpToken: string) =>
+  apiRequest<{ success: boolean; deleted: boolean; message: string }>(`/api/billing/cards/${id}`, {
+    method: "DELETE",
+    headers: { "x-step-up-token": stepUpToken },
+  });
+
+export const apiSetDefaultCard = (id: string, stepUpToken: string) =>
+  apiRequest<{ success: boolean; default_card_id: string }>(`/api/billing/cards/${id}/default`, {
+    method: "PUT",
+    headers: { "x-step-up-token": stepUpToken },
+  });
+
+/* ------------------------------------------------------------------ */
+/*  Billing documents — paid invoices, fiscal docs & receipts         */
+/* ------------------------------------------------------------------ */
+
+export type BillingInvoice = {
+  id: string;
+  source: "subscription_payment" | "crypto_invoice";
+  plan_id: string;
+  plan_name: string;
+  amount_brl: number;
+  currency: "BRL";
+  asset?: string;
+  asset_code?: string;
+  amount_received?: string | null;
+  method: string;
+  status: "paid";
+  paid_at: string | null;
+  gateway?: string | null;
+  gateway_invoice_url?: string | null;
+  tx_hash?: string | null;
+  ledger?: number | null;
+  explorer_url?: string | null;
+  receipt_url: string;
+};
+
+export type FiscalReadiness = {
+  provider: string;
+  can_issue_official: boolean;
+  company_profile_status: string;
+  certificate_status: string;
+  document_status: string;
+  message_en: string;
+  message_pt: string;
+};
+
+export type ReceiptDocument = {
+  source: "subscription_payment" | "crypto_invoice";
+  payment_id: string;
+  type: "RECEIPT";
+  status: "RECEIPT_AVAILABLE";
+  provider: "NONE";
+  plan_id: string;
+  amount_brl: number;
+  issued_at: string | null;
+  receipt_url: string;
+};
+
+export type FiscalDocumentRecord = {
+  id: string;
+  user_id: string;
+  payment_id: string;
+  payment_source: "subscription_payment" | "crypto_invoice";
+  type: "RECEIPT" | "NFE" | "NFSE";
+  status: string;
+  provider: string;
+  document_number: string | null;
+  verification_code: string | null;
+  access_key: string | null;
+  xml_url: string | null;
+  pdf_url: string | null;
+  signed_xml_url: string | null;
+  issued_at: string | null;
+  error_message: string | null;
+  created_at: string;
+};
+
+export const apiListPaidInvoices = () =>
+  apiRequest<{ success: boolean; invoices: BillingInvoice[]; count: number }>(
+    "/api/billing/documents/invoices",
+  );
+
+export const apiListBillingDocuments = () =>
+  apiRequest<{
+    success: boolean;
+    fiscal: FiscalReadiness;
+    receipts: ReceiptDocument[];
+    fiscal_documents: FiscalDocumentRecord[];
+  }>("/api/billing/documents/documents");
+
+/**
+ * Download a payment-receipt PDF. Requires a fresh step-up token. Returns a
+ * Blob the caller can turn into an object URL / trigger a browser download.
+ */
+export async function apiDownloadReceipt(
+  source: "subscription_payment" | "crypto_invoice",
+  id: string,
+  stepUpToken: string,
+): Promise<Blob> {
+  const session = getSession();
+  const headers: Record<string, string> = {
+    Accept: "application/pdf",
+    "x-step-up-token": stepUpToken,
+  };
+  if (session?.token) headers.Authorization = `Bearer ${session.token}`;
+
+  const url = `${API_BASE_URL}/api/billing/documents/receipt/${source}/${id}`;
+  let res: Response;
+  try {
+    res = await fetch(url, { method: "GET", headers });
+  } catch (err) {
+    throw buildError(0, `Network error downloading receipt. ${(err as Error).message}`);
+  }
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    const msg =
+      (data && typeof data === "object" && "error" in (data as Record<string, unknown>)
+        ? String((data as Record<string, unknown>).error)
+        : null) || `Receipt download failed with ${res.status}`;
+    throw buildError(res.status, msg, data);
+  }
+
+  return res.blob();
+}

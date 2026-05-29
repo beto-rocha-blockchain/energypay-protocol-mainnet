@@ -6,9 +6,14 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { apiGetUtilityUC } from "@/lib/api";
 import { maskAddress, ROLE_COLORS, sortRoles, type ParticipantRole } from "@/store/operator";
+import { RequireRole } from "@/components/RequireRole";
 
 export const Route = createFileRoute("/utility/uc")({
-  component: UtilityUCPage,
+  component: () => (
+    <RequireRole role="UTILITY">
+      <UtilityUCPage />
+    </RequireRole>
+  ),
 });
 
 function UtilityUCPage() {

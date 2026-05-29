@@ -12,8 +12,9 @@ import {
   Copy,
   ExternalLink,
   CheckCheck,
-  AlertTriangle,
-  XCircle,
+  Coins,
+  FileText,
+  Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,6 +29,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 
 import {
   useOperator,
@@ -42,6 +45,10 @@ import {
   apiSubscriptionPaymentStatus,
   type SubscriptionCheckoutPixResponse,
 } from "@/lib/api";
+import { CryptoPaymentModal } from "@/components/CryptoPaymentModal";
+import { CardManager } from "@/components/CardManager";
+import { PaidInvoicesTab } from "@/components/PaidInvoicesTab";
+import { FiscalDocumentsTab } from "@/components/FiscalDocumentsTab";
 
 export const Route = createFileRoute("/subscription")({
   head: () => ({
@@ -73,7 +80,7 @@ const STATUS_LABEL: Record<string, { text: string; className: string }> = {
   EXPIRED:   { text: "Expirado",          className: "border-destructive/40 bg-destructive/10 text-destructive" },
 };
 
-type PaymentMethod = "PIX" | "CREDIT_CARD";
+type PaymentMethod = "PIX" | "CREDIT_CARD" | "CRYPTO";
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
@@ -90,6 +97,15 @@ function SubscriptionPage() {
   const [pixData, setPixData]     = useState<SubscriptionCheckoutPixResponse | null>(null);
   const [pixModalOpen, setPixModalOpen] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+
+  // Crypto payment modal (isolated external-transfer billing flow)
+  const [cryptoModalOpen, setCryptoModalOpen] = useState(false);
+  const [cryptoPlan, setCryptoPlan] = useState<"operator" | "enterprise" | null>(null);
+
+  // CPF/CNPJ capture — Asaas requires it on the customer for PIX/card charges.
+  const [cpfDialogOpen, setCpfDialogOpen] = useState(false);
+  const [cpfPlan, setCpfPlan] = useState<SubscriptionPlan | null>(null);
+  const [cpfValue, setCpfValue] = useState("");
 
   if (!isAuthenticated || !operator) return <Navigate to="/login" />;
 
@@ -112,14 +128,16 @@ function SubscriptionPage() {
     } catch {/* silent */}
   }, [setSubscription]);
 
-  const handleSubscribe = async (plan: SubscriptionPlan) => {
-    if (plan === "FREE" || sub.plan === plan) return;
+  // Fiat checkout (PIX / card). Returns false if it needs a CPF/CNPJ (so the
+  // caller can prompt and retry), true on success.
+  const runFiatCheckout = async (plan: SubscriptionPlan, cpfCnpj?: string) => {
     setCheckoutingPlan(plan);
     setLoading(true);
     try {
       const res = await apiSubscriptionCheckout(
         plan.toLowerCase() as "operator" | "enterprise",
-        paymentMethod === "PIX" ? "pix" : "credit_card"
+        paymentMethod === "PIX" ? "pix" : "credit_card",
+        cpfCnpj,
       );
 
       if (res.payment_method === "pix") {
@@ -131,11 +149,49 @@ function SubscriptionPage() {
           description: "Após o pagamento, seu plano será ativado automaticamente.",
         });
       }
+      return true;
     } catch (err) {
-      toast.error((err as Error).message || "Erro ao iniciar checkout.");
+      const code =
+        (err as { payload?: { error?: string } }).payload?.error ?? (err as Error).message;
+      if (code === "CPF_CNPJ_REQUIRED") {
+        setCpfPlan(plan);
+        setCpfDialogOpen(true);
+      } else {
+        toast.error((err as Error).message || "Erro ao iniciar checkout.");
+      }
+      return false;
     } finally {
       setLoading(false);
       setCheckoutingPlan(null);
+    }
+  };
+
+  const handleSubscribe = async (plan: SubscriptionPlan) => {
+    if (plan === "FREE" || sub.plan === plan) return;
+
+    // Crypto is an isolated external-transfer flow — open the dedicated modal.
+    if (paymentMethod === "CRYPTO") {
+      setCryptoPlan(plan.toLowerCase() as "operator" | "enterprise");
+      setCryptoModalOpen(true);
+      return;
+    }
+
+    await runFiatCheckout(plan);
+  };
+
+  // Submit the CPF/CNPJ collected in the dialog, then retry the fiat checkout.
+  const submitCpf = async () => {
+    const digits = cpfValue.replace(/\D/g, "");
+    if (digits.length !== 11 && digits.length !== 14) {
+      toast.error("Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.");
+      return;
+    }
+    if (!cpfPlan) return;
+    setCpfDialogOpen(false);
+    const ok = await runFiatCheckout(cpfPlan, digits);
+    if (ok) {
+      setCpfValue("");
+      setCpfPlan(null);
     }
   };
 
@@ -160,6 +216,13 @@ function SubscriptionPage() {
     toast.success("Pagamento confirmado! Plano ativado.");
   };
 
+  const handleCryptoConfirmed = async () => {
+    await refreshSubscription();
+    setCryptoModalOpen(false);
+    setCryptoPlan(null);
+    toast.success("Pagamento em cripto confirmado! Plano ativado.");
+  };
+
   return (
     <div className="mx-auto max-w-5xl space-y-8 p-6">
       {/* Header */}
@@ -173,83 +236,126 @@ function SubscriptionPage() {
         </p>
       </div>
 
-      {/* Current plan card */}
+      {/* Current plan card — always visible above the tabs */}
       <CurrentPlanCard onCancel={handleCancel} cancelLoading={cancelLoading} />
 
-      {/* Payment method selector */}
-      <div className="space-y-3">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          Método de pagamento
-        </p>
-        <div className="flex gap-3">
-          {(["PIX", "CREDIT_CARD"] as PaymentMethod[]).map((m) => (
-            <button
-              key={m}
-              onClick={() => setPaymentMethod(m)}
-              className={`flex items-center gap-2 rounded-md border px-4 py-2.5 font-mono text-[11px] uppercase tracking-widest transition-colors ${
-                paymentMethod === m
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border bg-card text-muted-foreground hover:border-primary/40"
-              }`}
-            >
-              {m === "PIX"
-                ? <QrCode className="h-3.5 w-3.5" />
-                : <CreditCard className="h-3.5 w-3.5" />}
-              {m === "PIX" ? "PIX" : "Cartão de Crédito"}
-            </button>
-          ))}
-        </div>
-        {paymentMethod === "PIX" && (
-          <p className="font-mono text-[10px] text-success">
-            ✓ PIX · aprovação em até 1 minuto · sem taxas adicionais
-          </p>
-        )}
-        {paymentMethod === "CREDIT_CARD" && (
-          <p className="font-mono text-[10px] text-muted-foreground">
-            Cartão de crédito · processado via Asaas (certificado Bacen)
-          </p>
-        )}
-      </div>
+      <Tabs defaultValue="plan" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+          <TabsTrigger value="plan" className="gap-1.5 font-mono text-[10px] uppercase tracking-widest">
+            <Zap className="h-3 w-3" /> Plano
+          </TabsTrigger>
+          <TabsTrigger value="invoices" className="gap-1.5 font-mono text-[10px] uppercase tracking-widest">
+            <Receipt className="h-3 w-3" /> Faturas
+          </TabsTrigger>
+          <TabsTrigger value="fiscal" className="gap-1.5 font-mono text-[10px] uppercase tracking-widest">
+            <FileText className="h-3 w-3" /> Notas Fiscais
+          </TabsTrigger>
+          <TabsTrigger value="cards" className="gap-1.5 font-mono text-[10px] uppercase tracking-widest">
+            <CreditCard className="h-3 w-3" /> Cartões
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Plan comparison cards */}
-      <div className="space-y-3">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          Planos disponíveis
-        </p>
-        <div className="grid gap-4 md:grid-cols-3">
-          {(["FREE", "OPERATOR", "ENTERPRISE"] as SubscriptionPlan[]).map((plan) => (
-            <PlanCard
-              key={plan}
-              plan={plan}
-              isCurrent={sub.plan === plan}
-              paymentMethod={paymentMethod}
-              loading={loading && checkoutingPlan === plan}
-              onSelect={() => handleSubscribe(plan)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Security note */}
-      <Card className="border-border bg-card/50 p-4">
-        <div className="flex items-start gap-3">
-          <Shield className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-          <div>
+        {/* ── Tab: Plano & Pagamento ───────────────────────────────── */}
+        <TabsContent value="plan" className="space-y-8">
+          {/* Payment method selector */}
+          <div className="space-y-3">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Segurança &amp; conformidade
+              Método de pagamento
             </p>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Pagamentos processados por <strong className="text-foreground">Asaas</strong> — fintech
-              brasileira certificada pelo Banco Central do Brasil. Dados de cartão são tokenizados
-              diretamente no browser e nunca trafegam pelos servidores EnergyPay. PIX processado
-              via chave institucional. Faturas emitidas com NF-e.
-            </p>
+            <div className="flex flex-wrap gap-3">
+              {(["PIX", "CREDIT_CARD", "CRYPTO"] as PaymentMethod[]).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setPaymentMethod(m)}
+                  className={`flex items-center gap-2 rounded-md border px-4 py-2.5 font-mono text-[11px] uppercase tracking-widest transition-colors ${
+                    paymentMethod === m
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/40"
+                  }`}
+                >
+                  {m === "PIX" ? (
+                    <QrCode className="h-3.5 w-3.5" />
+                  ) : m === "CREDIT_CARD" ? (
+                    <CreditCard className="h-3.5 w-3.5" />
+                  ) : (
+                    <Coins className="h-3.5 w-3.5" />
+                  )}
+                  {m === "PIX" ? "PIX" : m === "CREDIT_CARD" ? "Cartão de Crédito" : "Cripto (XLM / USDC)"}
+                </button>
+              ))}
+            </div>
+            {paymentMethod === "PIX" && (
+              <p className="font-mono text-[10px] text-success">
+                ✓ PIX · aprovação em até 1 minuto · sem taxas adicionais
+              </p>
+            )}
+            {paymentMethod === "CREDIT_CARD" && (
+              <p className="font-mono text-[10px] text-muted-foreground">
+                Cartão de crédito · processado via Asaas (certificado Bacen)
+              </p>
+            )}
+            {paymentMethod === "CRYPTO" && (
+              <p className="font-mono text-[10px] text-muted-foreground">
+                Pay with XLM or USDC from any Stellar wallet. · Verificação on-chain na Stellar Mainnet.
+              </p>
+            )}
           </div>
-        </div>
-      </Card>
 
-      {/* Payment history */}
-      <PaymentHistory />
+          {/* Plan comparison cards */}
+          <div className="space-y-3">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Planos disponíveis
+            </p>
+            <div className="grid gap-4 md:grid-cols-3">
+              {(["FREE", "OPERATOR", "ENTERPRISE"] as SubscriptionPlan[]).map((plan) => (
+                <PlanCard
+                  key={plan}
+                  plan={plan}
+                  isCurrent={sub.plan === plan}
+                  paymentMethod={paymentMethod}
+                  loading={loading && checkoutingPlan === plan}
+                  onSelect={() => handleSubscribe(plan)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Security note */}
+          <Card className="border-border bg-card/50 p-4">
+            <div className="flex items-start gap-3">
+              <Shield className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Segurança &amp; conformidade
+                </p>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Pagamentos em cartão e PIX processados por <strong className="text-foreground">Asaas</strong> —
+                  fintech brasileira certificada pelo Banco Central do Brasil. Dados de cartão são tokenizados
+                  pelo gateway e nunca são armazenados pelos servidores EnergyPay. Pagamentos em cripto são
+                  verificados on-chain na Stellar Mainnet, sem expor chaves secretas. Cada cobrança paga gera um
+                  recibo de pagamento — a emissão oficial de NF-e/NFS-e estará disponível após a configuração do
+                  perfil fiscal da EnergyPay e do certificado digital.
+                </p>
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* ── Tab: Faturas Pagas ───────────────────────────────────── */}
+        <TabsContent value="invoices">
+          <PaidInvoicesTab />
+        </TabsContent>
+
+        {/* ── Tab: Notas Fiscais ───────────────────────────────────── */}
+        <TabsContent value="fiscal">
+          <FiscalDocumentsTab />
+        </TabsContent>
+
+        {/* ── Tab: Cartões ─────────────────────────────────────────── */}
+        <TabsContent value="cards">
+          <CardManager />
+        </TabsContent>
+      </Tabs>
 
       {/* PIX QR code modal */}
       <PixPaymentModal
@@ -258,6 +364,53 @@ function SubscriptionPage() {
         onClose={() => setPixModalOpen(false)}
         onConfirmed={handlePixPaid}
       />
+
+      {/* Crypto payment modal (isolated external-transfer billing flow) */}
+      <CryptoPaymentModal
+        open={cryptoModalOpen}
+        plan={cryptoPlan}
+        planLabel={cryptoPlan ? SUBSCRIPTION_PLAN_META[cryptoPlan.toUpperCase() as SubscriptionPlan].label : ""}
+        onClose={() => setCryptoModalOpen(false)}
+        onConfirmed={handleCryptoConfirmed}
+      />
+
+      {/* CPF/CNPJ capture — required by Asaas to issue PIX/card charges */}
+      <Dialog open={cpfDialogOpen} onOpenChange={(v) => { if (!v) setCpfDialogOpen(false); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-primary" />
+              CPF ou CNPJ
+            </DialogTitle>
+            <DialogDescription>
+              O Asaas exige um CPF ou CNPJ do titular para emitir cobranças via PIX ou cartão.
+              Informe uma vez — fica salvo na sua conta.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => { e.preventDefault(); if (!loading) submitCpf(); }}
+            className="space-y-3"
+          >
+            <Input
+              value={cpfValue}
+              onChange={(e) => setCpfValue(e.target.value.replace(/[^\d./-]/g, ""))}
+              placeholder="000.000.000-00 ou CNPJ"
+              inputMode="numeric"
+              autoFocus
+              disabled={loading}
+            />
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setCpfDialogOpen(false)} disabled={loading}>
+                Cancelar
+              </Button>
+              <Button type="submit" size="sm" disabled={loading || !cpfValue}>
+                {loading && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
+                Continuar
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -431,7 +584,11 @@ function PlanCard({
         )}
         {plan !== "FREE" && (
           <p className={`mt-0.5 font-mono text-[9px] ${paymentMethod === "PIX" ? "text-success" : "text-muted-foreground"}`}>
-            {paymentMethod === "PIX" ? "via PIX · aprovação instantânea" : "via cartão de crédito"}
+            {paymentMethod === "PIX"
+              ? "via PIX · aprovação instantânea"
+              : paymentMethod === "CREDIT_CARD"
+                ? "via cartão de crédito"
+                : "via XLM ou USDC · Stellar"}
           </p>
         )}
       </div>
@@ -635,26 +792,5 @@ function PixPaymentModal({
         )}
       </DialogContent>
     </Dialog>
-  );
-}
-
-// ── Payment History ────────────────────────────────────────────────────────────
-
-function PaymentHistory() {
-  return (
-    <div className="space-y-3">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-        Histórico de pagamentos
-      </p>
-      <Card className="border-border bg-card p-8 text-center">
-        <RefreshCw className="mx-auto mb-3 h-6 w-6 text-muted-foreground/30" />
-        <p className="font-mono text-[11px] text-muted-foreground">
-          Nenhum pagamento registrado.
-        </p>
-        <p className="mt-1 text-[10px] text-muted-foreground/60">
-          Seu histórico de faturas aparecerá aqui após a primeira cobrança.
-        </p>
-      </Card>
-    </div>
   );
 }

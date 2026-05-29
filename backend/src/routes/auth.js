@@ -459,6 +459,54 @@ router.post("/login", async (req, res) => {
 });
 
 // =====================================================
+// STEP-UP — re-confirm identity for maximum-security areas
+// (card management, fiscal-document downloads, etc.)
+// Returns a short-lived (5 min) step-up token bound to the user.
+// =====================================================
+
+router.post("/step-up", requireAuth, async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ success: false, error: "PASSWORD_REQUIRED" });
+    }
+
+    const userId = req.operator.sub || req.operator.id;
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, email, password")
+      .eq("id", userId)
+      .single();
+
+    if (error || !data) {
+      return res.status(401).json({ success: false, error: "USER_NOT_FOUND" });
+    }
+
+    // Never log the attempted password.
+    const validPassword = await bcrypt.compare(password, data.password);
+    if (!validPassword) {
+      return res.status(401).json({ success: false, error: "INVALID_PASSWORD" });
+    }
+
+    const stepUpToken = jwt.sign(
+      { sub: data.id, id: data.id, scope: "step-up" },
+      process.env.JWT_SECRET,
+      { expiresIn: "5m" },
+    );
+
+    return res.json({
+      success: true,
+      step_up_token: stepUpToken,
+      scope: "step-up",
+      expires_in: 300,
+    });
+  } catch (err) {
+    console.error("[auth/step-up]", err.message);
+    return res.status(500).json({ success: false, error: "STEP_UP_FAILED" });
+  }
+});
+
+// =====================================================
 // FORGOT PASSWORD
 // =====================================================
 

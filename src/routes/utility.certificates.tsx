@@ -1,9 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ShieldCheck, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { RequireRole } from "@/components/RequireRole";
 
 export const Route = createFileRoute("/utility/certificates")({
-  component: UtilityCertificatesPage,
+  component: () => (
+    <RequireRole role="UTILITY">
+      <UtilityCertificatesPage />
+    </RequireRole>
+  ),
 });
 
 function UtilityCertificatesPage() {
@@ -23,10 +28,10 @@ function UtilityCertificatesPage() {
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
           <div className="flex flex-col gap-1">
             <p className="font-mono text-sm font-semibold uppercase tracking-widest text-amber-400">
-              MÓDULO FUTURO
+              FUTURE MODULE
             </p>
             <p className="font-mono text-xs text-amber-300/80">
-              Este módulo faz parte da integração IoT planejada para uma fase futura do EnergyPay.
+              This module is part of the IoT integration planned for a future phase of EnergyPay.
             </p>
           </div>
         </div>

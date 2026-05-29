@@ -5,9 +5,14 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { apiGetUtilityParticipants } from "@/lib/api";
 import { maskAddress, ROLE_COLORS } from "@/store/operator";
+import { RequireRole } from "@/components/RequireRole";
 
 export const Route = createFileRoute("/utility/area")({
-  component: UtilityAreaPage,
+  component: () => (
+    <RequireRole role="UTILITY">
+      <UtilityAreaPage />
+    </RequireRole>
+  ),
 });
 
 function UtilityAreaPage() {

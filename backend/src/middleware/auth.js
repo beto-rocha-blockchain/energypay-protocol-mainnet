@@ -77,3 +77,47 @@ export function requirePlatformRole(...allowedRoles) {
     }
   };
 }
+
+/**
+ * Step-up auth guard — for maximum-security actions (card management,
+ * fiscal-document downloads, etc.). Requires a short-lived step-up token
+ * obtained from POST /api/auth/step-up (account-password re-confirmation).
+ *
+ * Must be chained AFTER requireAuth so req.operator is populated:
+ *   router.delete("/cards/:id", requireAuth, requireStepUp, handler)
+ *
+ * The step-up token travels in the `x-step-up-token` header, carries
+ * scope:'step-up', and is bound to the same user id as the session token.
+ * On success sets req.stepUp = { userId, confirmedAt }.
+ */
+export function requireStepUp(req, res, next) {
+  try {
+    const token = req.headers["x-step-up-token"];
+    if (!token) {
+      return res.status(401).json({
+        error: "STEP_UP_REQUIRED",
+        message: "Identity re-confirmation required for this action.",
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.scope !== "step-up") {
+      return res.status(403).json({ error: "INVALID_STEP_UP_TOKEN" });
+    }
+
+    // Bind the step-up token to the authenticated session user.
+    const authUserId = req.operator?.sub || req.operator?.id;
+    const stepUpUserId = decoded.sub || decoded.id;
+    if (authUserId && stepUpUserId && authUserId !== stepUpUserId) {
+      return res.status(403).json({ error: "STEP_UP_USER_MISMATCH" });
+    }
+
+    req.stepUp = { userId: stepUpUserId, confirmedAt: decoded.iat };
+    next();
+  } catch {
+    return res.status(401).json({
+      error: "STEP_UP_EXPIRED",
+      message: "Identity re-confirmation expired. Please confirm again.",
+    });
+  }
+}

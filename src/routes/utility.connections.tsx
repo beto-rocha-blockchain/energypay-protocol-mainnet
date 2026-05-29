@@ -4,9 +4,14 @@ import { Card } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { apiGetUtilityConnections } from "@/lib/api";
+import { RequireRole } from "@/components/RequireRole";
 
 export const Route = createFileRoute("/utility/connections")({
-  component: UtilityConnectionsPage,
+  component: () => (
+    <RequireRole role="UTILITY">
+      <UtilityConnectionsPage />
+    </RequireRole>
+  ),
 });
 
 const STATUS_STYLES: Record<string, { border: string; bg: string; text: string }> = {

@@ -47,6 +47,8 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  /* Brand wordmark — "ENERGYPAY" letterforms (matches the reference logo). */
+  --font-brand: "Montserrat", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -54,14 +56,16 @@
   /* Institutional deep-blue/black operational palette */
   --background: oklch(0.135 0.022 252);
   --foreground: oklch(0.95 0.008 240);
-  /* ── Brand identity — dark mode: all details in the platform light-blue ── */
-  --brand-energy-color: #F2F2F2;                /* original near-white for "ENERGY" */
-  --brand-pay-color:    oklch(0.78 0.14 215);   /* primary accent blue for "PAY" */
-  --brand-bolt-start:   oklch(0.86 0.08 210);   /* very pale blue — bolt top */
-  --brand-bolt-end:     oklch(0.63 0.20 213);   /* deeper cyan-blue — bolt bottom */
-  --brand-badge-glow:   rgba(0, 185, 238, 0.16);
-  --brand-ring-color:   rgba(255, 255, 255, 0.90); /* white ring on dark backgrounds */
-  --brand-disc:         #060c0a;               /* solid near-black disc — dark mode */
+  /* ── Brand identity — dark mode: official logo (lime-green → cyan bolt) ──
+     Canonical brand pair — SINGLE SOURCE OF TRUTH: lime #66E619 → cyan #00C8EE.
+     Must stay in sync with SplashScreen.tsx and BrandLogo.tsx. */
+  --brand-energy-color: #F2F2F2;                /* near-white — "ENERGY" */
+  --brand-pay-color:    #66E619;                /* brand lime-green — "PAY" */
+  --brand-bolt-start:   #66E619;                /* lime-green — bolt top */
+  --brand-bolt-end:     #00C8EE;                /* cyan — bolt bottom */
+  --brand-badge-glow:   rgba(102, 230, 25, 0.18); /* green glow */
+  --brand-ring-color:   rgba(255, 255, 255, 0.92); /* white ring on dark backgrounds */
+  --brand-disc:         #070d1a;               /* dark navy disc — matches logo background */
   --card: oklch(0.175 0.022 250);
   --card-foreground: oklch(0.95 0.008 240);
   --popover: oklch(0.19 0.022 250);

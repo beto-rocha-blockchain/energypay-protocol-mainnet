@@ -21,6 +21,7 @@ import { Route as P2pRouteImport } from './routes/p2p'
 import { Route as OracleRouteImport } from './routes/oracle'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LandingRouteImport } from './routes/landing'
 import { Route as GridRouteImport } from './routes/grid'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ClearingRouteImport } from './routes/clearing'
@@ -98,6 +99,11 @@ const NotificationsRoute = NotificationsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LandingRoute = LandingRouteImport.update({
+  id: '/landing',
+  path: '/landing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GridRoute = GridRouteImport.update({
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/clearing': typeof ClearingRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/grid': typeof GridRoute
+  '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/oracle': typeof OracleRoute
@@ -232,6 +239,7 @@ export interface FileRoutesByTo {
   '/clearing': typeof ClearingRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/grid': typeof GridRoute
+  '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/oracle': typeof OracleRoute
@@ -265,6 +273,7 @@ export interface FileRoutesById {
   '/clearing': typeof ClearingRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/grid': typeof GridRoute
+  '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/oracle': typeof OracleRoute
@@ -299,6 +308,7 @@ export interface FileRouteTypes {
     | '/clearing'
     | '/forgot-password'
     | '/grid'
+    | '/landing'
     | '/login'
     | '/notifications'
     | '/oracle'
@@ -331,6 +341,7 @@ export interface FileRouteTypes {
     | '/clearing'
     | '/forgot-password'
     | '/grid'
+    | '/landing'
     | '/login'
     | '/notifications'
     | '/oracle'
@@ -363,6 +374,7 @@ export interface FileRouteTypes {
     | '/clearing'
     | '/forgot-password'
     | '/grid'
+    | '/landing'
     | '/login'
     | '/notifications'
     | '/oracle'
@@ -396,6 +408,7 @@ export interface RootRouteChildren {
   ClearingRoute: typeof ClearingRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   GridRoute: typeof GridRoute
+  LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
   OracleRoute: typeof OracleRoute
@@ -506,6 +519,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/landing': {
+      id: '/landing'
+      path: '/landing'
+      fullPath: '/landing'
+      preLoaderRoute: typeof LandingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/grid': {
@@ -644,6 +664,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClearingRoute: ClearingRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   GridRoute: GridRoute,
+  LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
   OracleRoute: OracleRoute,
