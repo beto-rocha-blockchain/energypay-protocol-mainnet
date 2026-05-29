@@ -40,7 +40,7 @@ function fmtDate(iso: string | null) {
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? "—"
-    : d.toLocaleString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+    : d.toLocaleString("en-US", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 export function FiscalDocumentsTab() {
@@ -69,7 +69,7 @@ export function FiscalDocumentsTab() {
       setFiscal(res.fiscal);
       setReceipts(res.receipts);
     } catch (err) {
-      toast.error((err as Error).message || "Falha ao carregar documentos.");
+      toast.error((err as Error).message || "Failed to load documents.");
     } finally {
       setLoading(false);
     }
@@ -86,14 +86,14 @@ export function FiscalDocumentsTab() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `energypay-recibo-${r.payment_id}.pdf`;
+        a.download = `energypay-receipt-${r.payment_id}.pdf`;
         document.body.appendChild(a);
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-        toast.success("Recibo baixado.");
+        toast.success("Receipt downloaded.");
       } catch (err) {
-        toast.error((err as Error).message || "Não foi possível baixar o recibo.");
+        toast.error((err as Error).message || "Could not download the receipt.");
       } finally {
         setBusyKey(null);
       }
@@ -105,15 +105,15 @@ export function FiscalDocumentsTab() {
       <div className="flex items-center justify-between">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Notas fiscais &amp; recibos
+            Tax documents &amp; receipts
           </p>
           <p className="text-[11px] text-muted-foreground">
-            Baixe recibos de pagamento. NF-e/NFS-e oficial em breve.
+            Download payment receipts. Official NF-e/NFS-e coming soon.
           </p>
         </div>
         <Button size="sm" variant="outline" onClick={load} disabled={loading}>
           {loading ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1.5 h-3 w-3" />}
-          Atualizar
+          Refresh
         </Button>
       </div>
 
@@ -123,22 +123,22 @@ export function FiscalDocumentsTab() {
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <div>
             <p className="font-mono text-[10px] uppercase tracking-widest text-warning">
-              Emissão fiscal oficial
+              Official fiscal issuance
             </p>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              {fiscal?.message_pt ??
-                "A emissão oficial de NF-e/NFS-e estará disponível após a configuração do perfil fiscal da EnergyPay e do certificado digital."}
+              {fiscal?.message_en ??
+                "Official NF-e/NFS-e issuance will be available once EnergyPay's tax profile and digital certificate are configured."}
             </p>
             {fiscal && (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <Badge variant="outline" className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">
-                  Perfil fiscal: {fiscal.company_profile_status}
+                  Tax profile: {fiscal.company_profile_status}
                 </Badge>
                 <Badge variant="outline" className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">
-                  Certificado: {fiscal.certificate_status}
+                  Certificate: {fiscal.certificate_status}
                 </Badge>
                 <Badge variant="outline" className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">
-                  {fiscal.can_issue_official ? "Pronto para emitir" : "Emissão pendente"}
+                  {fiscal.can_issue_official ? "Ready to issue" : "Issuance pending"}
                 </Badge>
               </div>
             )}
@@ -154,9 +154,9 @@ export function FiscalDocumentsTab() {
       ) : receipts.length === 0 ? (
         <Card className="border-dashed border-border bg-card/40 p-10 text-center">
           <FileText className="mx-auto mb-3 h-6 w-6 text-muted-foreground/30" />
-          <p className="font-mono text-[11px] text-muted-foreground">Nenhum recibo disponível.</p>
+          <p className="font-mono text-[11px] text-muted-foreground">No receipts available.</p>
           <p className="mt-1 text-[10px] text-muted-foreground/60">
-            Cada cobrança paga gera um recibo para download aqui.
+            Each paid charge generates a receipt for download here.
           </p>
         </Card>
       ) : (
@@ -171,9 +171,9 @@ export function FiscalDocumentsTab() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="font-mono text-sm font-semibold">Recibo de pagamento</p>
+                      <p className="font-mono text-sm font-semibold">Payment receipt</p>
                       <Badge variant="outline" className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">
-                        {r.source === "crypto_invoice" ? "Cripto" : "Assinatura"}
+                        {r.source === "crypto_invoice" ? "Crypto" : "Subscription"}
                       </Badge>
                     </div>
                     <p className="font-mono text-[10px] text-muted-foreground">
@@ -188,7 +188,7 @@ export function FiscalDocumentsTab() {
                   disabled={busyKey === key}
                 >
                   {busyKey === key ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Download className="mr-1.5 h-3 w-3" />}
-                  Baixar recibo
+                  Download receipt
                 </Button>
               </Card>
             );

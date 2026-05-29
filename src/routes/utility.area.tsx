@@ -62,7 +62,7 @@ function UtilityAreaPage() {
       ) : participants.length === 0 ? (
         <Card className="flex flex-1 items-center justify-center border-orange-400/20 bg-orange-400/5 p-12">
           <p className="font-mono text-xs text-muted-foreground text-center max-w-md">
-            Nenhum operador de distribuição registrado. Operadores com role UTILITY aparecem aqui.
+            No distribution operators registered. Operators with the UTILITY role appear here.
           </p>
         </Card>
       ) : (

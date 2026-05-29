@@ -29,7 +29,7 @@ function fmtDate(iso: string | null) {
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? "—"
-    : d.toLocaleString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    : d.toLocaleString("en-US", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 export function PaidInvoicesTab() {
@@ -42,7 +42,7 @@ export function PaidInvoicesTab() {
       const res = await apiListPaidInvoices();
       setInvoices(res.invoices);
     } catch (err) {
-      toast.error((err as Error).message || "Falha ao carregar faturas.");
+      toast.error((err as Error).message || "Failed to load invoices.");
     } finally {
       setLoading(false);
     }
@@ -55,15 +55,15 @@ export function PaidInvoicesTab() {
       <div className="flex items-center justify-between">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Faturas pagas
+            Paid invoices
           </p>
           <p className="text-[11px] text-muted-foreground">
-            Cobranças confirmadas — cartão, PIX e pagamentos em cripto.
+            Confirmed charges — card, PIX and crypto payments.
           </p>
         </div>
         <Button size="sm" variant="outline" onClick={load} disabled={loading}>
           {loading ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1.5 h-3 w-3" />}
-          Atualizar
+          Refresh
         </Button>
       </div>
 
@@ -74,9 +74,9 @@ export function PaidInvoicesTab() {
       ) : invoices.length === 0 ? (
         <Card className="border-dashed border-border bg-card/40 p-10 text-center">
           <Receipt className="mx-auto mb-3 h-6 w-6 text-muted-foreground/30" />
-          <p className="font-mono text-[11px] text-muted-foreground">Nenhuma fatura paga ainda.</p>
+          <p className="font-mono text-[11px] text-muted-foreground">No paid invoices yet.</p>
           <p className="mt-1 text-[10px] text-muted-foreground/60">
-            Suas cobranças confirmadas aparecerão aqui.
+            Your confirmed charges will appear here.
           </p>
         </Card>
       ) : (
@@ -104,7 +104,7 @@ export function PaidInvoicesTab() {
                   <div className="text-right">
                     <p className="font-mono text-base font-semibold">{brl(inv.amount_brl)}</p>
                     <Badge variant="outline" className="border-success/40 bg-success/10 font-mono text-[8px] uppercase tracking-widest text-success">
-                      <CheckCircle2 className="mr-1 h-2.5 w-2.5" /> Pago
+                      <CheckCircle2 className="mr-1 h-2.5 w-2.5" /> Paid
                     </Badge>
                   </div>
                 </div>
@@ -113,7 +113,7 @@ export function PaidInvoicesTab() {
                   <div className="mt-3 border-t border-border pt-2.5">
                     {inv.amount_received && inv.asset_code && (
                       <p className="font-mono text-[9px] text-muted-foreground">
-                        Recebido: {inv.amount_received} {inv.asset_code}
+                        Received: {inv.amount_received} {inv.asset_code}
                         {inv.ledger ? ` · ledger ${inv.ledger}` : ""}
                       </p>
                     )}
@@ -124,7 +124,7 @@ export function PaidInvoicesTab() {
                         rel="noopener noreferrer"
                         className="mt-1 flex items-center gap-1 font-mono text-[9px] text-primary hover:underline"
                       >
-                        {inv.tx_hash ? `${inv.tx_hash.slice(0, 12)}…` : "Ver transação"} no Stellar Expert
+                        {inv.tx_hash ? `${inv.tx_hash.slice(0, 12)}…` : "View transaction"} on Stellar Expert
                         <ExternalLink className="h-3 w-3" />
                       </a>
                     )}
@@ -139,7 +139,7 @@ export function PaidInvoicesTab() {
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 font-mono text-[9px] text-primary hover:underline"
                     >
-                      Ver comprovante no gateway <ExternalLink className="h-3 w-3" />
+                      View receipt on gateway <ExternalLink className="h-3 w-3" />
                     </a>
                   </div>
                 )}

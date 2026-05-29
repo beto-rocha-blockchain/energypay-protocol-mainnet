@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { OperatorTag } from "@/components/OperatorTag";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowUpDown,
@@ -104,6 +105,8 @@ function dbToContract(c: DbContract): Contract {
     id: c.id,
     buyer,
     seller,
+    buyerIsOperator: c.buyer_is_operator,
+    sellerIsOperator: c.seller_is_operator,
     volumeMWh: Number(c.volume_mwh),
     priceBRL: Number(c.price_brl),
     pldBRL: Number(c.pld_brl ?? c.price_brl),
@@ -838,8 +841,8 @@ function ContractsList() {
                     onClick={() => handleRowClick(c)}
                   >
                     <TableCell className="font-mono text-[11px]">{c.id}</TableCell>
-                    <TableCell className="text-xs">{c.buyer}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{c.seller}</TableCell>
+                    <TableCell className="text-xs">{c.buyer}<OperatorTag operator={c.buyerIsOperator} className="ml-1.5" /></TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{c.seller}<OperatorTag operator={c.sellerIsOperator} className="ml-1.5" /></TableCell>
                     <TableCell className="text-right font-mono text-xs">
                       {c.volumeMWh.toLocaleString("pt-BR")}
                     </TableCell>

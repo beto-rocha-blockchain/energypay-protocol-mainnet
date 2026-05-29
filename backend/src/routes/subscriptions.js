@@ -228,8 +228,8 @@ router.post("/checkout", requireAuth, async (req, res) => {
       billingType,
       value: Number(plan.price_brl),
       nextDueDate: nextDueDate(),
-      cycle: "MONTHLY",
-      description: `EnergyPay ${plan.name} — Assinatura Mensal`,
+      cycle: "YEARLY",
+      description: `EnergyPay ${plan.name} — Annual Subscription`,
       externalReference: `ep_${userId}_${plan_id}_${Date.now()}`,
     };
 

@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useOperator, maskAddress, ROLE_META } from "@/store/operator";
+import { OperatorTag } from "@/components/OperatorTag";
 import { useWalletBalances } from "@/hooks/useWalletBalances";
 import {
   useP2P,
@@ -567,6 +568,7 @@ function P2PPage() {
                     {counterparties.map((c) => (
                       <SelectItem key={c.organization} value={c.organization}>
                         <span className="font-mono text-xs">{c.role}</span> · {c.organization}
+                        <OperatorTag roles={c.roles} className="ml-2" />
                       </SelectItem>
                     ))}
                   </SelectContent>

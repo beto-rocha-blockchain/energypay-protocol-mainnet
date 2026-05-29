@@ -93,10 +93,10 @@ const fmtCompact = (n: number) => {
 type PldRange = "48h" | "7d" | "1m" | "1y";
 
 const RANGE_OPTIONS: { id: PldRange; label: string; subtitle: string }[] = [
-  { id: "48h", label: "Hora", subtitle: "Semi-horário · Últimas 48h" },
-  { id: "7d",  label: "Dia",  subtitle: "Média diária · Últimos 7 dias" },
-  { id: "1m",  label: "Mês",  subtitle: "Média diária · Mês atual" },
-  { id: "1y",  label: "Ano",  subtitle: "Média mensal · Últimos 12 meses" },
+  { id: "48h", label: "Hour",  subtitle: "Semi-hourly · Last 48h" },
+  { id: "7d",  label: "Day",   subtitle: "Daily average · Last 7 days" },
+  { id: "1m",  label: "Month", subtitle: "Daily average · Current month" },
+  { id: "1y",  label: "Year",  subtitle: "Monthly average · Last 12 months" },
 ];
 
 /* ── Hook: real PLD data ── */
@@ -264,7 +264,7 @@ function OraclePage() {
         ) : (
           <Card className="col-span-full border-border bg-card p-4 text-center">
             <p className="font-mono text-sm text-muted-foreground">
-              {pldError ? `Erro: ${pldError}` : "Carregando preços PLD..."}
+              {pldError ? `Error: ${pldError}` : "Loading PLD prices..."}
             </p>
           </Card>
         )}
@@ -366,7 +366,7 @@ function OraclePage() {
             {pldLoading || historyLoading ? (
               <Skeleton className="h-full w-full" />
             ) : (
-              <p className="font-mono text-sm text-muted-foreground">Sem dados históricos disponíveis.</p>
+              <p className="font-mono text-sm text-muted-foreground">No historical data available.</p>
             )}
           </div>
         )}

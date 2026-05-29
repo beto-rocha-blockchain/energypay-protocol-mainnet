@@ -309,11 +309,11 @@ function SubscriptionPanel() {
   const PlanIcon = PLAN_ICONS[sub.plan as SubscriptionPlan];
 
   const statusLabel: Record<string, string> = {
-    ACTIVE:    "ATIVO",
+    ACTIVE:    "ACTIVE",
     TRIALING:  "TRIAL",
-    PAST_DUE:  "ATRASO",
-    CANCELLED: "CANCEL.",
-    EXPIRED:   "EXPIRADO",
+    PAST_DUE:  "PAST DUE",
+    CANCELLED: "CANCELLED",
+    EXPIRED:   "EXPIRED",
   };
 
   // Icon-only mode: show just a small icon button
@@ -323,7 +323,7 @@ function SubscriptionPanel() {
         <button
           onClick={() => navigate({ to: "/subscription" })}
           className="flex h-8 w-8 items-center justify-center rounded-md border border-sidebar-border bg-sidebar hover:bg-sidebar-accent"
-          title={`Plano ${meta.label}`}
+          title={`${meta.label} plan`}
         >
           <PlanIcon className={`h-3.5 w-3.5 ${meta.textColor}`} />
         </button>
@@ -336,7 +336,7 @@ function SubscriptionPanel() {
     : 0;
 
   const periodEndLabel = sub.currentPeriodEnd
-    ? new Date(sub.currentPeriodEnd).toLocaleDateString("pt-BR", {
+    ? new Date(sub.currentPeriodEnd).toLocaleDateString("en-US", {
         day: "2-digit", month: "short", year: "numeric",
       })
     : null;
@@ -365,7 +365,7 @@ function SubscriptionPanel() {
         {sub.plan === "FREE" && sub.settlementsLimit && (
           <div className="mt-2 space-y-1">
             <div className="flex justify-between">
-              <span className="font-mono text-[9px] text-muted-foreground">Liquidações</span>
+              <span className="font-mono text-[9px] text-muted-foreground">Settlements</span>
               <span className="font-mono text-[9px] text-muted-foreground">
                 {sub.settlementsUsed ?? 0}/{sub.settlementsLimit}
               </span>
@@ -382,7 +382,7 @@ function SubscriptionPanel() {
         {/* Paid plan: renewal date or cancellation notice */}
         {sub.plan !== "FREE" && periodEndLabel && (
           <p className="mt-1.5 font-mono text-[9px] text-muted-foreground">
-            {sub.cancelAtPeriodEnd ? "Expira em" : "Renova em"} {periodEndLabel}
+            {sub.cancelAtPeriodEnd ? "Expires" : "Renews"} {periodEndLabel}
           </p>
         )}
 
@@ -392,7 +392,7 @@ function SubscriptionPanel() {
           className={`mt-2 h-6 w-full border font-mono text-[9px] uppercase tracking-widest ${meta.borderColor} ${meta.textColor} hover:${meta.bgColor}`}
           onClick={() => navigate({ to: "/subscription" })}
         >
-          {sub.plan === "FREE" ? "Fazer Upgrade →" : "Gerenciar Assinatura →"}
+          {sub.plan === "FREE" ? "Upgrade →" : "Manage Subscription →"}
         </Button>
       </div>
     </SidebarFooter>

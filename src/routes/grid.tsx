@@ -51,6 +51,7 @@ const ROLE_ICON: Record<ParticipantRole, React.ComponentType<{ className?: strin
   USER: Plug,
   UTILITY: Building2,
   REGULATORY_AUTHORITY: ShieldCheck,
+  ADMIN: ShieldCheck,
 };
 
 const ENERGY_ICON: Record<EnergyType, React.ComponentType<{ className?: string }>> = {

@@ -19,13 +19,14 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
 );
 
 -- Seed plans (idempotent)
-INSERT INTO subscription_plans (id, name, price_brl, settlements_limit, features) VALUES
-  ('free',       'Free',       0.00,   5,    '["5 liquidações/mês","Dashboard básico","Acesso ao grid de mercado","Suporte via comunidade"]'),
-  ('operator',   'Operator',   297.00, NULL, '["Liquidações ilimitadas","Analytics completo","Custody wallet ativa","Métricas de risco","Suporte prioritário"]'),
-  ('enterprise', 'Enterprise', 997.00, NULL, '["Tudo do Operator","API x402 (50k calls/mês)","Multi-conta","Scoring de risco IA","Previsibilidade de mercado","SLA 99.9%","Suporte dedicado"]')
+INSERT INTO subscription_plans (id, name, price_brl, interval, settlements_limit, features) VALUES
+  ('free',       'Free',       0.00,      'monthly', 5,    '["5 settlements / month","Basic dashboard","Market grid access","Community support"]'),
+  ('operator',   'Operator',   150000.00, 'annual',  NULL, '["Unlimited settlements","Full market analytics","Active custody wallet","Basic risk metrics","Priority support","P2P contract access"]'),
+  ('enterprise', 'Enterprise', 500000.00, 'annual',  NULL, '["Everything in Operator","x402 API (50k calls / month)","Multi-account","Counterparty risk scoring (AI)","Market price forecasting","Advanced regulatory reports","99.9% SLA","Dedicated support"]')
 ON CONFLICT (id) DO UPDATE SET
   name        = EXCLUDED.name,
   price_brl   = EXCLUDED.price_brl,
+  interval    = EXCLUDED.interval,
   features    = EXCLUDED.features,
   active      = EXCLUDED.active;
 

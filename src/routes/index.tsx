@@ -30,7 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDashboard } from "@/hooks/useDashboard";
 import { useSettlementRail } from "@/hooks/useSettlementRail";
 import { stellarExpertTx, STELLAR_NETWORK_LABEL } from "@/lib/stellar";
-import { useOperator } from "@/store/operator";
+import { useOperator, type ParticipantRole } from "@/store/operator";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -495,8 +495,8 @@ const ROLE_CONTEXT = {
   },
 } as const;
 
-function RoleContextPanel({ role }: { role: "GENERATOR" | "SELLER" | "INVESTOR" | "USER" | "UTILITY" | "REGULATORY_AUTHORITY" }) {
-  const ctx = ROLE_CONTEXT[role];
+function RoleContextPanel({ role }: { role: ParticipantRole }) {
+  const ctx = ROLE_CONTEXT[role as keyof typeof ROLE_CONTEXT];
   if (!ctx) return null;
   const { Icon, accent, iconAccent, label, actions } = ctx;
 

@@ -505,6 +505,8 @@ export type DbContract = {
   seller_public_key: string | null;
   buyer_label: string | null;
   seller_label: string | null;
+  buyer_is_operator?: boolean;
+  seller_is_operator?: boolean;
   volume_mwh: number;
   price_brl: number;
   pld_brl: number | null;

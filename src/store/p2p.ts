@@ -41,6 +41,7 @@ export type P2PTransfer = {
 export type P2PCounterparty = {
   organization: string;
   role: "GENERATOR" | "SELLER" | "INVESTOR" | "USER";
+  roles: ParticipantRole[];
   jurisdiction: string;
   settlementAddress: string;
 };
@@ -94,6 +95,7 @@ export const useP2P = create<P2PState>()(
             }) => ({
               organization: c.organization || c.full_name || "—",
               role: (c.roles?.[0] as P2PCounterparty["role"]) || "USER",
+              roles: (c.roles ?? []) as ParticipantRole[],
               jurisdiction: `${c.city || "—"} · ${c.country || "—"}`,
               settlementAddress: c.stellar_public_key,
             }));

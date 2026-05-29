@@ -32,8 +32,8 @@ export function StepUpModal({
   open,
   onOpenChange,
   onConfirmed,
-  title = "Confirme sua identidade",
-  description = "Esta é uma área de máxima segurança. Digite a senha da sua conta para continuar.",
+  title = "Confirm your identity",
+  description = "This is a maximum-security area. Enter your account password to continue.",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -62,7 +62,7 @@ export function StepUpModal({
 
   const submit = async () => {
     if (!password) {
-      setError("Digite sua senha.");
+      setError("Enter your password.");
       return;
     }
     setLoading(true);
@@ -74,9 +74,9 @@ export function StepUpModal({
       onConfirmed(res.step_up_token);
     } catch (err) {
       const status = (err as { status?: number }).status;
-      setError(status === 401 ? "Senha incorreta." : (err as Error).message || "Falha na confirmação.");
+      setError(status === 401 ? "Incorrect password." : (err as Error).message || "Confirmation failed.");
       setPassword("");
-      toast.error("Não foi possível confirmar sua identidade.");
+      toast.error("Could not confirm your identity.");
     } finally {
       setLoading(false);
     }
@@ -102,7 +102,7 @@ export function StepUpModal({
         >
           <div className="space-y-1.5">
             <Label htmlFor="step-up-password" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Senha da conta
+              Account password
             </Label>
             <div className="relative">
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -123,17 +123,17 @@ export function StepUpModal({
 
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={loading}>
-              Cancelar
+              Cancel
             </Button>
             <Button type="submit" size="sm" disabled={loading || !password}>
               {loading ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <ShieldCheck className="mr-1.5 h-3 w-3" />}
-              Confirmar
+              Confirm
             </Button>
           </DialogFooter>
         </form>
 
         <p className="font-mono text-[9px] leading-relaxed text-muted-foreground/60">
-          Sua senha é usada apenas para esta confirmação e não é armazenada. A autorização expira em 5 minutos.
+          Your password is used only for this confirmation and is not stored. Authorization expires in 5 minutes.
         </p>
       </DialogContent>
     </Dialog>

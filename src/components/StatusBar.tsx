@@ -336,7 +336,7 @@ export function StatusBar() {
       <div className="relative flex-1 overflow-hidden h-full flex items-center">
         {snap.loading ? (
           <span className="px-4 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50 animate-pulse">
-            Carregando dados de mercado…
+            Loading market data…
           </span>
         ) : (
           <div className="animate-ep-ticker flex items-center">
@@ -347,19 +347,14 @@ export function StatusBar() {
         )}
       </div>
 
-      {/* ── Fixed right: submercado label + last update ────── */}
-      <div className="shrink-0 border-l border-border px-3 h-full flex items-center gap-2">
-        {userSub && operator && (
+      {/* ── Fixed right: submercado label (clock removed) ───── */}
+      {userSub && operator && (
+        <div className="shrink-0 border-l border-border px-3 h-full flex items-center">
           <span className="font-mono text-[8.5px] uppercase tracking-[0.15em] text-success/70">
             {userSub}
           </span>
-        )}
-        {snap.updatedAt && (
-          <span className="font-mono text-[8.5px] uppercase tracking-[0.15em] text-muted-foreground/50">
-            {snap.updatedAt}
-          </span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

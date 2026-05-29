@@ -71,6 +71,7 @@ const ROLE_ICON: Record<ParticipantRole, React.ComponentType<{ className?: strin
   USER: Plug,
   UTILITY: Building2,
   REGULATORY_AUTHORITY: Scale,
+  ADMIN: ShieldCheck,
 };
 
 const PROVISIONING_STEPS = [
@@ -678,7 +679,7 @@ useEffect(() => {
                 </div>
                 <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {(Object.keys(ROLE_META) as ParticipantRole[])
-                    .filter((r) => r !== "REGULATORY_AUTHORITY")
+                    .filter((r) => r !== "REGULATORY_AUTHORITY" && r !== "ADMIN")
                     .map((r) => {
                       const Icon = ROLE_ICON[r];
                       const active = roles.includes(r);

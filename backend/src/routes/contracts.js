@@ -80,6 +80,33 @@ async function userIdFromPublicKey(publicKey) {
 // List contracts for the authenticated operator.
 // SELLER / INVESTOR see all. Others see their own.
 // -----------------------------------------------
+// Operator disclosure: flag contract parties that are EnergyPay-operated accounts
+// (platform_role <> 'USER' or the ADMIN role). Transparency / conflict-of-interest.
+async function attachOperatorFlags(rows) {
+  const keys = [
+    ...new Set(rows.flatMap((c) => [c.buyer_public_key, c.seller_public_key]).filter(Boolean)),
+  ];
+  if (!keys.length) return rows;
+  const { data: parties } = await supabase
+    .from("users")
+    .select("stellar_public_key, platform_role, roles")
+    .in("stellar_public_key", keys);
+  const opKeys = new Set(
+    (parties ?? [])
+      .filter(
+        (u) =>
+          (u.platform_role && u.platform_role !== "USER") ||
+          (Array.isArray(u.roles) && u.roles.includes("ADMIN")),
+      )
+      .map((u) => u.stellar_public_key),
+  );
+  return rows.map((c) => ({
+    ...c,
+    buyer_is_operator: !!(c.buyer_public_key && opKeys.has(c.buyer_public_key)),
+    seller_is_operator: !!(c.seller_public_key && opKeys.has(c.seller_public_key)),
+  }));
+}
+
 router.get("/", requireAuth, async (req, res) => {
   try {
     const userId = req.operator.sub || req.operator.id;
@@ -101,7 +128,7 @@ router.get("/", requireAuth, async (req, res) => {
     const { data, error } = await query;
     if (error) throw error;
 
-    return res.json({ success: true, contracts: data ?? [] });
+    return res.json({ success: true, contracts: await attachOperatorFlags(data ?? []) });
   } catch (err) {
     console.error("GET /api/contracts error:", err.message);
     return res.status(500).json({ success: false, error: err.message });
@@ -137,10 +164,11 @@ router.get("/:id", requireAuth, async (req, res) => {
         .order("created_at", { ascending: false }),
     ]);
 
+    const [withFlags] = await attachOperatorFlags([contract]);
     return res.json({
       success: true,
       contract: {
-        ...contract,
+        ...withFlags,
         movements: movements ?? [],
         instructions: instructions ?? [],
       },

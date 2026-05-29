@@ -22,6 +22,8 @@ export type Contract = {
   id: string;
   buyer: string;
   seller: string;
+  buyerIsOperator?: boolean;
+  sellerIsOperator?: boolean;
   volumeMWh: number;
   priceBRL: number;
   pldBRL: number;

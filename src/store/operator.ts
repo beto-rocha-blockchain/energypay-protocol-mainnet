@@ -11,7 +11,8 @@ export type ParticipantRole =
   | "INVESTOR"
   | "USER"
   | "UTILITY"
-  | "REGULATORY_AUTHORITY";
+  | "REGULATORY_AUTHORITY"
+  | "ADMIN";
 
 // ─── Regulatory Authority sub-type ───────────────────────────────────────────
 /**
@@ -108,6 +109,8 @@ export const ROLE_COLORS: Record<ParticipantRole, RoleColor> = {
   USER:                 { border: "border-green-400/50",  bg: "bg-green-400/10",  text: "text-green-400",  hex: "#4ade80" },
   UTILITY:              { border: "border-orange-400/50", bg: "bg-orange-400/10", text: "text-orange-400", hex: "#fb923c" },
   REGULATORY_AUTHORITY: { border: "border-violet-400/50", bg: "bg-violet-400/10", text: "text-violet-400", hex: "#a78bfa" },
+  // Internal platform-administrator role — hidden from public signup (see register.tsx + backend ALLOWED_ROLES).
+  ADMIN:                { border: "border-emerald-400/50", bg: "bg-emerald-400/10", text: "text-emerald-400", hex: "#34d399" },
 };
 
 export const ROLE_META: Record<
@@ -140,7 +143,7 @@ export const ROLE_META: Record<
   },
   UTILITY: {
     label: "Utility",
-    tagline: "Concessionária · distribution & grid operations",
+    tagline: "Concessionaire · distribution & grid operations",
     capabilities: ["Manage UC registry", "Collect TUSD settlements", "Grid connection certificates"],
     color: ROLE_COLORS.UTILITY,
   },
@@ -149,6 +152,16 @@ export const ROLE_META: Record<
     tagline: "Certified read-only oversight · regulators & institutional auditors",
     capabilities: ["View audit trail", "Verify settlement receipts", "Monitor reconciliation", "Export compliance reports"],
     color: ROLE_COLORS.REGULATORY_AUTHORITY,
+  },
+  ADMIN: {
+    label: "Platform Operator",
+    tagline: "Operated by EnergyPay · may participate in the market",
+    capabilities: [
+      "Operates the EnergyPay platform",
+      "May participate in the market — disclosed to counterparties",
+      "All settlements publicly verifiable on Stellar Mainnet",
+    ],
+    color: ROLE_COLORS.ADMIN,
   },
 };
 
@@ -191,55 +204,55 @@ export const SUBSCRIPTION_PLAN_META: Record<
   FREE: {
     label: "Free",
     priceBrl: 0,
-    interval: "mês",
+    interval: "year",
     textColor: "text-muted-foreground",
     dotColor: "bg-muted-foreground",
     borderColor: "border-border",
     bgColor: "bg-muted/10",
     settlementsLimit: 5,
     features: [
-      "5 liquidações/mês",
-      "Dashboard básico",
-      "Acesso ao grid de mercado",
-      "Suporte via comunidade",
+      "5 settlements / month",
+      "Basic dashboard",
+      "Market grid access",
+      "Community support",
     ],
   },
   OPERATOR: {
     label: "Operator",
-    priceBrl: 297,
-    interval: "mês",
+    priceBrl: 150000,
+    interval: "year",
     textColor: "text-primary",
     dotColor: "bg-primary",
     borderColor: "border-primary/40",
     bgColor: "bg-primary/5",
     settlementsLimit: null,
     features: [
-      "Liquidações ilimitadas",
-      "Analytics de mercado completo",
-      "Custody wallet ativa",
-      "Métricas de risco básicas",
-      "Suporte prioritário",
-      "Acesso a contratos P2P",
+      "Unlimited settlements",
+      "Full market analytics",
+      "Active custody wallet",
+      "Basic risk metrics",
+      "Priority support",
+      "P2P contract access",
     ],
   },
   ENTERPRISE: {
     label: "Enterprise",
-    priceBrl: 997,
-    interval: "mês",
+    priceBrl: 500000,
+    interval: "year",
     textColor: "text-violet-400",
     dotColor: "bg-violet-400",
     borderColor: "border-violet-400/40",
     bgColor: "bg-violet-400/5",
     settlementsLimit: null,
     features: [
-      "Tudo do Operator",
-      "API x402 (50k calls/mês)",
-      "Multi-conta",
-      "Scoring de risco de contraparte (IA)",
-      "Previsibilidade de preço de mercado",
-      "Relatórios regulatórios avançados",
-      "SLA 99,9%",
-      "Suporte dedicado",
+      "Everything in Operator",
+      "x402 API (50k calls / month)",
+      "Multi-account",
+      "Counterparty risk scoring (AI)",
+      "Market price forecasting",
+      "Advanced regulatory reports",
+      "99.9% SLA",
+      "Dedicated support",
     ],
   },
 };
@@ -356,6 +369,8 @@ const ROLE_PERMISSIONS: Record<ParticipantRole, string[]> = {
   UTILITY:              ["grid.manage", "tusd.collect", "uc.registry", "contracts.create", "settlements.execute"],
   // Read-only oversight — no execution, no write, no wallet, no secrets
   REGULATORY_AUTHORITY: ["audit.read", "settlement.verify", "reconciliation.monitor", "compliance.export"],
+  // Platform administrator — internal role; real authority is enforced via platform_role.
+  ADMIN:                ["platform.admin", "users.manage", "audit.read"],
 };
 
 const buildPermissions = (roles: ParticipantRole[]) => {
@@ -373,6 +388,7 @@ export const ROLE_ORDER: ParticipantRole[] = [
   "UTILITY",
   "USER",
   "REGULATORY_AUTHORITY",
+  "ADMIN",
 ];
 
 /**
@@ -386,6 +402,19 @@ export function sortRoles(roles: string[]): string[] {
     return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
   });
 }
+
+/**
+ * Platform-operator disclosure — single source of truth.
+ *
+ * An "operator account" is one operated by EnergyPay that may ALSO participate
+ * in the market. It is identified by the ADMIN role and MUST be disclosed to
+ * counterparties (a "Platform Operator" tag) for transparency and conflict-of-
+ * interest mitigation. All of its settlements are publicly verifiable on
+ * Stellar Mainnet, and reference prices (PLD) come from an external oracle —
+ * so the operator can neither hide its trades nor set prices.
+ */
+export const isOperatorAccount = (roles?: string[] | null): boolean =>
+  Array.isArray(roles) && roles.includes("ADMIN");
 
 const normalizeRoles = (roles: string[] | undefined): ParticipantRole[] => {
   if (!roles?.length) return ["SELLER"];

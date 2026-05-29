@@ -53,11 +53,11 @@ import { FiscalDocumentsTab } from "@/components/FiscalDocumentsTab";
 export const Route = createFileRoute("/subscription")({
   head: () => ({
     meta: [
-      { title: "Assinatura — EnergyPay Settlement" },
+      { title: "Subscription — EnergyPay Settlement" },
       {
         name: "description",
         content:
-          "Gerencie sua assinatura EnergyPay. Planos Free, Operator e Enterprise com pagamento via PIX ou cartão de crédito.",
+          "Manage your EnergyPay subscription. Free, Operator and Enterprise plans paid via PIX, credit card or crypto.",
       },
     ],
   }),
@@ -145,8 +145,8 @@ function SubscriptionPage() {
         setPixModalOpen(true);
       } else if (res.payment_method === "credit_card" && res.payment_url) {
         window.open(res.payment_url, "_blank", "noopener,noreferrer");
-        toast.info("Link de pagamento aberto em nova aba.", {
-          description: "Após o pagamento, seu plano será ativado automaticamente.",
+        toast.info("Payment link opened in a new tab.", {
+          description: "Once paid, your plan is activated automatically.",
         });
       }
       return true;
@@ -157,7 +157,7 @@ function SubscriptionPage() {
         setCpfPlan(plan);
         setCpfDialogOpen(true);
       } else {
-        toast.error((err as Error).message || "Erro ao iniciar checkout.");
+        toast.error((err as Error).message || "Failed to start checkout.");
       }
       return false;
     } finally {
@@ -183,7 +183,7 @@ function SubscriptionPage() {
   const submitCpf = async () => {
     const digits = cpfValue.replace(/\D/g, "");
     if (digits.length !== 11 && digits.length !== 14) {
-      toast.error("Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.");
+      toast.error("Enter a valid CPF (11 digits) or CNPJ (14 digits).");
       return;
     }
     if (!cpfPlan) return;
@@ -196,14 +196,14 @@ function SubscriptionPage() {
   };
 
   const handleCancel = async () => {
-    if (!confirm("Tem certeza? Seu plano continuará ativo até o fim do período atual.")) return;
+    if (!confirm("Are you sure? Your plan stays active until the end of the current period.")) return;
     setCancelLoading(true);
     try {
       const res = await apiSubscriptionCancel();
-      toast.success(res.message || "Assinatura cancelada.");
+      toast.success(res.message || "Subscription cancelled.");
       await refreshSubscription();
     } catch (err) {
-      toast.error((err as Error).message || "Erro ao cancelar.");
+      toast.error((err as Error).message || "Failed to cancel.");
     } finally {
       setCancelLoading(false);
     }
@@ -213,14 +213,14 @@ function SubscriptionPage() {
     await refreshSubscription();
     setPixModalOpen(false);
     setPixData(null);
-    toast.success("Pagamento confirmado! Plano ativado.");
+    toast.success("Payment confirmed! Plan activated.");
   };
 
   const handleCryptoConfirmed = async () => {
     await refreshSubscription();
     setCryptoModalOpen(false);
     setCryptoPlan(null);
-    toast.success("Pagamento em cripto confirmado! Plano ativado.");
+    toast.success("Crypto payment confirmed! Plan activated.");
   };
 
   return (
@@ -228,11 +228,11 @@ function SubscriptionPage() {
       {/* Header */}
       <div>
         <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          Plataforma · Assinatura &amp; Cobrança
+          Platform · Subscription &amp; Billing
         </p>
-        <h1 className="font-display text-2xl font-semibold">Assinatura</h1>
+        <h1 className="font-display text-2xl font-semibold">Subscription</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Gerencie seu plano de acesso à plataforma EnergyPay.
+          Manage your EnergyPay platform access plan.
         </p>
       </div>
 
@@ -242,16 +242,16 @@ function SubscriptionPage() {
       <Tabs defaultValue="plan" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
           <TabsTrigger value="plan" className="gap-1.5 font-mono text-[10px] uppercase tracking-widest">
-            <Zap className="h-3 w-3" /> Plano
+            <Zap className="h-3 w-3" /> Plan
           </TabsTrigger>
           <TabsTrigger value="invoices" className="gap-1.5 font-mono text-[10px] uppercase tracking-widest">
-            <Receipt className="h-3 w-3" /> Faturas
+            <Receipt className="h-3 w-3" /> Invoices
           </TabsTrigger>
           <TabsTrigger value="fiscal" className="gap-1.5 font-mono text-[10px] uppercase tracking-widest">
-            <FileText className="h-3 w-3" /> Notas Fiscais
+            <FileText className="h-3 w-3" /> Receipts
           </TabsTrigger>
           <TabsTrigger value="cards" className="gap-1.5 font-mono text-[10px] uppercase tracking-widest">
-            <CreditCard className="h-3 w-3" /> Cartões
+            <CreditCard className="h-3 w-3" /> Cards
           </TabsTrigger>
         </TabsList>
 
@@ -260,7 +260,7 @@ function SubscriptionPage() {
           {/* Payment method selector */}
           <div className="space-y-3">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Método de pagamento
+              Payment method
             </p>
             <div className="flex flex-wrap gap-3">
               {(["PIX", "CREDIT_CARD", "CRYPTO"] as PaymentMethod[]).map((m) => (
@@ -280,23 +280,23 @@ function SubscriptionPage() {
                   ) : (
                     <Coins className="h-3.5 w-3.5" />
                   )}
-                  {m === "PIX" ? "PIX" : m === "CREDIT_CARD" ? "Cartão de Crédito" : "Cripto (XLM / USDC)"}
+                  {m === "PIX" ? "PIX" : m === "CREDIT_CARD" ? "Credit Card" : "Crypto (XLM / USDC)"}
                 </button>
               ))}
             </div>
             {paymentMethod === "PIX" && (
               <p className="font-mono text-[10px] text-success">
-                ✓ PIX · aprovação em até 1 minuto · sem taxas adicionais
+                ✓ PIX · approved within 1 minute · no extra fees
               </p>
             )}
             {paymentMethod === "CREDIT_CARD" && (
               <p className="font-mono text-[10px] text-muted-foreground">
-                Cartão de crédito · processado via Asaas (certificado Bacen)
+                Credit card · processed via Asaas (Bacen-certified)
               </p>
             )}
             {paymentMethod === "CRYPTO" && (
               <p className="font-mono text-[10px] text-muted-foreground">
-                Pay with XLM or USDC from any Stellar wallet. · Verificação on-chain na Stellar Mainnet.
+                Pay with XLM or USDC from any Stellar wallet. · On-chain verification on Stellar Mainnet.
               </p>
             )}
           </div>
@@ -304,7 +304,7 @@ function SubscriptionPage() {
           {/* Plan comparison cards */}
           <div className="space-y-3">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Planos disponíveis
+              Available plans
             </p>
             <div className="grid gap-4 md:grid-cols-3">
               {(["FREE", "OPERATOR", "ENTERPRISE"] as SubscriptionPlan[]).map((plan) => (
@@ -326,15 +326,15 @@ function SubscriptionPage() {
               <Shield className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <div>
                 <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Segurança &amp; conformidade
+                  Security &amp; compliance
                 </p>
                 <p className="mt-1 text-[11px] text-muted-foreground">
-                  Pagamentos em cartão e PIX processados por <strong className="text-foreground">Asaas</strong> —
-                  fintech brasileira certificada pelo Banco Central do Brasil. Dados de cartão são tokenizados
-                  pelo gateway e nunca são armazenados pelos servidores EnergyPay. Pagamentos em cripto são
-                  verificados on-chain na Stellar Mainnet, sem expor chaves secretas. Cada cobrança paga gera um
-                  recibo de pagamento — a emissão oficial de NF-e/NFS-e estará disponível após a configuração do
-                  perfil fiscal da EnergyPay e do certificado digital.
+                  Card and PIX payments are processed by <strong className="text-foreground">Asaas</strong> — a
+                  Brazilian fintech certified by the Central Bank of Brazil. Card data is tokenized by the gateway
+                  and never stored on EnergyPay servers. Crypto payments are verified on-chain on Stellar Mainnet,
+                  without exposing secret keys. Every paid charge generates a payment receipt — official
+                  NF-e/NFS-e issuance will be available once EnergyPay&apos;s tax profile and digital certificate
+                  are configured.
                 </p>
               </div>
             </div>
@@ -380,11 +380,11 @@ function SubscriptionPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-primary" />
-              CPF ou CNPJ
+              CPF or CNPJ
             </DialogTitle>
             <DialogDescription>
-              O Asaas exige um CPF ou CNPJ do titular para emitir cobranças via PIX ou cartão.
-              Informe uma vez — fica salvo na sua conta.
+              Asaas requires the holder&apos;s CPF or CNPJ to issue PIX or card charges.
+              Enter it once — it&apos;s saved to your account.
             </DialogDescription>
           </DialogHeader>
           <form
@@ -394,18 +394,18 @@ function SubscriptionPage() {
             <Input
               value={cpfValue}
               onChange={(e) => setCpfValue(e.target.value.replace(/[^\d./-]/g, ""))}
-              placeholder="000.000.000-00 ou CNPJ"
+              placeholder="000.000.000-00 or CNPJ"
               inputMode="numeric"
               autoFocus
               disabled={loading}
             />
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setCpfDialogOpen(false)} disabled={loading}>
-                Cancelar
+                Cancel
               </Button>
               <Button type="submit" size="sm" disabled={loading || !cpfValue}>
                 {loading && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
-                Continuar
+                Continue
               </Button>
             </div>
           </form>
@@ -436,7 +436,7 @@ function CurrentPlanCard({
     : 0;
 
   const periodEndLabel = s.currentPeriodEnd
-    ? new Date(s.currentPeriodEnd).toLocaleDateString("pt-BR", {
+    ? new Date(s.currentPeriodEnd).toLocaleDateString("en-US", {
         day: "2-digit", month: "long", year: "numeric",
       })
     : null;
@@ -449,7 +449,7 @@ function CurrentPlanCard({
             <Icon className={`h-5 w-5 ${meta.textColor}`} />
           </div>
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Plano atual</p>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Current plan</p>
             <p className={`font-display text-xl font-semibold ${meta.textColor}`}>{meta.label}</p>
           </div>
         </div>
@@ -463,12 +463,12 @@ function CurrentPlanCard({
               disabled={cancelLoading}
               className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60 hover:text-destructive disabled:opacity-50"
             >
-              {cancelLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Cancelar plano"}
+              {cancelLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Cancel plan"}
             </button>
           )}
           {s.cancelAtPeriodEnd && (
             <span className="font-mono text-[9px] uppercase tracking-widest text-warning">
-              Cancelamento agendado
+              Cancellation scheduled
             </span>
           )}
         </div>
@@ -478,19 +478,19 @@ function CurrentPlanCard({
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
-          <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Mensalidade</p>
+          <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Annual fee</p>
           <p className="mt-0.5 font-mono text-xl font-semibold">
             {meta.priceBrl === 0
-              ? "Grátis"
+              ? "Free"
               : `R$ ${meta.priceBrl.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            {meta.priceBrl > 0 && <span className="ml-1 text-[10px] font-normal text-muted-foreground">/mês</span>}
+            {meta.priceBrl > 0 && <span className="ml-1 text-[10px] font-normal text-muted-foreground">/year</span>}
           </p>
         </div>
 
         {s.plan === "FREE" && s.settlementsLimit ? (
           <div>
             <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-              Liquidações este mês
+              Settlements this month
             </p>
             <p className="mt-0.5 font-mono text-xl font-semibold">
               {s.settlementsUsed ?? 0}
@@ -506,7 +506,7 @@ function CurrentPlanCard({
         ) : (
           <div>
             <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-              {s.cancelAtPeriodEnd ? "Acesso até" : "Próxima renovação"}
+              {s.cancelAtPeriodEnd ? "Access until" : "Next renewal"}
             </p>
             <p className="mt-0.5 font-mono text-sm font-semibold">
               {periodEndLabel ?? "—"}
@@ -516,14 +516,14 @@ function CurrentPlanCard({
 
         <div>
           <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-            Liquidações
+            Settlements
           </p>
           <p className="mt-0.5 font-mono text-xl font-semibold">
             {meta.settlementsLimit === null
               ? <span className="text-2xl">∞</span>
               : meta.settlementsLimit}
             {meta.settlementsLimit === null && (
-              <span className="ml-1 text-[10px] font-normal text-muted-foreground">ilimitadas</span>
+              <span className="ml-1 text-[10px] font-normal text-muted-foreground">unlimited</span>
             )}
           </p>
         </div>
@@ -561,7 +561,7 @@ function PlanCard({
       {isCurrent && (
         <div className="absolute right-3 top-3">
           <Badge variant="outline" className={`font-mono text-[8px] uppercase tracking-widest ${meta.borderColor} ${meta.textColor}`}>
-            Atual
+            Current
           </Badge>
         </div>
       )}
@@ -575,20 +575,20 @@ function PlanCard({
 
       <div className="mb-4">
         {plan === "FREE" ? (
-          <p className="font-display text-2xl font-bold">Grátis</p>
+          <p className="font-display text-2xl font-bold">Free</p>
         ) : (
           <p className="font-display text-2xl font-bold">
             R$ {meta.priceBrl.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-            <span className="ml-1 text-sm font-normal text-muted-foreground">/mês</span>
+            <span className="ml-1 text-sm font-normal text-muted-foreground">/year</span>
           </p>
         )}
         {plan !== "FREE" && (
           <p className={`mt-0.5 font-mono text-[9px] ${paymentMethod === "PIX" ? "text-success" : "text-muted-foreground"}`}>
             {paymentMethod === "PIX"
-              ? "via PIX · aprovação instantânea"
+              ? "via PIX · instant approval"
               : paymentMethod === "CREDIT_CARD"
-                ? "via cartão de crédito"
-                : "via XLM ou USDC · Stellar"}
+                ? "via credit card"
+                : "via XLM or USDC · Stellar"}
           </p>
         )}
       </div>
@@ -609,7 +609,7 @@ function PlanCard({
           className="h-8 w-full font-mono text-[10px] uppercase tracking-widest"
           disabled
         >
-          {isCurrent ? "Plano atual" : "Downgrade"}
+          {isCurrent ? "Current plan" : "Downgrade"}
         </Button>
       ) : (
         <Button
@@ -625,11 +625,11 @@ function PlanCard({
           {loading ? (
             <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
           ) : isCurrent ? (
-            "Plano atual"
+            "Current plan"
           ) : plan === "ENTERPRISE" ? (
-            "Assinar Enterprise →"
+            "Subscribe to Enterprise →"
           ) : (
-            "Fazer Upgrade →"
+            "Upgrade →"
           )}
         </Button>
       )}
@@ -673,10 +673,10 @@ function PixPaymentModal({
         setTimeout(onConfirmed, 1500);
       } else {
         setPollCount((c) => c + 1);
-        toast.info("Pagamento ainda não confirmado. Tente novamente em instantes.");
+        toast.info("Payment not confirmed yet. Try again shortly.");
       }
     } catch {
-      toast.error("Erro ao verificar pagamento.");
+      toast.error("Error checking payment.");
     } finally {
       setPolling(false);
     }
@@ -695,25 +695,25 @@ function PixPaymentModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <QrCode className="h-4 w-4 text-primary" />
-            Pagamento via PIX
+            PIX Payment
           </DialogTitle>
           <DialogDescription>
-            Escaneie o QR Code ou copie o código abaixo para pagar.
-            O plano é ativado em até 1 minuto após a confirmação.
+            Scan the QR code or copy the code below to pay.
+            Your plan activates within 1 minute of confirmation.
           </DialogDescription>
         </DialogHeader>
 
         {confirmed ? (
           <div className="flex flex-col items-center gap-3 py-8">
             <CheckCheck className="h-12 w-12 text-success" />
-            <p className="font-mono text-sm font-semibold text-success">Pagamento confirmado!</p>
-            <p className="text-[11px] text-muted-foreground">Ativando seu plano…</p>
+            <p className="font-mono text-sm font-semibold text-success">Payment confirmed!</p>
+            <p className="text-[11px] text-muted-foreground">Activating your plan…</p>
           </div>
         ) : data.pix_pending ? (
           <div className="flex flex-col items-center gap-3 py-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground">{data.message}</p>
-            <Button size="sm" variant="outline" onClick={onClose}>Fechar</Button>
+            <Button size="sm" variant="outline" onClick={onClose}>Close</Button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -734,7 +734,7 @@ function PixPaymentModal({
             {data.pix_qr_code_text && (
               <div>
                 <p className="mb-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                  Pix Copia e Cola
+                  PIX Copy &amp; Paste
                 </p>
                 <div className="flex gap-2">
                   <div className="min-w-0 flex-1 overflow-hidden rounded-md border border-border bg-muted/20 px-3 py-2">
@@ -757,7 +757,7 @@ function PixPaymentModal({
             {/* Expiry */}
             {data.pix_expires_at && (
               <p className="font-mono text-[9px] text-muted-foreground">
-                Válido até {new Date(data.pix_expires_at).toLocaleDateString("pt-BR", {
+                Valid until {new Date(data.pix_expires_at).toLocaleDateString("en-US", {
                   day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
                 })}
               </p>
@@ -776,16 +776,16 @@ function PixPaymentModal({
                 {polling
                   ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
                   : <RefreshCw className="mr-1.5 h-3 w-3" />}
-                Verificar Pagamento
+                Check Payment
               </Button>
               <Button variant="outline" size="sm" onClick={onClose}>
-                Pagar depois
+                Pay later
               </Button>
             </div>
 
             {pollCount > 0 && !confirmed && (
               <p className="text-center font-mono text-[9px] text-muted-foreground">
-                Pagamento ainda não detectado. Verifique seu app do banco e tente novamente.
+                Payment not detected yet. Check your bank app and try again.
               </p>
             )}
           </div>

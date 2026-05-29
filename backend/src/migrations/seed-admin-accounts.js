@@ -106,7 +106,7 @@ async function upsertAdmin({ email, fullName, phone, platformRole, isNew }) {
     organization: "EnergyPay",
     country: "BR",
     city: "Brasil",
-    roles: ["SELLER"],                  // minimal market role (not used for admins)
+    roles: ["ADMIN"],                   // internal Admin role (hidden from public signup)
     platform_role: platformRole,
     stellar_public_key: null,           // admin accounts have no on-chain wallet
     stellar_secret_encrypted: null,

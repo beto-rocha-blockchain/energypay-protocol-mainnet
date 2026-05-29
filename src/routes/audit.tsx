@@ -93,6 +93,24 @@ function AuditPage() {
         </div>
       </div>
 
+      {/* Operator-participation disclosure */}
+      <Card className="border-border bg-card/40 p-4">
+        <div className="flex items-start gap-3">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Operator participation disclosure
+            </p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              EnergyPay-operated accounts may participate in the market. They are labeled{" "}
+              <span className="font-mono text-emerald-400">Platform Operator</span> wherever they
+              appear, do not set the reference price (PLD comes from an external oracle), and every
+              one of their settlements is publicly verifiable on {STELLAR_NETWORK_LABEL}.
+            </p>
+          </div>
+        </div>
+      </Card>
+
       {/* KPI Strip */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <KpiCard
