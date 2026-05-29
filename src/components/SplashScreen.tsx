@@ -29,10 +29,11 @@ type Variant = "full" | "logo";
 const ENTRY_HOLD_MS = 1700; // time fully visible before fading out
 const ENTRY_OUT_MS = 700; // fade-out duration
 
-// In-app page transition — pulsing logo only, no words
-const NAV_IN_MS = 160; // fade-in
-const NAV_HOLD_MS = 180; // fully visible
-const NAV_OUT_MS = 420; // fade-out
+// In-app page transition — gentle logo veil; the page content also eases in
+// via .ep-page-in in the root layout, so this stays brief and soft.
+const NAV_IN_MS = 220; // gentle fade-in
+const NAV_HOLD_MS = 70; // barely held — avoids a hard logo flash
+const NAV_OUT_MS = 520; // smooth, lingering fade-out
 
 function prefersReducedMotion() {
   return (

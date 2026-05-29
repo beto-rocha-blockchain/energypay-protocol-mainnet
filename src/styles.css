@@ -351,6 +351,26 @@
   .animate-blink {
     animation: blink 1.6s steps(1) infinite;
   }
+
+  /* ── Smooth page transition — content eases in on every route change ──── */
+  @keyframes ep-page-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .ep-page-in {
+    animation: ep-page-in 320ms var(--ease-ops) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ep-page-in {
+      animation: none;
+    }
+  }
   .terminal-grid-bg {
     background-image:
       linear-gradient(

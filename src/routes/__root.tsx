@@ -278,7 +278,7 @@ function RootComponent() {
       <SplashScreen>
         <QueryClientProvider client={queryClient}>
           <ThemeSync />
-          <div className="min-h-screen w-full bg-background">
+          <div key={pathname} className="ep-page-in min-h-screen w-full bg-background">
             <Outlet />
           </div>
           <Toaster />
@@ -301,7 +301,9 @@ function RootComponent() {
             <div className="flex flex-1 flex-col overflow-hidden">
               <AppHeader />
               <main className="flex-1 overflow-y-auto space-y-4 p-4 pl-8 md:p-6 md:pl-10 lg:p-8 lg:pl-12">
-                <Outlet />
+                <div key={pathname} className="ep-page-in">
+                  <Outlet />
+                </div>
               </main>
               <StatusBar />
             </div>

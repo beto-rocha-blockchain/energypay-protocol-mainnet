@@ -62,6 +62,71 @@ function resolveAsset(asset) {
   return null;
 }
 
+/**
+ * Read-only Horizon check that the treasury can actually RECEIVE the asset:
+ *   · the account must exist on-ledger — a payment to a missing account fails;
+ *   · for a non-native asset (USDC), the treasury must hold its trustline.
+ *
+ * Returns { ok: true } when ready, { ok: false, code, message } when it is
+ * provably not ready. If Horizon is unreachable we soft-pass ({ ok: true,
+ * unverified: true }) — a not-ready treasury merely makes the payer's tx bounce
+ * harmlessly; no funds are ever at risk in this read-only billing flow.
+ */
+async function assertTreasuryReady(treasury, assetDesc) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8_000);
+  let resp;
+  try {
+    resp = await fetch(`${HORIZON_URL}/accounts/${treasury}`, {
+      signal: ctrl.signal,
+      headers: { Accept: "application/json" },
+    });
+  } catch {
+    return { ok: true, unverified: true };
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (resp.status === 404) {
+    return {
+      ok: false,
+      code: "TREASURY_NOT_ON_LEDGER",
+      message:
+        "A conta treasury ainda não existe na rede (precisa ser criada e fundeada com XLM). " +
+        "The treasury account is not funded on Stellar Mainnet yet.",
+    };
+  }
+  if (!resp.ok) return { ok: true, unverified: true };
+
+  if (!assetDesc.isNative) {
+    let account;
+    try {
+      account = await resp.json();
+    } catch {
+      return { ok: true, unverified: true };
+    }
+    const balances = Array.isArray(account?.balances) ? account.balances : [];
+    const hasTrustline = balances.some(
+      (b) =>
+        b.asset_type !== "native" &&
+        b.asset_code === assetDesc.assetCode &&
+        b.asset_issuer === assetDesc.assetIssuer,
+    );
+    if (!hasTrustline) {
+      return {
+        ok: false,
+        code: "TREASURY_MISSING_TRUSTLINE",
+        message:
+          `A treasury não possui trustline de ${assetDesc.assetCode}. Adicione a trustline de ` +
+          `${assetDesc.assetCode} (issuer ${assetDesc.assetIssuer}) na conta treasury para aceitar ` +
+          `este ativo. The treasury has no ${assetDesc.assetCode} trustline yet.`,
+      };
+    }
+  }
+
+  return { ok: true };
+}
+
 /** CoinGecko BRL rate for the asset (BRL per 1 unit). */
 async function fetchBrlRate(asset) {
   const id = asset === "XLM" ? "stellar" : "usd-coin";
@@ -167,6 +232,13 @@ router.post("/invoice", requireAuth, async (req, res) => {
         error: "USDC_NOT_CONFIGURED",
         message: "Defina USDC_ISSUER (e opcionalmente USDC_ASSET_CODE) para aceitar pagamentos em USDC.",
       });
+    }
+
+    // The treasury must be "fully open to receive" the chosen asset before we
+    // quote real money: it must exist on-ledger and (for USDC) hold a trustline.
+    const readiness = await assertTreasuryReady(treasury, assetDesc);
+    if (!readiness.ok) {
+      return res.status(503).json({ success: false, error: readiness.code, message: readiness.message });
     }
 
     const { data: plan, error: planErr } = await supabase
