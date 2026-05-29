@@ -523,12 +523,12 @@ function PhoneVerificationBanner({ verified, hasPhone, emailVerified }: { verifi
         setCodeSent(true);
         if (res.dev_code) {
           // WhatsApp sandbox fallback — show code directly so operators can test
-          toast.info(`[DEV] WhatsApp unavailable. Your code: ${res.dev_code}`, {
+          toast.info(`[DEV] OTP provider unavailable. Your code: ${res.dev_code}`, {
             duration: 60000,
-            description: "This message only appears when Twilio is in sandbox mode.",
+            description: "This message only appears in development when no provider is configured.",
           });
         } else {
-          toast.success("Verification code sent via WhatsApp.");
+          toast.success("Verification code sent to your phone.");
         }
       }
     } catch (err) {

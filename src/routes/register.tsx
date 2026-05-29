@@ -1276,7 +1276,7 @@ function VerifyPhoneStep({
       if (result.dev_code) {
         setDevCode(result.dev_code);
       } else {
-        toast.success("Verification code sent via WhatsApp.");
+        toast.success("Verification code sent to your phone.");
       }
     } catch (e) {
       toast.error(safeErrorMessage(e));
@@ -1310,7 +1310,7 @@ function VerifyPhoneStep({
             Verify Your Phone
           </div>
           <div className="text-[10px] text-muted-foreground">
-            We'll send a 6-digit code via WhatsApp.
+            We'll send a 6-digit code to your phone.
           </div>
         </div>
       </div>

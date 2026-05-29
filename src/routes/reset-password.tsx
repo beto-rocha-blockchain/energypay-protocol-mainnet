@@ -303,7 +303,7 @@ function ResetPasswordPage() {
                     Phone Verification
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    A 6-digit code was sent via WhatsApp to{" "}
+                    A 6-digit code was sent to{" "}
                     <span className="font-mono text-foreground">{phoneMasked}</span>
                   </p>
                 </div>

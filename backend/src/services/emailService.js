@@ -1,6 +1,10 @@
 import { NETWORK_LABEL } from "../lib/stellar-network.js";
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "EnergyPay <noreply@energypay.io>";
+// Resend's shared sender works WITHOUT a verified domain, but only delivers to
+// the Resend account owner's own email. To email ANY recipient (production),
+// verify a domain at https://resend.com/domains and set RESEND_FROM_EMAIL to an
+// address on that domain (e.g. "EnergyPay <noreply@yourdomain.com>").
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "EnergyPay <onboarding@resend.dev>";
 const API_KEY = process.env.RESEND_API_KEY;
 
 /**

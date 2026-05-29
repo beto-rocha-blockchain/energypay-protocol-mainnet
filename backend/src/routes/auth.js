@@ -15,7 +15,7 @@ import {
 import { encryptSecret } from "../lib/crypto.js";
 import { Asset } from "@stellar/stellar-sdk";
 import { sendWelcomeEmail, sendPasswordResetEmail, sendVerificationEmail } from "../services/emailService.js";
-import { sendWhatsAppVerificationCode } from "../services/whatsappService.js";
+import { sendVerificationOtp } from "../services/whatsappService.js";
 import { requireAuth } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -594,36 +594,43 @@ router.post("/reset-password", async (req, res) => {
       // Persist hashed password + OTP in the DB row
       await saveResetPhoneCode(token, entry.user_id, hashedPassword, code);
 
-      // Send OTP via WhatsApp
       const maskedPhone = user.phone.replace(/(\+\d{2})\d+(\d{2})$/, "$1·····$2");
+
+      // Try to deliver the OTP over the configured channel (WhatsApp or SMS).
+      let delivered = false;
       try {
-        const result = await sendWhatsAppVerificationCode({
-          to: user.phone,
-          fullName: user.full_name,
-          code,
-        });
-        // Dev fallback when Twilio not configured
-        if (result?.fallback) {
-          console.log(`[ResetPassword] DEV — phone OTP for ${user.phone}: ${code}`);
-          return res.json({
-            success: true,
-            require_phone: true,
-            phone_masked: maskedPhone,
-            ...(process.env.NODE_ENV !== "production" && { dev_otp: code }),
-          });
-        }
-      } catch (twilioErr) {
-        // Don't block reset if WhatsApp fails — log and fall through to direct reset
-        console.error("[ResetPassword] WhatsApp OTP failed:", twilioErr.message);
-        // Erase the pending phone code so we fall through cleanly
-        await deleteResetPhoneCode(token);
+        const result = await sendVerificationOtp({ to: user.phone, fullName: user.full_name, code });
+        delivered = !result?.fallback; // fallback === channel not configured, nothing sent
+      } catch (otpErr) {
+        console.error("[ResetPassword] OTP delivery failed:", otpErr.message);
+        delivered = false;
       }
 
-      return res.json({
-        success: true,
-        require_phone: true,
-        phone_masked: maskedPhone,
-      });
+      if (delivered) {
+        // A real code was sent — require the phone confirmation step.
+        return res.json({ success: true, require_phone: true, phone_masked: maskedPhone });
+      }
+
+      if (process.env.NODE_ENV !== "production") {
+        // Dev: keep the 2FA path testable by surfacing the code (never in prod).
+        console.log(`[ResetPassword] DEV — phone OTP for ${user.phone}: ${code}`);
+        return res.json({ success: true, require_phone: true, phone_masked: maskedPhone, dev_otp: code });
+      }
+
+      // Production + undeliverable OTP → never lock the user out. The reset token
+      // already proves control of the registered email, so complete the reset on
+      // that factor alone (same assurance as accounts without a verified phone).
+      console.warn("[ResetPassword] OTP undeliverable in production — completing reset via email factor only.");
+      await deleteResetPhoneCode(token);
+      const { error: pwError } = await supabase
+        .from("users")
+        .update({ password: hashedPassword })
+        .eq("id", entry.user_id);
+      if (pwError) {
+        return res.status(500).json({ success: false, error: pwError.message });
+      }
+      await deleteResetToken(token);
+      return res.json({ success: true, message: "Password updated successfully." });
     }
 
     // No verified phone — complete password reset directly
@@ -1154,34 +1161,42 @@ router.post("/send-phone-code", async (req, res) => {
       .update({ phone_verification_code: code, phone_verification_expires_at: expiresAt })
       .eq("id", userId);
 
-    // Send code via WhatsApp (Twilio)
+    // Send code via the configured OTP channel (WhatsApp or SMS).
     const maskedPhone = data.phone.replace(/(\+\d{2})\d+(\d{2})$/, "$1·····$2");
-    let whatsappResult;
+    let otpResult;
     try {
-      whatsappResult = await sendWhatsAppVerificationCode({
+      otpResult = await sendVerificationOtp({
         to: data.phone,
         fullName: data.full_name,
         code,
       });
-    } catch (twilioErr) {
-      // Twilio Sandbox: recipient may not have opted-in, or credentials not set.
-      // Treat as fallback — expose code so the platform remains testable.
-      console.warn("[SendPhoneCode] WhatsApp delivery failed:", twilioErr.message);
-      whatsappResult = { fallback: true, error: twilioErr.message };
+    } catch (otpErr) {
+      console.warn("[SendPhoneCode] OTP delivery failed:", otpErr.message);
+      otpResult = { fallback: true, error: otpErr.message };
     }
 
-    // Fallback: Twilio unavailable (sandbox opt-in required, credentials absent, etc.)
-    // Expose dev_code so operators can still complete verification on the demo deployment.
-    if (whatsappResult?.fallback) {
-      console.log(`[SendPhoneCode] WhatsApp unavailable — sandbox fallback for ${maskedPhone}: code generated`);
-      return res.json({
-        success: true,
-        message: `Verification code sent via WhatsApp to ${maskedPhone}.`,
-        dev_code: code,
+    // Channel not configured, or delivery failed.
+    if (otpResult?.fallback) {
+      if (process.env.NODE_ENV !== "production") {
+        // Dev only: surface the code so the flow stays testable without a provider.
+        console.log(`[SendPhoneCode] OTP provider unavailable — DEV code for ${maskedPhone}: ${code}`);
+        return res.json({
+          success: true,
+          message: `Verification code generated for ${maskedPhone}.`,
+          dev_code: code,
+        });
+      }
+      // SECURITY: never return the code in production. Fail clearly so the operator
+      // configures the OTP provider (Twilio) instead of silently leaking the code.
+      console.error(`[SendPhoneCode] OTP provider unavailable in production for ${maskedPhone}.`);
+      return res.status(502).json({
+        success: false,
+        error: "OTP_DELIVERY_UNAVAILABLE",
+        message: "Could not send the verification code right now. Please try again shortly.",
       });
     }
 
-    res.json({ success: true, message: `Verification code sent via WhatsApp to ${maskedPhone}.` });
+    res.json({ success: true, message: `Verification code sent to ${maskedPhone}.` });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: err.message });
