@@ -75,7 +75,7 @@ const STATE_TO_SUB: Record<string, string> = {
 
 const ROLE_LABEL: Partial<Record<ParticipantRole, string>> = {
   GENERATOR:            "GEN · SELL-SIDE",
-  SELLER:               "SELLER · ACTIVE",
+  SELLER:               "TRADER · ACTIVE",
   INVESTOR:             "INVESTOR",
   USER:                 "CONSUMER · ACL",
   UTILITY:              "UTILITY · GRID",

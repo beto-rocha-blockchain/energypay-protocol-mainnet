@@ -136,6 +136,7 @@ function NewContract() {
   const [form, setForm] = useState<{
     buyerKey: string;
     buyerLabel: string;
+    contractNumber: string;
     volume: string;
     price: string;
     startDate?: Date;
@@ -143,6 +144,7 @@ function NewContract() {
   }>({
     buyerKey: "",
     buyerLabel: "",
+    contractNumber: "",
     volume: "",
     price: "",
   });
@@ -309,6 +311,7 @@ function NewContract() {
       }));
 
       const res = await apiCreateContract({
+        contract_number: form.contractNumber.trim() || undefined,
         buyer_public_key: contractType === "BUY" ? form.buyerKey : buyerKeyForSell,
         seller_public_key: contractType === "BUY" ? (sellerKey || undefined) : (form.buyerKey || undefined),
         buyer_label: contractType === "BUY" ? (form.buyerLabel || undefined) : (buyerLabelForSell || undefined),
@@ -664,6 +667,17 @@ function NewContract() {
                     </p>
                   )}
                 </div>
+              </Field>
+
+              {/* Contract Number */}
+              <Field label="Contract Number (Optional)" id="contractNumber">
+                <Input
+                  id="contractNumber"
+                  value={form.contractNumber}
+                  onChange={(e) => set("contractNumber", e.target.value)}
+                  placeholder="e.g. CTR-2026-0042"
+                  className="bg-input font-mono"
+                />
               </Field>
 
               {/* Volume + Price */}

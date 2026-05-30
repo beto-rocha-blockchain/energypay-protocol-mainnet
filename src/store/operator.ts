@@ -124,7 +124,7 @@ export const ROLE_META: Record<
     color: ROLE_COLORS.GENERATOR,
   },
   SELLER: {
-    label: "Seller",
+    label: "Trader",
     tagline: "Buys from generators · resells at market rate",
     capabilities: ["Buy from generators", "Resell to consumers", "Manage buy/sell spread"],
     color: ROLE_COLORS.SELLER,
