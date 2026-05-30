@@ -108,6 +108,7 @@ export type ApiUser = {
   state?: string | null;
   city?: string;
   roles: string[];
+  pending_roles?: string[];
   stellar_public_key: string;
   wallet_status?: string;
   funded?: boolean;
@@ -758,6 +759,7 @@ export type AdminUser = {
   city: string | null;
   phone: string | null;
   roles: string[];
+  pending_roles: string[];
   platform_role: PlatformRole;
   account_status: "ACTIVE" | "BLOCKED" | null;
   blocked_at: string | null;
@@ -822,6 +824,12 @@ export const apiAdminSetRoles = (id: string, roles: string[]) =>
     method: "POST",
     body: { roles },
   });
+
+export const apiAdminApproveRoles = (id: string, roles: string[], approve: boolean) =>
+  apiRequest<{ success: boolean; roles: string[]; pending_roles: string[] }>(
+    `/api/admin/users/${id}/approve-roles`,
+    { method: "POST", body: { roles, approve } },
+  );
 
 export const apiAdminSetEmail = (id: string, email: string) =>
   apiRequest<{ success: boolean; email: string }>(`/api/admin/users/${id}/set-email`, {

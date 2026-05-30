@@ -254,6 +254,14 @@ export function OperatorBadge() {
             </div>
           </div>
 
+          {operator.pendingRoles.length > 0 && (
+            <div className="rounded-md border border-warning/40 bg-warning/10 px-2.5 py-1.5">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-warning">
+                Awaiting admin approval: {operator.pendingRoles.map((r) => ROLE_META[r].label).join(", ")}
+              </span>
+            </div>
+          )}
+
           {/* Mini stats */}
           <div className="grid grid-cols-2 gap-2 font-mono text-[10px] uppercase tracking-widest">
             <Mini label="Access Level"  value={operator.accessLevel.replace("_", " ")} />

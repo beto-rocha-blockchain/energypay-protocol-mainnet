@@ -302,6 +302,7 @@ export type OperatorIdentity = {
   settlementAddress: string;
   wallet: StellarKeypair;
   roles: ParticipantRole[];
+  pendingRoles: ParticipantRole[];
   accessLevel: AccessLevel;
   permissions: string[];
   network: string;
@@ -450,6 +451,7 @@ const identityFromSession = (session: AuthSession): OperatorIdentity => {
     settlementAddress: u.stellar_public_key,
     wallet,
     roles,
+    pendingRoles: normalizeRoles(u.pending_roles),
     accessLevel: "OPERATOR",
     permissions: buildPermissions(roles),
     network: u.network ?? STELLAR_NETWORK,

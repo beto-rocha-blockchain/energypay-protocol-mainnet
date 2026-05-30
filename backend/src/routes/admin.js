@@ -302,7 +302,7 @@ router.post(
 
 // Safe user fields — never expose password or secret key
 const USER_SELECT =
-  "id, email, full_name, organization, country, state, city, phone, roles, " +
+  "id, email, full_name, organization, country, state, city, phone, roles, pending_roles, " +
   "platform_role, account_status, blocked_at, blocked_reason, " +
   "wallet_mode, wallet_status, wallet_network, stellar_public_key, " +
   "email_verified, phone_verified, funded, created_at, updated_at";
@@ -799,6 +799,65 @@ router.post(
       res.json({ success: true, roles: nextRoles });
     } catch (err) {
       console.error("[admin/set-roles]", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+);
+
+// ─── POST /api/admin/users/:id/approve-roles ─────────────────────────────────
+// OWNER or ADMIN — approve (move pending → active) or reject privileged role
+// requests (GENERATOR / SELLER / UTILITY) sitting in the user's pending_roles.
+const PRIVILEGED_MARKET_ROLES = ["GENERATOR", "SELLER", "UTILITY"];
+
+router.post(
+  "/users/:id/approve-roles",
+  requirePlatformRole("PLATFORM_OWNER", "PLATFORM_ADMIN"),
+  async (req, res) => {
+    try {
+      const incoming = Array.isArray(req.body?.roles) ? req.body.roles : null;
+      const approve = req.body?.approve !== false; // default true; false = reject
+      if (!incoming || !incoming.length) {
+        return res.status(400).json({ success: false, error: "roles must be a non-empty array." });
+      }
+      const requested = [...new Set(incoming.map((r) => String(r).toUpperCase()))]
+        .filter((r) => PRIVILEGED_MARKET_ROLES.includes(r));
+      if (!requested.length) {
+        return res.status(400).json({
+          success: false,
+          error: `Only ${PRIVILEGED_MARKET_ROLES.join(" / ")} require approval.`,
+        });
+      }
+
+      const { data: current } = await supabase
+        .from("users").select("roles, pending_roles").eq("id", req.params.id).single();
+      const curRoles   = current?.roles || [];
+      const curPending = current?.pending_roles || [];
+
+      // Only act on roles actually pending for this user.
+      const acting = requested.filter((r) => curPending.includes(r));
+      if (!acting.length) {
+        return res.status(400).json({ success: false, error: "No matching pending roles for this user." });
+      }
+      const nextPending = curPending.filter((r) => !acting.includes(r));
+      const nextRoles = approve ? [...new Set([...curRoles, ...acting])] : curRoles;
+
+      const { error } = await supabase
+        .from("users")
+        .update({ roles: nextRoles, pending_roles: nextPending })
+        .eq("id", req.params.id);
+      if (error) throw error;
+
+      await logAudit({
+        actorId:  req.adminUser.id,
+        targetId: req.params.id,
+        action:   approve ? "APPROVE_ROLES" : "REJECT_ROLES",
+        details:  { roles: acting, after_roles: nextRoles, after_pending: nextPending },
+        ip:       req.ip,
+      });
+
+      res.json({ success: true, roles: nextRoles, pending_roles: nextPending });
+    } catch (err) {
+      console.error("[admin/approve-roles]", err);
       res.status(500).json({ success: false, error: err.message });
     }
   }

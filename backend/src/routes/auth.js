@@ -259,12 +259,19 @@ router.post("/register", async (req, res) => {
         ? energy_type
         : null;
 
+    // Privileged market roles require admin approval — park them in pending_roles
+    // (inactive) until an admin approves. Non-privileged roles are active at once.
+    const PRIVILEGED_ROLES = ["GENERATOR", "SELLER", "UTILITY"];
+    const activeRoles  = roles.filter((r) => !PRIVILEGED_ROLES.includes(r));
+    const pendingRoles = roles.filter((r) =>  PRIVILEGED_ROLES.includes(r));
+
     const baseInsert = {
       email,
       password: hashedPassword,
       full_name,
       organization,
-      roles,
+      roles: activeRoles,
+      pending_roles: pendingRoles,
       stellar_public_key: publicKey,
       // SECURITY: only PLATFORM_MANAGED wallets have an encrypted secret stored.
       // USER_CONTROLLED: null — secret never leaves the user's device.
@@ -358,6 +365,7 @@ router.post("/register", async (req, res) => {
         phone: data[0].phone ?? phone ?? null,
         organization: data[0].organization,
         roles: data[0].roles,
+        pending_roles: data[0].pending_roles ?? pendingRoles,
         stellar_public_key: publicKey,
         wallet_mode: resolvedMode,
         wallet_status: "ACTIVE",
@@ -438,6 +446,7 @@ router.post("/login", async (req, res) => {
         phone: data.phone || null,
         organization: data.organization,
         roles: data.roles,
+        pending_roles: data.pending_roles ?? [],
         stellar_public_key: data.stellar_public_key,
         wallet_mode: data.wallet_mode ?? "PLATFORM_MANAGED",
         wallet_status: data.wallet_status ?? "ACTIVE",

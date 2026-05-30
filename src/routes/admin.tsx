@@ -50,6 +50,7 @@ import {
   apiAdminSetPassword,
   apiAdminSetPlatformRole,
   apiAdminSetRoles,
+  apiAdminApproveRoles,
   apiAdminSetEmail,
   apiAdminBlockUser,
   apiAdminUnblockUser,
@@ -408,22 +409,40 @@ function SetMarketRolesModal({
 }: {
   user: AdminUser;
   onClose: () => void;
-  onSaved: (id: string, roles: string[]) => void;
+  onSaved: (id: string, roles: string[], pendingRoles: string[]) => void;
 }) {
   const [selected, setSelected] = useState<string[]>(
     (user.roles ?? []).filter(r => MARKET_ROLE_OPTIONS.some(o => o.value === r)),
   );
+  const [pending, setPending] = useState<string[]>(user.pending_roles ?? []);
   const [saving, setSaving] = useState(false);
+  const [resolving, setResolving] = useState<string | null>(null);
   const toggle = (v: string) =>
     setSelected(s => (s.includes(v) ? s.filter(x => x !== v) : [...s, v]));
   const preserved = (user.roles ?? []).filter(r => r === "ADMIN" || r === "REGULATORY_AUTHORITY");
+  const roleLabel = (r: string) => MARKET_ROLE_OPTIONS.find(o => o.value === r)?.label ?? r;
+
+  const resolve = async (role: string, approve: boolean) => {
+    setResolving(role);
+    try {
+      const res = await apiAdminApproveRoles(user.id, [role], approve);
+      setPending(res.pending_roles);
+      setSelected(res.roles.filter(r => MARKET_ROLE_OPTIONS.some(o => o.value === r)));
+      onSaved(user.id, res.roles, res.pending_roles);
+      toast.success(approve ? `${roleLabel(role)} approved.` : `${roleLabel(role)} rejected.`);
+    } catch (err) {
+      toast.error((err as Error).message || "Failed to resolve role request.");
+    } finally {
+      setResolving(null);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
     try {
       const res = await apiAdminSetRoles(user.id, selected);
       toast.success("Market roles updated.");
-      onSaved(user.id, res.roles);
+      onSaved(user.id, res.roles, pending);
       onClose();
     } catch (err) {
       toast.error((err as Error).message || "Failed to update roles.");
@@ -442,6 +461,30 @@ function SetMarketRolesModal({
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">{user.email}</DialogDescription>
         </DialogHeader>
+
+        {pending.length > 0 && (
+          <div className="space-y-1.5 rounded-md border border-warning/40 bg-warning/10 p-2.5">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-warning">
+              Pending approval
+            </p>
+            {pending.map(r => (
+              <div key={r} className="flex items-center justify-between gap-2">
+                <span className="text-sm">{roleLabel(r)}</span>
+                <div className="flex items-center gap-1">
+                  <Button size="sm" className="h-6 px-2 font-mono text-[9px] uppercase tracking-widest"
+                    disabled={resolving === r} onClick={() => resolve(r, true)}>
+                    {resolving === r ? "…" : "Approve"}
+                  </Button>
+                  <Button size="sm" variant="outline"
+                    className="h-6 px-2 font-mono text-[9px] uppercase tracking-widest border-destructive/40 text-destructive hover:bg-destructive/10"
+                    disabled={resolving === r} onClick={() => resolve(r, false)}>
+                    Reject
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="grid gap-2 py-2">
           {MARKET_ROLE_OPTIONS.map(o => (
@@ -691,7 +734,16 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
                       </div>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{u.organization || "—"}</TableCell>
-                    <TableCell><MarketRoles roles={u.roles ?? []} /></TableCell>
+                    <TableCell>
+                      <div className="flex flex-col items-start gap-0.5">
+                        <MarketRoles roles={u.roles ?? []} />
+                        {(u.pending_roles?.length ?? 0) > 0 && (
+                          <span className="rounded border border-warning/40 bg-warning/10 px-1 py-px font-mono text-[9px] text-warning">
+                            {u.pending_roles.length} pending
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell><PlatformBadge role={u.platform_role} /></TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-0.5">
@@ -815,7 +867,7 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
         <SetMarketRolesModal
           user={marketRolesUser}
           onClose={() => setMarketRolesUser(null)}
-          onSaved={(id, roles) => setUsers(us => us.map(u => u.id === id ? { ...u, roles } : u))}
+          onSaved={(id, roles, pending) => setUsers(us => us.map(u => u.id === id ? { ...u, roles, pending_roles: pending } : u))}
         />
       )}
     </div>
