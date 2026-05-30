@@ -50,6 +50,16 @@ const fmtNum = (n: number | string | undefined | null) => {
     : "—";
 };
 
+// Compact notation for very large headline figures (e.g. EPWR supply ≈ 100B)
+// so the value never overflows its KPI card. Exact value is kept in a tooltip.
+const fmtCompact = (n: number | string | undefined | null) => {
+  const num = Number(n);
+  if (!Number.isFinite(num)) return "—";
+  return Math.abs(num) >= 1_000_000
+    ? num.toLocaleString("en-US", { notation: "compact", maximumFractionDigits: 4 })
+    : num.toLocaleString("en-US", { maximumFractionDigits: 4 });
+};
+
 const timeAgo = (iso: string) => {
   if (!iso) return "—";
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000);
@@ -110,7 +120,8 @@ function TreasuryPage() {
         />
         <KpiCard
           label="EPWR Supply"
-          value={epwrSupply ? fmtNum(epwrSupply) : "—"}
+          value={epwrSupply ? fmtCompact(epwrSupply) : "—"}
+          title={epwrSupply ? `${fmtNum(epwrSupply)} EPWR` : undefined}
           sub="distributor account"
           loading={loading && !horizon}
         />
@@ -187,7 +198,7 @@ function TreasuryPage() {
           <div className="mt-3 space-y-2">
             <TelRow label="Operator XLM"     value={operatorXlm    ? `${Number(operatorXlm).toFixed(4)} XLM`    : "—"} tone="ok" />
             <TelRow label="Distributor XLM"  value={distributorXlm ? `${Number(distributorXlm).toFixed(4)} XLM` : "—"} tone="ok" />
-            <TelRow label="EPWR Supply"       value={epwrSupply     ? `${fmtNum(epwrSupply)} EPWR`               : "—"} tone="ok" />
+            <TelRow label="EPWR Supply"       value={epwrSupply     ? `${fmtCompact(epwrSupply)} EPWR`           : "—"} title={epwrSupply ? `${fmtNum(epwrSupply)} EPWR` : undefined} tone="ok" />
             <TelRow label="Horizon latency"  value={`${horizonLatency} ms`}                  tone={horizonLatency < 1000 ? "ok" : "warn"} />
             <TelRow label="Backend latency"  value={`${health?.backend?.latency_ms ?? 0} ms`} tone="ok" />
             <TelRow label="Settled count"    value={String(settled)}    tone="ok" />
@@ -293,6 +304,7 @@ function KpiCard({
   loading,
   tone = "ok",
   led = false,
+  title,
 }: {
   label: string;
   value: string;
@@ -300,6 +312,7 @@ function KpiCard({
   loading?: boolean;
   tone?: "ok" | "warn" | "muted";
   led?: boolean;
+  title?: string;
 }) {
   const valueColor = led
     ? tone === "ok" ? "text-success" : tone === "warn" ? "text-destructive" : ""
@@ -313,14 +326,17 @@ function KpiCard({
       {loading ? (
         <Skeleton className="mt-1 h-7 w-20" />
       ) : (
-        <p className={`mt-1 font-mono font-semibold tracking-tight ${fontSize} ${valueColor} flex items-center gap-2`}>
+        <p
+          title={title}
+          className={`mt-1 font-mono font-semibold tracking-tight ${fontSize} ${valueColor} flex items-center gap-2`}
+        >
           {led && (
             <span className="relative flex h-2.5 w-2.5 shrink-0">
               <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${ledColor}`} />
               <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${ledColor}`} />
             </span>
           )}
-          {value}
+          <span className="truncate">{value}</span>
         </p>
       )}
       {sub && (
@@ -336,16 +352,18 @@ function TelRow({
   label,
   value,
   tone,
+  title,
 }: {
   label: string;
   value: string;
   tone: "ok" | "warn" | "muted";
+  title?: string;
 }) {
   const color = tone === "ok" ? "text-success" : tone === "warn" ? "text-destructive" : "text-foreground";
   return (
-    <div className="flex items-center justify-between rounded-md border border-border bg-background/40 px-2.5 py-1.5">
-      <span className="text-[11px] text-muted-foreground">{label}</span>
-      <span className={`font-mono text-[11px] ${color}`}>{value}</span>
+    <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-background/40 px-2.5 py-1.5">
+      <span className="shrink-0 text-[11px] text-muted-foreground">{label}</span>
+      <span title={title} className={`truncate text-right font-mono text-[11px] ${color}`}>{value}</span>
     </div>
   );
 }
