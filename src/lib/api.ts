@@ -804,6 +804,12 @@ export const apiAdminSetPlatformRole = (id: string, platformRole: PlatformRole) 
     body: { platform_role: platformRole },
   });
 
+export const apiAdminSetRoles = (id: string, roles: string[]) =>
+  apiRequest<{ success: boolean; roles: string[] }>(`/api/admin/users/${id}/set-roles`, {
+    method: "POST",
+    body: { roles },
+  });
+
 export const apiAdminSetEmail = (id: string, email: string) =>
   apiRequest<{ success: boolean; email: string }>(`/api/admin/users/${id}/set-email`, {
     method: "POST",

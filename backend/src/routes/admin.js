@@ -669,6 +669,14 @@ router.post(
 
 // ─── POST /api/admin/users/:id/set-platform-role ─────────────────────────────
 // PLATFORM_OWNER only — promote or demote a user's platform role.
+// Elevated platform roles are restricted to specific accounts (allowlist by email).
+// Enforced here server-side; the UI also hides ineligible options.
+const OWNER_ELIGIBLE_EMAILS = ["energypayepwr@gmail.com", "roberto.blockchainresources@gmail.com"];
+const ADMIN_ELIGIBLE_EMAILS = [
+  ...OWNER_ELIGIBLE_EMAILS,
+  "contato@edugera.com.br",
+  "eduferreira053@gmail.com",
+];
 const VALID_PLATFORM_ROLES = ["PLATFORM_OWNER", "PLATFORM_ADMIN", "ACCOUNT_RECOVERY", "USER"];
 
 router.post(
@@ -683,6 +691,22 @@ router.post(
           success: false,
           error: `Invalid platform_role. Must be one of: ${VALID_PLATFORM_ROLES.join(", ")}`,
         });
+      }
+
+      // Allowlist: OWNER only for the 2 owner emails; ADMIN/RECOVERY only for the
+      // 4 admin emails. Demotion to USER is always allowed.
+      if (platform_role !== "USER") {
+        const { data: targetRow } = await supabase
+          .from("users").select("email").eq("id", req.params.id).single();
+        const targetEmail = (targetRow?.email || "").trim().toLowerCase();
+        const eligible = platform_role === "PLATFORM_OWNER" ? OWNER_ELIGIBLE_EMAILS : ADMIN_ELIGIBLE_EMAILS;
+        if (!eligible.includes(targetEmail)) {
+          return res.status(403).json({
+            success: false,
+            error: `${platform_role} can only be assigned to an authorized account.`,
+            code: "ROLE_NOT_ELIGIBLE",
+          });
+        }
       }
 
       // Guard: never demote the last PLATFORM_OWNER
@@ -725,6 +749,56 @@ router.post(
       res.json({ success: true, platform_role });
     } catch (err) {
       console.error("[admin/set-platform-role]", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+);
+
+// ─── POST /api/admin/users/:id/set-roles ─────────────────────────────────────
+// OWNER or ADMIN — set a user's market-participant roles. Manages the 5 market
+// roles below; preserves any existing ADMIN ("Platform Operator") /
+// REGULATORY_AUTHORITY so this editor never silently strips those tags.
+const ASSIGNABLE_MARKET_ROLES = ["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY"];
+const PRESERVED_MARKET_ROLES  = ["ADMIN", "REGULATORY_AUTHORITY"];
+
+router.post(
+  "/users/:id/set-roles",
+  requirePlatformRole("PLATFORM_OWNER", "PLATFORM_ADMIN"),
+  async (req, res) => {
+    try {
+      const incoming = Array.isArray(req.body?.roles) ? req.body.roles : null;
+      if (!incoming) {
+        return res.status(400).json({ success: false, error: "roles must be an array." });
+      }
+      const requested = [...new Set(incoming.map((r) => String(r).toUpperCase()))];
+      const invalid = requested.filter((r) => !ASSIGNABLE_MARKET_ROLES.includes(r));
+      if (invalid.length) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid market role(s): ${invalid.join(", ")}. Allowed: ${ASSIGNABLE_MARKET_ROLES.join(", ")}`,
+        });
+      }
+
+      const { data: current } = await supabase
+        .from("users").select("roles").eq("id", req.params.id).single();
+      const preserved = (current?.roles || []).filter((r) => PRESERVED_MARKET_ROLES.includes(r));
+      const nextRoles = [...new Set([...requested, ...preserved])];
+
+      const { error } = await supabase
+        .from("users").update({ roles: nextRoles }).eq("id", req.params.id);
+      if (error) throw error;
+
+      await logAudit({
+        actorId:  req.adminUser.id,
+        targetId: req.params.id,
+        action:   "SET_MARKET_ROLES",
+        details:  { before: current?.roles ?? [], after: nextRoles },
+        ip:       req.ip,
+      });
+
+      res.json({ success: true, roles: nextRoles });
+    } catch (err) {
+      console.error("[admin/set-roles]", err);
       res.status(500).json({ success: false, error: err.message });
     }
   }

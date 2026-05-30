@@ -17,6 +17,7 @@ import {
   XCircle,
   Mail,
   Ban,
+  Layers,
 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
@@ -48,6 +49,7 @@ import {
   apiAdminUpdateUser,
   apiAdminSetPassword,
   apiAdminSetPlatformRole,
+  apiAdminSetRoles,
   apiAdminSetEmail,
   apiAdminBlockUser,
   apiAdminUnblockUser,
@@ -312,7 +314,16 @@ function SetPasswordModal({
 
 // ─── Set Platform Role Modal ──────────────────────────────────────────────────
 
-const ALL_PLATFORM_ROLES: PlatformRole[] = ["USER", "ACCOUNT_RECOVERY", "PLATFORM_ADMIN", "PLATFORM_OWNER"];
+// Elevated platform roles are restricted by email (mirrors the server-side allowlist).
+const OWNER_ELIGIBLE_EMAILS = ["energypayepwr@gmail.com", "roberto.blockchainresources@gmail.com"];
+const ADMIN_ELIGIBLE_EMAILS = [...OWNER_ELIGIBLE_EMAILS, "contato@edugera.com.br", "eduferreira053@gmail.com"];
+const eligiblePlatformRoles = (email: string): PlatformRole[] => {
+  const e = (email || "").trim().toLowerCase();
+  const roles: PlatformRole[] = ["USER"];
+  if (ADMIN_ELIGIBLE_EMAILS.includes(e)) roles.push("ACCOUNT_RECOVERY", "PLATFORM_ADMIN");
+  if (OWNER_ELIGIBLE_EMAILS.includes(e)) roles.push("PLATFORM_OWNER");
+  return roles;
+};
 
 function SetRoleModal({
   user,
@@ -353,7 +364,7 @@ function SetRoleModal({
         </DialogHeader>
 
         <div className="grid gap-2 py-2">
-          {ALL_PLATFORM_ROLES.map(r => (
+          {eligiblePlatformRoles(user.email).map(r => (
             <button
               key={r}
               onClick={() => setRole(r)}
@@ -373,6 +384,92 @@ function SetRoleModal({
           <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
           <Button size="sm" onClick={handleSave} disabled={saving || role === user.platform_role}>
             {saving ? "Saving…" : "Set Role"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Set Market Roles Modal ───────────────────────────────────────────────────
+
+const MARKET_ROLE_OPTIONS: { value: string; label: string }[] = [
+  { value: "GENERATOR", label: "Generator" },
+  { value: "SELLER",    label: "Seller" },
+  { value: "INVESTOR",  label: "Investor" },
+  { value: "USER",      label: "Consumer" },
+  { value: "UTILITY",   label: "Utility" },
+];
+
+function SetMarketRolesModal({
+  user,
+  onClose,
+  onSaved,
+}: {
+  user: AdminUser;
+  onClose: () => void;
+  onSaved: (id: string, roles: string[]) => void;
+}) {
+  const [selected, setSelected] = useState<string[]>(
+    (user.roles ?? []).filter(r => MARKET_ROLE_OPTIONS.some(o => o.value === r)),
+  );
+  const [saving, setSaving] = useState(false);
+  const toggle = (v: string) =>
+    setSelected(s => (s.includes(v) ? s.filter(x => x !== v) : [...s, v]));
+  const preserved = (user.roles ?? []).filter(r => r === "ADMIN" || r === "REGULATORY_AUTHORITY");
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await apiAdminSetRoles(user.id, selected);
+      toast.success("Market roles updated.");
+      onSaved(user.id, res.roles);
+      onClose();
+    } catch (err) {
+      toast.error((err as Error).message || "Failed to update roles.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-sm">
+            <Layers className="h-4 w-4 text-primary" />
+            Market Roles
+          </DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">{user.email}</DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-2 py-2">
+          {MARKET_ROLE_OPTIONS.map(o => (
+            <button
+              key={o.value}
+              onClick={() => toggle(o.value)}
+              className={`flex items-center justify-between rounded border px-3 py-2 text-left text-sm transition-colors
+                ${selected.includes(o.value)
+                  ? "border-primary/50 bg-primary/10 text-foreground"
+                  : "border-border/50 bg-background hover:border-border text-muted-foreground"
+                }`}
+            >
+              <span>{o.label}</span>
+              {selected.includes(o.value) && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
+            </button>
+          ))}
+        </div>
+
+        {preserved.length > 0 && (
+          <p className="font-mono text-[10px] text-muted-foreground">
+            Preserved (unchanged): {preserved.map(r => (r === "ADMIN" ? "Platform Operator" : "Regulatory")).join(", ")}
+          </p>
+        )}
+
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button size="sm" onClick={handleSave} disabled={saving}>
+            {saving ? "Saving…" : "Save Roles"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -513,6 +610,7 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
   const [roleUser, setRoleUser] = useState<AdminUser | null>(null);
   const [emailUser, setEmailUser] = useState<AdminUser | null>(null);
   const [blockUser, setBlockUser] = useState<AdminUser | null>(null);
+  const [marketRolesUser, setMarketRolesUser] = useState<AdminUser | null>(null);
   const limit = 50;
 
   const load = useCallback(async () => {
@@ -626,6 +724,12 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
                             <Edit2 className="h-3 w-3" />
                           </Button>
                         )}
+                        {isAdmin && (
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+                            onClick={() => setMarketRolesUser(u)} title="Market roles">
+                            <Layers className="h-3 w-3" />
+                          </Button>
+                        )}
                         {uiCanRecover(operatorEmail, operatorRole, u) && (
                           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-yellow-400"
                             onClick={() => setPwdUser(u)} title="Recover password (reset)">
@@ -705,6 +809,13 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
           user={blockUser}
           onClose={() => setBlockUser(null)}
           onBlocked={id => setUsers(us => us.map(u => u.id === id ? { ...u, account_status: "BLOCKED" } : u))}
+        />
+      )}
+      {marketRolesUser && (
+        <SetMarketRolesModal
+          user={marketRolesUser}
+          onClose={() => setMarketRolesUser(null)}
+          onSaved={(id, roles) => setUsers(us => us.map(u => u.id === id ? { ...u, roles } : u))}
         />
       )}
     </div>
