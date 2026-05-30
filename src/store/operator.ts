@@ -104,9 +104,9 @@ export type RoleColor = {
 
 export const ROLE_COLORS: Record<ParticipantRole, RoleColor> = {
   GENERATOR:            { border: "border-red-400/50",    bg: "bg-red-400/10",    text: "text-red-400",    hex: "#f87171" },
-  SELLER:               { border: "border-sky-400/50",    bg: "bg-sky-400/10",    text: "text-sky-400",    hex: "#38bdf8" },
+  SELLER:               { border: "border-green-400/50",  bg: "bg-green-400/10",  text: "text-green-400",  hex: "#4ade80" },
   INVESTOR:             { border: "border-yellow-400/50", bg: "bg-yellow-400/10", text: "text-yellow-400", hex: "#facc15" },
-  USER:                 { border: "border-green-400/50",  bg: "bg-green-400/10",  text: "text-green-400",  hex: "#4ade80" },
+  USER:                 { border: "border-sky-400/50",    bg: "bg-sky-400/10",    text: "text-sky-400",    hex: "#38bdf8" },
   UTILITY:              { border: "border-orange-400/50", bg: "bg-orange-400/10", text: "text-orange-400", hex: "#fb923c" },
   REGULATORY_AUTHORITY: { border: "border-violet-400/50", bg: "bg-violet-400/10", text: "text-violet-400", hex: "#a78bfa" },
   // Internal platform-administrator role — hidden from public signup (see register.tsx + backend ALLOWED_ROLES).
@@ -385,9 +385,9 @@ const buildPermissions = (roles: ParticipantRole[]) => {
  *  Used for sorting role badges everywhere in the UI. */
 export const ROLE_ORDER: ParticipantRole[] = [
   "GENERATOR",
+  "UTILITY",
   "SELLER",
   "INVESTOR",
-  "UTILITY",
   "USER",
   "REGULATORY_AUTHORITY",
   "ADMIN",

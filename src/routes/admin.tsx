@@ -396,10 +396,10 @@ function SetRoleModal({
 
 const MARKET_ROLE_OPTIONS: { value: string; label: string }[] = [
   { value: "GENERATOR", label: "Generator" },
+  { value: "UTILITY",   label: "Utility" },
   { value: "SELLER",    label: "Trader" },
   { value: "INVESTOR",  label: "Investor" },
   { value: "USER",      label: "Consumer" },
-  { value: "UTILITY",   label: "Utility" },
 ];
 
 function SetMarketRolesModal({

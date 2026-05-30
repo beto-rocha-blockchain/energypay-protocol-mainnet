@@ -83,7 +83,7 @@ const ROLE_LABEL: Partial<Record<ParticipantRole, string>> = {
 };
 
 const primaryRole = (roles: ParticipantRole[]): ParticipantRole | null =>
-  (["GENERATOR", "SELLER", "INVESTOR", "UTILITY", "USER", "REGULATORY_AUTHORITY"] as ParticipantRole[])
+  (["GENERATOR", "UTILITY", "SELLER", "INVESTOR", "USER", "REGULATORY_AUTHORITY"] as ParticipantRole[])
     .find((r) => roles.includes(r)) ?? null;
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
