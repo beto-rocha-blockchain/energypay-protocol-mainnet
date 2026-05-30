@@ -423,6 +423,13 @@
   /* Applied to the splash logo image / badge */
   .ep-splash-logo {
     animation: ep-logo-pulse 2.4s ease-in-out infinite;
+    /* Pin the badge to its own GPU compositor layer. The heavy drop-shadow pulse
+       was being re-rasterized into the parent layer every frame, and the sub-pixel
+       grid realignment made the logo wobble/drift sideways. Promoting it to a stable
+       layer applies the filter over the already-rasterized badge → no jitter. */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    will-change: filter;
   }
 
   @media (prefers-reduced-motion: reduce) {
