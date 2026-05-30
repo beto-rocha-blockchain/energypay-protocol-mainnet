@@ -3,7 +3,6 @@ import { STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import { useEffect, useState } from "react";
 import {
   KeyRound,
-  Building2,
   Mail,
   ShieldCheck,
   Activity,
@@ -34,7 +33,6 @@ function LoginPage() {
   const login = useOperator((s) => s.login);
 
   const [email, setEmail] = useState("");
-  const [organization, setOrganization] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -60,7 +58,7 @@ function LoginPage() {
     }
     setBusy(true);
     try {
-      const id = await login({ email, password, organization: organization || undefined });
+      const id = await login({ email, password });
       toast.success(`Operator ${id.operatorId} connected · ${STELLAR_NETWORK_LABEL} active`);
       navigate({ to: "/" });
     } catch (err) {
@@ -161,25 +159,6 @@ function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="operator@clearing-desk.com"
-                  className="h-9 pl-8 font-mono text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="org"
-                className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
-              >
-                Organization
-              </Label>
-              <div className="relative">
-                <Building2 className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="org"
-                  value={organization}
-                  onChange={(e) => setOrganization(e.target.value)}
-                  placeholder="Treasury · Energy Trading Desk"
                   className="h-9 pl-8 font-mono text-xs"
                 />
               </div>
