@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   ChevronDown,
@@ -213,17 +213,15 @@ const UTILITY_OPS: Item[] = [
   },
 ];
 
-function Group({ label, items, path }: { label: string; items: Item[]; path: string }) {
+function Group({ label, items, path, open, onOpenChange }: {
+  label: string;
+  items: Item[];
+  path: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const navigate = useNavigate();
   const { state } = useSidebar();
-  // Start open only when the current path belongs to this group.
-  // Root "/" uses exact match; everything else uses startsWith so sub-routes
-  // (e.g. /contracts/new) also keep the parent group expanded on load.
-  const [open, setOpen] = useState(() =>
-    items.some((item) =>
-      item.url === "/" ? path === "/" : path.startsWith(item.url)
-    )
-  );
 
   if (items.length === 0) return null;
 
@@ -234,7 +232,7 @@ function Group({ label, items, path }: { label: string; items: Item[]; path: str
   return (
     <Collapsible
       open={isIconMode ? true : open}
-      onOpenChange={setOpen}
+      onOpenChange={onOpenChange}
       className="group/collapsible"
     >
       <SidebarGroup className="py-0.5">
@@ -416,6 +414,26 @@ export function AppSidebar() {
   const terminals = filterItemsByRole(TERMINALS, roles);
   const utilityOps = filterItemsByRole(UTILITY_OPS, roles);
 
+  // Accordion: only one nav section is expanded at a time. Opening one collapses
+  // the others; the section of the current route stays open after navigation.
+  const navGroups = [
+    { label: "Executive Layer",           items: marketOps },
+    { label: "Risk & Clearing",           items: riskData },
+    { label: "Settlement Infrastructure", items: settlement },
+    { label: "Market Infrastructure",     items: terminals },
+    { label: "Utility Operations",        items: utilityOps },
+  ];
+  const groupForPath = (p: string) =>
+    navGroups.find((g) =>
+      g.items.some((item) => (item.url === "/" ? p === "/" : p.startsWith(item.url))),
+    )?.label ?? null;
+  const [openGroup, setOpenGroup] = useState<string | null>(() => groupForPath(path));
+  useEffect(() => {
+    const g = groupForPath(path);
+    if (g) setOpenGroup(g);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [path]);
+
   const buildHash = "b9f4c2e";
 
   // Width is controlled via the --sidebar-width CSS variable (18rem) set on
@@ -438,15 +456,16 @@ export function AppSidebar() {
       {/* group-data-[collapsible=icon]:overflow-hidden prevents a vertical
           scrollbar from appearing in icon-only mode when there are many items. */}
       <SidebarContent className="gap-0 overflow-hidden">
-        <Group label="Executive Layer" items={marketOps} path={path} />
-
-        <Group label="Risk & Clearing" items={riskData} path={path} />
-
-        <Group label="Settlement Infrastructure" items={settlement} path={path} />
-
-        <Group label="Market Infrastructure" items={terminals} path={path} />
-
-        <Group label="Utility Operations" items={utilityOps} path={path} />
+        {navGroups.map((g) => (
+          <Group
+            key={g.label}
+            label={g.label}
+            items={g.items}
+            path={path}
+            open={openGroup === g.label}
+            onOpenChange={(o) => setOpenGroup(o ? g.label : null)}
+          />
+        ))}
 
         {/* Platform Admin — visible only to PLATFORM_OWNER, PLATFORM_ADMIN, ACCOUNT_RECOVERY */}
         {isAdmin && (
