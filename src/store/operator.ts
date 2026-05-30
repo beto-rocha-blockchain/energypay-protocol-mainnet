@@ -352,6 +352,7 @@ type OperatorState = {
   setEmailVerified: (v: boolean) => void;
   setPhoneVerified: (v: boolean) => void;
   setPhone: (phone: string) => void;
+  setProfile: (fields: Partial<Pick<OperatorIdentity, "fullName" | "organization" | "phone" | "country" | "state" | "city">>) => void;
   setSubscription: (sub: OperatorSubscription) => void;
   logout: () => void;
 };
@@ -581,6 +582,12 @@ export const useOperator = create<OperatorState>()((set, get) => ({
     const op = get().operator;
     if (!op) return;
     set({ operator: { ...op, phone, phoneVerified: false } });
+  },
+
+  setProfile: (fields) => {
+    const op = get().operator;
+    if (!op) return;
+    set({ operator: { ...op, ...fields } });
   },
 
   setSubscription: (sub) => {

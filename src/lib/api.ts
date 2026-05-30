@@ -453,6 +453,19 @@ export const apiUpdatePhone = (phone: string) =>
     { method: "POST", body: { phone } },
   );
 
+export const apiUpdateProfile = (fields: {
+  full_name?: string;
+  organization?: string;
+  phone?: string;
+  country?: string;
+  state?: string;
+  city?: string;
+}) =>
+  apiRequest<{ success: boolean; user: Record<string, unknown> }>(
+    "/api/auth/profile",
+    { method: "PATCH", body: fields },
+  );
+
 export const apiSendPhoneCode = () =>
   apiRequest<{ success: boolean; message: string; already_verified?: boolean; dev_code?: string }>(
     "/api/auth/send-phone-code",

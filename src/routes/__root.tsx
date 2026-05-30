@@ -152,12 +152,17 @@ function AppHeader() {
       {/* LEFT — collapse toggle */}
       <SidebarTrigger className="h-12 w-12 shrink-0 rounded-none border-r border-border text-muted-foreground hover:bg-accent hover:text-foreground" />
 
-      {/* CENTER — operator info chips always visible (ID · ROLES · NETWORK · VERSION) */}
+      {/* CENTER — operator info chips (NETWORK · ROLES · VERSION) */}
       <div className="flex min-w-0 flex-1 items-center overflow-hidden px-3">
         {operator ? (
           <div className="flex min-w-0 items-center">
-            {/* Operator ID */}
-            <HeaderChip label="ID" value={maskAddress(operator.operatorId)} />
+            {/* Network (Stellar Mainnet) — first, next to the collapse toggle */}
+            <div className="flex shrink-0 items-center gap-1.5 px-3">
+              <Activity className="h-2.5 w-2.5 shrink-0 text-success" />
+              <span className="font-mono text-[9px] text-foreground/85">
+                {STELLAR_NETWORK_LABEL}
+              </span>
+            </div>
             <HDivider />
             {/* Roles — individual colored dot + readable label per role */}
             <div className="flex min-w-0 items-center gap-1.5 overflow-hidden px-3">
@@ -181,14 +186,6 @@ function AppHeader() {
               </div>
             </div>
             <HDivider />
-            {/* Network */}
-            <div className="flex shrink-0 items-center gap-1.5 px-3">
-              <Activity className="h-2.5 w-2.5 shrink-0 text-success" />
-              <span className="font-mono text-[9px] text-foreground/85">
-                {STELLAR_NETWORK_LABEL}
-              </span>
-            </div>
-            <HDivider />
             {/* Version */}
             <div className="shrink-0 px-3">
               <span className="font-mono text-[8.5px] text-muted-foreground/65">
@@ -199,9 +196,17 @@ function AppHeader() {
         ) : null}
       </div>
 
-      {/* RIGHT — operator profile (with notifications inside) */}
-      <div className="flex shrink-0 items-center border-l border-border px-3">
-        <OperatorBadge />
+      {/* RIGHT — operator ID + profile (with notifications inside) */}
+      <div className="flex shrink-0 items-center border-l border-border pl-1 pr-2">
+        {operator && (
+          <>
+            <HeaderChip label="ID" value={maskAddress(operator.operatorId)} />
+            <HDivider />
+          </>
+        )}
+        <div className="pl-2">
+          <OperatorBadge />
+        </div>
       </div>
     </header>
   );

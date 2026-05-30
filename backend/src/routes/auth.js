@@ -1126,6 +1126,43 @@ router.post("/update-phone", async (req, res) => {
 });
 
 // =====================================================
+// UPDATE OWN PROFILE (self-service · never role / email / password)
+// =====================================================
+
+router.patch("/profile", requireAuth, async (req, res) => {
+  try {
+    const userId = req.operator.sub || req.operator.id;
+    // Editable profile fields only — never roles, platform_role, email or password.
+    const ALLOWED = ["full_name", "organization", "phone", "country", "state", "city"];
+    const KEEP_NONEMPTY = ["full_name", "organization", "country", "city"];
+    const updates = {};
+    for (const k of ALLOWED) {
+      if (typeof req.body?.[k] !== "string") continue;
+      const v = req.body[k].trim();
+      if (v === "" && KEEP_NONEMPTY.includes(k)) continue; // don't blank required fields
+      updates[k] = v === "" ? null : v;
+    }
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, error: "No editable profile fields provided." });
+    }
+    if ("phone" in updates) updates.phone_verified = false; // re-verify on phone change
+
+    const { data, error } = await supabase
+      .from("users")
+      .update(updates)
+      .eq("id", userId)
+      .select("id, full_name, organization, phone, country, state, city, phone_verified")
+      .single();
+    if (error) throw error;
+
+    res.json({ success: true, user: data });
+  } catch (err) {
+    console.error("[auth/update-profile]", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// =====================================================
 // SEND PHONE VERIFICATION CODE
 // =====================================================
 

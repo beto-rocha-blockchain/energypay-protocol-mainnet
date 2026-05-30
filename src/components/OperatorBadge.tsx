@@ -24,11 +24,11 @@ import { useOperator, maskAddress, ROLE_META } from "@/store/operator";
 import { useNotifications } from "@/hooks/useNotifications";
 import { type Notification } from "@/lib/api";
 import { STELLAR_NETWORK_LABEL } from "@/lib/stellar";
-import { apiResendVerification, apiSendPhoneCode, apiVerifyPhoneCode, apiUpdatePhone, apiGetContractDocumentUrl } from "@/lib/api";
+import { apiResendVerification, apiSendPhoneCode, apiVerifyPhoneCode, apiUpdatePhone, apiUpdateProfile, apiGetContractDocumentUrl } from "@/lib/api";
 import {
   Copy, LogOut, ShieldCheck, Activity, Building2, Mail, Hash, Check, KeyRound,
   MapPin, Sun, Moon, AlertTriangle, Loader2, MailCheck, Phone, PhoneCall,
-  Bell, CheckCheck, ArrowUpRight, CheckCircle2, XCircle, Info, X, FileText,
+  Bell, CheckCheck, ArrowUpRight, CheckCircle2, XCircle, Info, X, FileText, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useUiStore, type Theme } from "@/store/ui";
@@ -155,7 +155,7 @@ export function OperatorBadge() {
         >
           <span className="flex items-center gap-1.5 leading-none text-success">
             <span className="inline-block h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-success" />
-            Operator Connected
+            Profile Settings
           </span>
           {unreadCount > 0 && (
             <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive px-1 font-mono text-[8px] font-bold text-destructive-foreground">
@@ -197,6 +197,8 @@ export function OperatorBadge() {
           />
 
           <Row icon={<MapPin className="h-3 w-3" />} label="Jurisdiction" value={`${operator.city} · ${operator.country}`} />
+
+          <ProfileEditor />
 
           {/* Wallet */}
           <div>
@@ -408,6 +410,101 @@ export function OperatorBadge() {
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+// ─── Profile editor (self-service · all profile fields except role) ───────────
+
+function ProfileEditor() {
+  const operator   = useOperator((s) => s.operator);
+  const setProfile = useOperator((s) => s.setProfile);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving]   = useState(false);
+  const clean = (v?: string) => (v && v !== "—" ? v : "");
+  const [form, setForm] = useState({
+    fullName:     operator?.fullName ?? "",
+    organization: clean(operator?.organization),
+    country:      clean(operator?.country),
+    state:        operator?.state ?? "",
+    city:         clean(operator?.city),
+  });
+
+  if (!operator) return null;
+
+  const handleSave = async () => {
+    if (!form.fullName.trim()) { toast.error("Full name is required."); return; }
+    setSaving(true);
+    try {
+      await apiUpdateProfile({
+        full_name:    form.fullName,
+        organization: form.organization,
+        country:      form.country,
+        state:        form.state,
+        city:         form.city,
+      });
+      setProfile({
+        fullName:     form.fullName.trim(),
+        organization: form.organization.trim() || "—",
+        country:      form.country.trim() || "—",
+        state:        form.state.trim() || undefined,
+        city:         form.city.trim() || "—",
+      });
+      toast.success("Profile updated.");
+      setEditing(false);
+    } catch (err) {
+      toast.error((err as Error).message || "Failed to update profile.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!editing) {
+    return (
+      <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}
+        className="h-7 w-full font-mono text-[10px] uppercase tracking-widest">
+        <Pencil className="mr-1.5 h-3 w-3" /> Edit Profile
+      </Button>
+    );
+  }
+
+  const fields: [keyof typeof form, string][] = [
+    ["fullName", "Full Name"],
+    ["organization", "Organization"],
+    ["country", "Country"],
+    ["state", "State (UF)"],
+    ["city", "City"],
+  ];
+
+  return (
+    <div className="space-y-2 rounded-md border border-border bg-background/40 p-2.5">
+      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        Edit Profile
+      </div>
+      {fields.map(([k, label]) => (
+        <div key={k} className="space-y-1">
+          <label className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
+            {label}
+          </label>
+          <Input
+            value={form[k]}
+            onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))}
+            className="h-7 text-xs"
+            disabled={saving}
+          />
+        </div>
+      ))}
+      <p className="font-mono text-[9px] text-muted-foreground/60">
+        Email, password, phone and roles are managed in their own sections.
+      </p>
+      <div className="flex justify-end gap-2 pt-0.5">
+        <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(false)} disabled={saving}
+          className="h-7 font-mono text-[10px] uppercase tracking-widest">Cancel</Button>
+        <Button type="button" size="sm" onClick={handleSave} disabled={saving}
+          className="h-7 font-mono text-[10px] uppercase tracking-widest">
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+        </Button>
+      </div>
+    </div>
   );
 }
 
