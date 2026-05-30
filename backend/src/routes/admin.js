@@ -156,7 +156,7 @@ router.post(
 
     const { data: candidates, error: fetchErr } = await supabase
       .from("users")
-      .select("id, email, full_name, stellar_public_key, stellar_secret_encrypted, stellar_funded, created_at")
+      .select("id, email, full_name, stellar_public_key, stellar_secret_encrypted, created_at")
       .lt("created_at", cutoffISO);
 
     if (fetchErr) {
