@@ -89,11 +89,13 @@ function FeatureCard({
   title,
   children,
   tag,
+  roadmap,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   children: React.ReactNode;
   tag?: string;
+  roadmap?: boolean;
 }) {
   return (
     <Card className="flex h-full flex-col border-border bg-card/60 p-5 transition-colors hover:border-primary/30">
@@ -101,9 +103,13 @@ function FeatureCard({
         <div className="rounded-md border border-border bg-background/60 p-2">
           <Icon className="h-4 w-4 text-primary" />
         </div>
-        {tag && (
+        {roadmap ? (
+          <span className="rounded-full border border-border px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.2em] text-muted-foreground/70">
+            Roadmap
+          </span>
+        ) : tag ? (
           <span className="font-mono text-[8px] uppercase tracking-[0.2em] text-muted-foreground/60">{tag}</span>
-        )}
+        ) : null}
       </div>
       <h3 className="font-display text-sm font-semibold text-foreground">{title}</h3>
       <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">{children}</p>
@@ -184,7 +190,7 @@ function LandingPage() {
 
           <div className="mx-auto mt-14 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-4">
             {[
-              { k: "Finality", v: "~2s", s: "Stellar ledger close" },
+              { k: "Finality", v: "~5s", s: "Stellar ledger close" },
               { k: "Network", v: "PUBLIC", s: "Mainnet · Horizon" },
               { k: "Settlement asset", v: "EPWR", s: "Tokenized energy" },
               { k: "Audit", v: "txHash", s: "Publicly verifiable" },
@@ -255,7 +261,7 @@ function LandingPage() {
             {[
               { icon: Layers, t: "Register obligations", d: "Capture bilateral energy contracts as structured, programmable settlement terms." },
               { icon: Scale, t: "Manage counterparty risk", d: "Netting, clearing and exposure supervision across market roles." },
-              { icon: Send, t: "Execute on Stellar", d: "Deterministic settlement with ~2s finality on the public network." },
+              { icon: Send, t: "Execute on Stellar", d: "Deterministic settlement with ~5s finality on the public network." },
               { icon: ShieldCheck, t: "Reconcile & audit", d: "Auto-match settlements to on-chain receipts with an immutable trail." },
             ].map((x) => (
               <Card key={x.t} className="border-border bg-card/60 p-4">
@@ -290,7 +296,7 @@ function LandingPage() {
               Operate, monitor and reconcile settlement batches in real time.
             </FeatureCard>
             <FeatureCard icon={Send} title="Direct Settlement" tag="STL-03">
-              Execute bilateral transfers with ~2s Stellar finality.
+              Execute bilateral transfers with ~5s Stellar finality.
             </FeatureCard>
             <FeatureCard icon={Code2} title="x402 API Access" tag="STL-04">
               Programmatic settlement over the x402 machine-payable rail.
@@ -298,13 +304,13 @@ function LandingPage() {
             <FeatureCard icon={Wallet} title="Custody Wallet" tag="STL-05">
               Platform-managed or user-controlled Stellar settlement accounts.
             </FeatureCard>
-            <FeatureCard icon={Scale} title="Clearing & Risk">
+            <FeatureCard icon={Scale} title="Clearing & Risk" roadmap>
               Counterparty netting, exposure limits and clearing supervision.
             </FeatureCard>
-            <FeatureCard icon={Radio} title="Oracle & Market Data">
+            <FeatureCard icon={Radio} title="Oracle & Market Data" tag="RSK-02">
               Reference price feeds (PLD / market rates) for settlement.
             </FeatureCard>
-            <FeatureCard icon={FileSearch} title="Audit & Compliance">
+            <FeatureCard icon={FileSearch} title="Audit & Compliance" tag="EXE-02">
               Immutable audit trail and regulatory reporting readiness.
             </FeatureCard>
             <FeatureCard icon={Coins} title="Billing & Subscriptions">
@@ -334,7 +340,7 @@ function LandingPage() {
               {[
                 { icon: Globe, k: "Network", v: "STELLAR_MAINNET" },
                 { icon: Link2, k: "Horizon", v: "horizon.stellar.org" },
-                { icon: Zap, k: "Finality", v: "~2 seconds" },
+                { icon: Zap, k: "Finality", v: "~5 seconds" },
                 { icon: Coins, k: "Assets", v: "EPWR · XLM" },
               ].map((x) => (
                 <div key={x.k} className="flex items-center gap-2.5 rounded-md border border-border bg-card/60 px-3 py-2.5">

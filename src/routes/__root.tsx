@@ -89,17 +89,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "twitter:description",
         content: "Institutional settlement infrastructure for electricity contracts on Stellar.",
       },
-      {
-        property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/03a4cde7-5f05-462a-8f72-046518e7d178/id-preview-8d7927d7--f2ec6d13-9100-411f-ae2c-6d2e70e3c39d.lovable.app-1778332623887.png",
-      },
-      {
-        name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/03a4cde7-5f05-462a-8f72-046518e7d178/id-preview-8d7927d7--f2ec6d13-9100-411f-ae2c-6d2e70e3c39d.lovable.app-1778332623887.png",
-      },
-      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:card", content: "summary" },
       { property: "og:type", content: "website" },
     ],
     links: [

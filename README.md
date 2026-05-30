@@ -269,6 +269,15 @@ Each successful settlement can generate:
 
 This allows reviewers, partners and stakeholders to independently verify settlement execution on the live Stellar network.
 
+### Verify it yourself (live mainnet)
+
+Don't trust our books — check the explorer:
+
+- **EPWR asset** (live supply, trustlines, holders): [stellar.expert · EPWR](https://stellar.expert/explorer/public/asset/EPWR-GAC6EW2V5SCW3EEBDNFJSRKIFP7EMI7LYPIX2X3QXWQER4FPQVZGEPUA)
+- **Example settlement transaction** — atomic EPWR tokenization (issuer → distribution → buyer): [`45c94626…6427b77f`](https://stellar.expert/explorer/public/tx/45c94626386d43bdb0fbd93578e3c8b8b7c59341b56324065c7b79106427b77f)
+- **Issuer account:** [`GAC6…QVZGEPUA`](https://stellar.expert/explorer/public/account/GAC6EW2V5SCW3EEBDNFJSRKIFP7EMI7LYPIX2X3QXWQER4FPQVZGEPUA)
+- **Distribution account:** [`GD2S…O4D646V4S`](https://stellar.expert/explorer/public/account/GD2S4MPDYMCSPUPPAJ4RULAGVE6PF2Q5HRNT6ELLQYBXKYKO4D646V4S)
+
 ---
 
 ## Security Notes
@@ -325,7 +334,7 @@ The current platform does not claim to provide:
 - margin engine;
 - netting engine;
 - banking integration;
-- PIX integration;
+- PIX as an energy-settlement rail (subscription/plan billing via PIX/card is a separate billing layer, isolated from settlement);
 - ERP integration;
 - formal security audit;
 - licensed financial intermediation.
@@ -454,7 +463,7 @@ Current status:
 - ONS oracle live (real Brazilian PLD/CMO data);
 - role-based and region-aware interface;
 - audit-oriented workflow in place;
-- stakeholder validation initiated with energy market participants.
+- early stakeholder conversations with energy-market participants underway.
 
 ---
 
