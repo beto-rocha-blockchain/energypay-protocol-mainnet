@@ -758,7 +758,7 @@ router.post("/:id/execute-settlement", requireAuth, async (req, res) => {
     }
 
     // Persist to settlements table for reconciliation/audit feed
-    await supabase
+    const { error: settlErr } = await supabase
       .from("settlements")
       .insert({
         settlement_id: `CNT-${contract.id.slice(0, 8)}`,
@@ -777,8 +777,8 @@ router.post("/:id/execute-settlement", requireAuth, async (req, res) => {
         epwr_amount: Number(contract.volume_mwh) * Number(contract.pld_brl || contract.price_brl),
         counterparty_risk_verified: settled.risk_status === "CLEARED",
         risk_status: settled.risk_status || "BYPASSED",
-      })
-      .catch((err) => console.warn("settlements insert non-fatal:", err.message));
+      });
+    if (settlErr) console.warn("settlements insert non-fatal:", settlErr.message);
 
     return res.json({
       success: true,

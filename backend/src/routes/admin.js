@@ -309,13 +309,20 @@ const USER_SELECT =
 
 // Audit helper — fire-and-forget
 async function logAudit({ actorId, targetId = null, action, details = {}, ip = null }) {
-  await supabase.from("admin_audit_log").insert([{
-    actor_id:   actorId,
-    target_id:  targetId,
-    action,
-    details,
-    ip_address: ip,
-  }]).catch(err => console.error("[audit]", err.message));
+  // Supabase query builder is thenable but has no .catch() — handle via try/catch
+  // and the returned { error } so audit logging never throws into the caller.
+  try {
+    const { error } = await supabase.from("admin_audit_log").insert([{
+      actor_id:   actorId,
+      target_id:  targetId,
+      action,
+      details,
+      ip_address: ip,
+    }]);
+    if (error) console.error("[audit]", error.message);
+  } catch (err) {
+    console.error("[audit]", err.message);
+  }
 }
 
 /**
