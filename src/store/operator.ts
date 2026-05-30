@@ -548,8 +548,6 @@ export const useOperator = create<OperatorState>()((set, get) => ({
     };
     setSession(session);
 
-    localStorage.setItem("token", res.token);
-
     const id = identityFromSession(session);
     set({ operator: id, isAuthenticated: true });
     return id;
