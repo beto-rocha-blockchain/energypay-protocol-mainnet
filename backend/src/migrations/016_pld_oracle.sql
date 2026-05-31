@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS pld_snapshots (
   unit            TEXT NOT NULL DEFAULT 'BRL/MWh',
   source          TEXT NOT NULL,                      -- CCEE_DADOS_ABERTOS | ONS_CMO_BOUNDED | CSV_UPLOAD | MANUAL | MOCK
   ingestion_mode  TEXT NOT NULL,                      -- automatic | csv_upload | manual_override | mock
+  is_official     BOOLEAN NOT NULL DEFAULT FALSE,     -- TRUE only for CCEE_PLD_OFFICIAL / CCEE_CSV_OFFICIAL
   status          TEXT NOT NULL DEFAULT 'pending',    -- validated | stale | failed | pending | manual_override
   pld_min_brl     NUMERIC(18, 2),                     -- ANEEL limits in force when snapshotted
   pld_max_brl     NUMERIC(18, 2),
@@ -35,6 +36,9 @@ CREATE TABLE IF NOT EXISTS pld_snapshots (
 
 CREATE INDEX IF NOT EXISTS idx_pld_snapshots_lookup
   ON pld_snapshots (submarket, reference_date, hour, status);
+
+-- Patch pre-existing pld_snapshots tables (is_official added after initial create).
+ALTER TABLE pld_snapshots ADD COLUMN IF NOT EXISTS is_official BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- The PLD snapshot a contract settlement was pinned to (audit anchor).
 ALTER TABLE contracts ADD COLUMN IF NOT EXISTS pld_snapshot_id UUID REFERENCES pld_snapshots(id);

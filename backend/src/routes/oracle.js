@@ -15,6 +15,13 @@
 
 import express from "express";
 import { getPldLimits, boundCmoToPld } from "../lib/pldLimits.js";
+import { requireAuth, requirePlatformRole } from "../middleware/auth.js";
+import {
+  createSnapshot,
+  getSnapshot,
+  resolveValidatedSnapshot,
+  listSnapshots,
+} from "../services/pldOracleService.js";
 
 const router = express.Router();
 
@@ -284,6 +291,102 @@ function aggregateBy(rows, keyFn) {
       return point;
     });
 }
+
+// ─── PLD Oracle: validated, immutable, audit-anchored snapshots ──────────────
+// Source taxonomy + official-vs-proxy live in pldOracleService.js. Settlement
+// consumes ONLY a validated snapshot id (never "the current PLD").
+
+// Admin — ingest an OFFICIAL CCEE CSV batch or an audited MANUAL override.
+router.post("/pld/ingest", requirePlatformRole("PLATFORM_OWNER", "PLATFORM_ADMIN"), async (req, res) => {
+  try {
+    const ingestedBy = req.operator?.sub || req.operator?.id || null;
+    const { mode } = req.body || {};
+
+    if (mode === "manual") {
+      const { submarket, reference_date, hour = null, price_brl, dataset_version } = req.body;
+      const snapshot = await createSnapshot({
+        submarket,
+        referenceDate: reference_date,
+        hour,
+        priceBrl: price_brl,
+        source: "MANUAL_OVERRIDE",
+        datasetVersion: dataset_version || null,
+        ingestedBy,
+      });
+      return res.json({ success: true, snapshot });
+    }
+
+    if (mode === "csv") {
+      const rows = Array.isArray(req.body.rows) ? req.body.rows : [];
+      if (!rows.length) return res.status(400).json({ success: false, error: "rows[] required for csv mode." });
+      const snapshots = [];
+      for (const r of rows) {
+        snapshots.push(
+          await createSnapshot({
+            submarket: r.submarket,
+            referenceDate: r.reference_date,
+            hour: r.hour ?? null,
+            priceBrl: r.price_brl,
+            source: "CCEE_CSV_OFFICIAL",
+            datasetVersion: req.body.dataset_version || null,
+            ingestedBy,
+          }),
+        );
+      }
+      return res.json({ success: true, count: snapshots.length, snapshots });
+    }
+
+    return res.status(400).json({ success: false, error: "mode must be 'manual' or 'csv'." });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Resolve (or create) a validated snapshot for a period. Settlement prep uses
+// the returned snapshot id; never the live feed.
+router.post("/pld/snapshot", requireAuth, async (req, res) => {
+  try {
+    const { submarket, reference_date, hour = null, allow_mock = false } = req.body || {};
+    if (!submarket || !reference_date) {
+      return res.status(400).json({ success: false, error: "submarket and reference_date are required." });
+    }
+    const snapshot = await resolveValidatedSnapshot({
+      submarket,
+      referenceDate: reference_date,
+      hour,
+      allowMock: !!allow_mock,
+      ingestedBy: req.operator?.sub || null,
+    });
+    if (!snapshot) {
+      return res.status(404).json({
+        success: false,
+        error: "No validated PLD snapshot available for the requested period.",
+        code: "NO_PLD_SNAPSHOT",
+      });
+    }
+    return res.json({ success: true, snapshot });
+  } catch (err) {
+    return res.status(502).json({ success: false, error: err.message });
+  }
+});
+
+router.get("/pld/snapshot/:id", requireAuth, async (req, res) => {
+  const snapshot = await getSnapshot(req.params.id);
+  if (!snapshot) return res.status(404).json({ success: false, error: "Snapshot not found." });
+  return res.json({ success: true, snapshot });
+});
+
+router.get("/pld/snapshots", requireAuth, async (req, res) => {
+  try {
+    const snapshots = await listSnapshots({
+      submarket: req.query.submarket || null,
+      referenceDate: req.query.reference_date || null,
+    });
+    return res.json({ success: true, snapshots });
+  } catch (err) {
+    return res.status(502).json({ success: false, error: err.message });
+  }
+});
 
 /**
  * Pre-warm the multi-year cache on startup so the ANO chart renders
