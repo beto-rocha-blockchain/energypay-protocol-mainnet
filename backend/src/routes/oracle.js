@@ -14,6 +14,7 @@
  */
 
 import express from "express";
+import { getPldLimits, boundCmoToPld } from "../lib/pldLimits.js";
 
 const router = express.Router();
 
@@ -147,6 +148,10 @@ router.get("/pld", async (_req, res) => {
     // Get all rows for the latest timestamp
     const latest = rows.filter((r) => r.timestamp === latestTs);
 
+    // PLD = CMO bounded by the ANEEL floor/ceiling (PLD horário) in force for the
+    // reference year. CMO alone is NOT the PLD — it must be clamped to the limits.
+    const pldYear = Number(latestTs.slice(0, 4)) || new Date().getFullYear();
+    const pldLimits = getPldLimits(pldYear);
     const prices = latest.map((r) => ({
       submercado: SUBSISTEMA_MAP[r.subsistema] || r.subsistema,
       subsistema: r.subsistema,
@@ -154,12 +159,16 @@ router.get("/pld", async (_req, res) => {
       // but the correct label for the combined pricing zone is "Sudeste/Centro-Oeste".
       nome: NOME_MAP[r.subsistema] || r.nome,
       cmo_brl_mwh: r.cmo,
+      pld_brl_mwh: boundCmoToPld(r.cmo, pldYear),
       timestamp: r.timestamp,
     }));
 
     return res.json({
       success: true,
       source: "ONS — Custo Marginal de Operação",
+      pld_source: "ONS_CMO_BOUNDED",
+      methodology: "PLD = CMO (ONS) bounded by ANEEL PLDmín/PLDmáx horário",
+      pld_limits: { year: pldYear, min_brl: pldLimits.min, max_hourly_brl: pldLimits.maxHourly },
       dataset: "cmo_semi_horario",
       updated_at: latestTs,
       prices,
