@@ -2,6 +2,8 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "EnergyPay backend",
+  "private": true,
+  "license": "UNLICENSED",
   "main": "src/app.js",
   "type": "module",
   "scripts": {
