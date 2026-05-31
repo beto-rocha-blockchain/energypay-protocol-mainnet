@@ -1,135 +1,105 @@
 /**
- * Counterparty Risk Verification Service — EnergyPay Pre-Settlement Layer
+ * Counterparty Risk Assessment — EnergyPay Pre-Settlement Layer (INFORMATIVE).
  *
- * Problem: In CCEE, counterparty default is discovered at D+30–D+60.
- * Solution: Verify EPWR collateral on Stellar Mainnet BEFORE settlement,
- *   enabling instant risk assessment and settlement blocking.
+ * EPWR represents ENERGY (1 EPWR = 1 MWh), NOT money — so this layer no longer
+ * treats EPWR as financial collateral and NEVER blocks settlement. It produces
+ * an informative assessment for the UI / audit / risk panels:
  *
- * Formula:
- *   financial_exposure_brl = volume_mwh × pld_brl
- *   required_collateral_epwr = financial_exposure_brl × 1.1  (10% margin)
- *   authorized = buyer.epwr_balance >= required_collateral_epwr
+ *   exposure_brl    = volume_mwh × pld_brl         (financial exposure of the position)
+ *   energy coverage = counterparty EPWR holdings (MWh) ÷ volume_mwh   (informational)
+ *   risk_band       = LOW | MEDIUM | HIGH | UNKNOWN (from coverage + data availability)
  *
- * 1 EPWR = 1 BRL (platform settlement unit — adjustable via oracle)
+ * Settlement is blocked ONLY by objective violations (missing/invalid PLD
+ * snapshot, supply cap exceeded, invalid contract) enforced in the settlement
+ * routes — never here. Real financial collateral (a BRL-stable / USDC escrow)
+ * is a future layer, pending product/legal (Eduardo).
  */
 
 import { horizon } from "../lib/stellar-network.js";
 
-const SAFETY_MARGIN = 1.1; // 10% overcollateralization
 const MARGIN_PCT = 10;
+const SAFETY_MARGIN = 1.1; // reference over-coverage margin (informational)
+const round2 = (n) => Math.round(n * 100) / 100;
 
-/**
- * Verify counterparty collateral sufficiency on Stellar Mainnet.
- *
- * @param {string} buyerPublicKey  - Stellar G-address of the buyer
- * @param {number} volumeMwh       - Contract volume in MWh
- * @param {number} pldBrl          - PLD settlement price in BRL/MWh
- * @returns {Promise<object>}      - Full risk assessment object
- */
-export async function verifyCounterpartyRisk(buyerPublicKey, volumeMwh, pldBrl) {
-  const epwrIssuer = process.env.EPWR_ISSUER_PUBLIC_KEY;
-
-  const financialExposureBrl = Number(volumeMwh) * Number(pldBrl);
-  const requiredCollateralBrl = financialExposureBrl * SAFETY_MARGIN;
-  const requiredCollateralEpwr = requiredCollateralBrl; // 1 EPWR = 1 BRL
-
-  // If EPWR issuer is not configured, skip verification (bypass mode)
-  if (!epwrIssuer) {
-    console.warn("[RiskVerification] EPWR_ISSUER_PUBLIC_KEY not set — bypassing risk check.");
-    return {
-      authorized: true,
-      riskStatus: "BYPASSED",
-      reason: "EPWR_ISSUER_PUBLIC_KEY not configured — risk check bypassed.",
-      financialExposureBrl,
-      requiredCollateralBrl,
-      requiredCollateralEpwr,
-      availableEpwr: 0,
-      coverageRatio: 0,
-      marginPct: MARGIN_PCT,
-    };
-  }
-
-  try {
-    const account = await horizon.loadAccount(buyerPublicKey);
-
-    // Find EPWR balance in the account's trustlines
-    const epwrBalance = account.balances.find(
-      (b) => b.asset_type !== "native" && b.asset_code === "EPWR" && b.asset_issuer === epwrIssuer,
-    );
-
-    // Account exists but has no EPWR trustline
-    if (!epwrBalance) {
-      return {
-        authorized: false,
-        riskStatus: "NO_EPWR_TRUSTLINE",
-        reason: `Buyer account ${buyerPublicKey.slice(0, 8)}… has no EPWR trustline with issuer ${epwrIssuer.slice(0, 8)}….`,
-        financialExposureBrl,
-        requiredCollateralBrl,
-        requiredCollateralEpwr,
-        availableEpwr: 0,
-        coverageRatio: 0,
-        marginPct: MARGIN_PCT,
-      };
-    }
-
-    const availableEpwr = Number(epwrBalance.balance);
-    const coverageRatio =
-      requiredCollateralEpwr > 0 ? availableEpwr / requiredCollateralEpwr : 0;
-    const authorized = availableEpwr >= requiredCollateralEpwr;
-
-    return {
-      authorized,
-      riskStatus: authorized ? "CLEARED" : "INSUFFICIENT_COLLATERAL",
-      reason: authorized
-        ? `Collateral sufficient. Buyer holds ${availableEpwr.toFixed(7)} EPWR; required ${requiredCollateralEpwr.toFixed(7)} EPWR (coverage ${(coverageRatio * 100).toFixed(1)}%).`
-        : `Insufficient collateral. Buyer holds ${availableEpwr.toFixed(7)} EPWR; required ${requiredCollateralEpwr.toFixed(7)} EPWR (coverage ${(coverageRatio * 100).toFixed(1)}%, shortfall ${(requiredCollateralEpwr - availableEpwr).toFixed(7)} EPWR).`,
-      financialExposureBrl,
-      requiredCollateralBrl,
-      requiredCollateralEpwr,
-      availableEpwr,
-      coverageRatio,
-      marginPct: MARGIN_PCT,
-    };
-  } catch (err) {
-    // Horizon 404 — account does not exist on Stellar Mainnet
-    if (err?.response?.status === 404 || err?.status === 404) {
-      return {
-        authorized: false,
-        riskStatus: "ACCOUNT_NOT_FOUND",
-        reason: `Buyer account ${buyerPublicKey.slice(0, 8)}… not found on Stellar Mainnet.`,
-        financialExposureBrl,
-        requiredCollateralBrl,
-        requiredCollateralEpwr,
-        availableEpwr: 0,
-        coverageRatio: 0,
-        marginPct: MARGIN_PCT,
-      };
-    }
-
-    console.error("[RiskVerification] Horizon error:", err.message);
-    return {
-      authorized: false,
-      riskStatus: "VERIFICATION_FAILED",
-      reason: `Risk verification failed: ${err.message}`,
-      financialExposureBrl,
-      requiredCollateralBrl,
-      requiredCollateralEpwr,
-      availableEpwr: 0,
-      coverageRatio: 0,
-      marginPct: MARGIN_PCT,
-    };
-  }
+function riskBand(status, coverageRatio) {
+  if (status !== "ASSESSED") return "UNKNOWN";
+  if (coverageRatio >= 1) return "LOW";
+  if (coverageRatio >= 0.5) return "MEDIUM";
+  return "HIGH";
 }
 
 /**
- * Convenience helper — returns true only when collateral is sufficient.
+ * Informative counterparty assessment. Never throws to block; on any issue it
+ * returns a status the caller can display. `authorized` is always true (kept for
+ * backward compatibility — risk no longer gates settlement).
  *
- * @param {string} buyerPublicKey
+ * @param {string} counterpartyPublicKey
  * @param {number} volumeMwh
  * @param {number} pldBrl
- * @returns {Promise<boolean>}
  */
-export async function canSettle(buyerPublicKey, volumeMwh, pldBrl) {
-  const result = await verifyCounterpartyRisk(buyerPublicKey, volumeMwh, pldBrl);
-  return result.authorized;
+export async function verifyCounterpartyRisk(counterpartyPublicKey, volumeMwh, pldBrl) {
+  const exposureBrl = round2(Number(volumeMwh) * Number(pldBrl));
+  const base = {
+    authorized: true, // risk is informative — objective gates block, not this
+    volumeMwh: Number(volumeMwh),
+    pldBrl: Number(pldBrl),
+    exposureBrl,
+    exposureWithMarginBrl: round2(exposureBrl * SAFETY_MARGIN),
+    marginPct: MARGIN_PCT,
+    availableEpwr: 0,
+    coverageRatio: 0,
+  };
+
+  const epwrIssuer = process.env.EPWR_ISSUER_PUBLIC_KEY;
+  if (!epwrIssuer) {
+    return {
+      ...base,
+      riskStatus: "ISSUER_NOT_CONFIGURED",
+      riskBand: "UNKNOWN",
+      reason: "EPWR issuer not configured — energy coverage not read; exposure reported for information only.",
+    };
+  }
+  if (!counterpartyPublicKey) {
+    return { ...base, riskStatus: "ACCOUNT_NOT_FOUND", riskBand: "UNKNOWN", reason: "No counterparty public key provided." };
+  }
+
+  try {
+    const account = await horizon.loadAccount(counterpartyPublicKey);
+    const epwr = account.balances.find(
+      (b) => b.asset_type !== "native" && b.asset_code === "EPWR" && b.asset_issuer === epwrIssuer,
+    );
+    if (!epwr) {
+      return {
+        ...base,
+        riskStatus: "NO_EPWR_TRUSTLINE",
+        riskBand: "UNKNOWN",
+        reason: `Counterparty ${counterpartyPublicKey.slice(0, 8)}… has no EPWR trustline (informational).`,
+      };
+    }
+    const availableEpwr = Number(epwr.balance);
+    const coverageRatio = Number(volumeMwh) > 0 ? availableEpwr / Number(volumeMwh) : 0;
+    return {
+      ...base,
+      availableEpwr,
+      coverageRatio: Math.round(coverageRatio * 10000) / 10000,
+      riskStatus: "ASSESSED",
+      riskBand: riskBand("ASSESSED", coverageRatio),
+      reason: `Exposure R$ ${exposureBrl.toFixed(2)} · counterparty holds ${availableEpwr.toFixed(2)} EPWR (energy) = ${(coverageRatio * 100).toFixed(0)}% of volume (informational).`,
+    };
+  } catch (err) {
+    if (err?.response?.status === 404 || err?.status === 404) {
+      return {
+        ...base,
+        riskStatus: "ACCOUNT_NOT_FOUND",
+        riskBand: "UNKNOWN",
+        reason: `Counterparty ${counterpartyPublicKey.slice(0, 8)}… not found on Stellar Mainnet (informational).`,
+      };
+    }
+    return { ...base, riskStatus: "VERIFICATION_FAILED", riskBand: "UNKNOWN", reason: `Assessment failed: ${err.message}` };
+  }
+}
+
+/** @deprecated Risk no longer gates settlement — always returns true. */
+export async function canSettle() {
+  return true;
 }

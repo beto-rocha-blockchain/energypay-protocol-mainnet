@@ -674,53 +674,27 @@ router.post("/:id/execute-settlement", requireAuth, async (req, res) => {
         .eq("id", instrCheck.id);
     }
 
-    // ── PRE-SETTLEMENT RISK ENFORCEMENT ──
-    // Block settlement when collateral is insufficient (only when EPWR_ISSUER_PUBLIC_KEY is set).
-    if (process.env.EPWR_ISSUER_PUBLIC_KEY && contract.buyer_public_key &&
-        contract.volume_mwh > 0 && (contract.pld_brl > 0 || contract.price_brl > 0)) {
-      try {
-        const { verifyCounterpartyRisk } = await import("../services/riskVerificationService.js");
-        const effectivePld = Number(pldSnap.price_brl);
-        const risk = await verifyCounterpartyRisk(
-          contract.buyer_public_key,
-          Number(contract.volume_mwh),
-          effectivePld,
-        );
-
-        // Persist latest risk assessment before deciding
-        await supabase.from("contracts").update({
-          risk_status: risk.riskStatus,
-          collateral_required_brl: risk.requiredCollateralBrl,
-          collateral_available_epwr: risk.availableEpwr,
-          coverage_ratio: risk.coverageRatio,
-          risk_verified_at: new Date().toISOString(),
-        }).eq("id", req.params.id);
-
-        if (!risk.authorized) {
-          // Revert state to previous (undo BROADCASTING transition)
-          await supabase
-            .from("contracts")
-            .update({ state: contract.state })
-            .eq("id", req.params.id);
-
-          await addMovement(req.params.id, {
-            fromState: "BROADCASTING",
-            toState: contract.state,
-            actorUserId: userId,
-            notes: `Settlement blocked by pre-settlement risk check: ${risk.riskStatus} — ${risk.reason}`,
-          });
-
-          return res.status(402).json({
-            success: false,
-            error: "Settlement blocked: insufficient counterparty collateral.",
-            code: "INSUFFICIENT_COLLATERAL",
-            risk,
-          });
-        }
-      } catch (riskErr) {
-        // Risk check failure is non-fatal for execute-settlement — log and proceed
-        console.warn("[Contracts] execute-settlement risk check non-fatal:", riskErr.message);
-      }
+    // ── PRE-SETTLEMENT RISK ASSESSMENT (informative, non-blocking) ──
+    // EPWR is energy, not collateral, so this NEVER blocks settlement. The
+    // objective gates above (PLD snapshot, supply cap, contract validity) are
+    // what block. Here we only compute + persist exposure/coverage for audit/UI.
+    try {
+      const { verifyCounterpartyRisk } = await import("../services/riskVerificationService.js");
+      const risk = await verifyCounterpartyRisk(
+        contract.buyer_public_key,
+        Number(contract.volume_mwh),
+        Number(pldSnap.price_brl),
+      );
+      await supabase.from("contracts").update({
+        risk_status: risk.riskStatus,
+        risk_band: risk.riskBand,
+        exposure_brl: risk.exposureBrl,
+        collateral_available_epwr: risk.availableEpwr,
+        coverage_ratio: risk.coverageRatio,
+        risk_verified_at: new Date().toISOString(),
+      }).eq("id", req.params.id);
+    } catch (riskErr) {
+      console.warn("[Contracts] execute-settlement risk assessment non-fatal:", riskErr.message);
     }
 
     // ── STELLAR TX ──

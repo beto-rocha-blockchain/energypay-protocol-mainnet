@@ -193,7 +193,8 @@ router.post("/pre-verify", requireAuth, async (req, res) => {
     if (contract_id) {
       await supabase.from("contracts").update({
         risk_status: result.riskStatus,
-        collateral_required_brl: result.requiredCollateralBrl,
+        risk_band: result.riskBand,
+        exposure_brl: result.exposureBrl,
         collateral_available_epwr: result.availableEpwr,
         coverage_ratio: result.coverageRatio,
         risk_verified_at: new Date().toISOString(),
