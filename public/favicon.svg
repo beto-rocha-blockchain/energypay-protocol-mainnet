@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="ep-fav" x1="50" y1="8" x2="50" y2="92" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#66E619"/>
+      <stop offset="100%" stop-color="#00C8EE"/>
+    </linearGradient>
+  </defs>
+  <!-- Open ring (two arcs, gaps aligned to the bolt tips) -->
+  <path d="M 74.7 16 A 42 42 0 0 1 50.7 92" fill="none" stroke="url(#ep-fav)" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 29.6 86.7 A 42 42 0 0 1 54.4 8.2" fill="none" stroke="url(#ep-fav)" stroke-width="6" stroke-linecap="round"/>
+  <!-- Lightning bolt -->
+  <path d="M 64 11 L 27 52 H 46 L 42 89 L 73 48 H 54 Z" fill="url(#ep-fav)"/>
+</svg>
