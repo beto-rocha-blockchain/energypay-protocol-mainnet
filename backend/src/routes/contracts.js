@@ -19,6 +19,7 @@ import {
 } from "../services/tokenService.js";
 import { horizon } from "../lib/stellar-network.js";
 import { resolveValidatedSnapshot } from "../services/pldOracleService.js";
+import { computeSettlement } from "../lib/supplyCap.js";
 
 // Default PLD reference when a contract doesn't specify one. SE/CO is the main
 // submarket; hour 14 is a representative intraday reference. (Per-hour-series
@@ -633,6 +634,25 @@ router.post("/:id/execute-settlement", requireAuth, async (req, res) => {
       });
     }
 
+    // Supply cap + partial settlement: this tranche must not exceed the
+    // contracted volume (emitted + this ≤ cap). Blocks before any state change.
+    const cap = computeSettlement({
+      volumeMwh: contract.volume_mwh,
+      settledMwh: contract.settled_mwh,
+      requestedMwh: req.body?.settle_mwh,
+    });
+    if (!cap.ok) {
+      return res.status(cap.code === "ALREADY_SETTLED" ? 409 : 422).json({
+        success: false,
+        error: cap.error,
+        code: cap.code,
+        remaining_mwh: cap.remaining,
+        volume_mwh: Number(contract.volume_mwh),
+        settled_mwh: Number(contract.settled_mwh || 0),
+      });
+    }
+    const { settleAmount, newSettled, fullySettled } = cap;
+
     // Transition to BROADCASTING
     await supabase
       .from("contracts")
@@ -708,7 +728,7 @@ router.post("/:id/execute-settlement", requireAuth, async (req, res) => {
     const result = await atomicTokenizeContract({
       buyerPublicKey: contract.buyer_public_key,
       sellerPublicKey: contract.seller_public_key || getDistributionAddress(),
-      volumeMWh: Number(contract.volume_mwh),
+      volumeMWh: settleAmount,
       priceBRL: Number(contract.price_brl),
       contractNumber: contract.contract_number || contract.id,
       startDate: contract.start_date,
@@ -754,8 +774,9 @@ router.post("/:id/execute-settlement", requireAuth, async (req, res) => {
     const { data: settled, error: upErr } = await supabase
       .from("contracts")
       .update({
-        status: "SETTLED",
-        state: "SETTLED",
+        status: fullySettled ? "SETTLED" : "ACTIVE",
+        state: fullySettled ? "SETTLED" : "VALIDATED",
+        settled_mwh: newSettled,
         tx_hash: result.hash,
         ledger: result.ledger,
         finality_ms: finalityMs,
@@ -794,12 +815,12 @@ router.post("/:id/execute-settlement", requireAuth, async (req, res) => {
     const { error: settlErr } = await supabase
       .from("settlements")
       .insert({
-        settlement_id: `CNT-${contract.id.slice(0, 8)}`,
+        settlement_id: `CNT-${contract.id.slice(0, 8)}-${Date.now()}`,
         contract_id: contract.id,
         buyer: contract.buyer_public_key || contract.buyer_label || "—",
         seller: contract.seller_public_key || contract.seller_label || "—",
-        amount_brl: Number(contract.volume_mwh) * Number(contract.price_brl),
-        volume_mwh: Number(contract.volume_mwh),
+        amount_brl: settleAmount * Number(contract.price_brl),
+        volume_mwh: settleAmount,
         pld: Number(pldSnap.price_brl),
         pld_snapshot_id: pldSnap.id,
         tx_hash: result.hash,
@@ -807,8 +828,8 @@ router.post("/:id/execute-settlement", requireAuth, async (req, res) => {
         finality_ms: finalityMs,
         status: "SETTLED",
         // Pre-settlement risk audit columns
-        energy_qty_mwh: Number(contract.volume_mwh),
-        epwr_amount: Number(contract.volume_mwh), // EPWR moved on-chain = volume in MWh (1 EPWR = 1 MWh)
+        energy_qty_mwh: settleAmount,
+        epwr_amount: settleAmount, // EPWR moved on-chain = MWh settled in this tranche (1 EPWR = 1 MWh)
         counterparty_risk_verified: settled.risk_status === "CLEARED",
         risk_status: settled.risk_status || "BYPASSED",
       });
@@ -1017,6 +1038,7 @@ router.post("/:id/approve", requireAuth, async (req, res) => {
             ledger: atomicResult.ledger,
             finality_ms: finalityMs,
             pld_snapshot_id: pldSnap.id,
+            settled_mwh: contract.volume_mwh,
           })
           .eq("id", contract.id);
 
