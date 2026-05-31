@@ -104,7 +104,7 @@ function P2PPage() {
   const [destinationOrg, setDestinationOrg] = useState("");
   const [destinationAddress, setDestinationAddress] = useState("");
   const [amount, setAmount] = useState<string>("");
-  const [asset, setAsset] = useState<P2PAsset>("EPWR");
+  const [asset, setAsset] = useState<P2PAsset>("XLM");
   const [memo, setMemo] = useState("");
 
   const [running, setRunning] = useState(false);
@@ -646,10 +646,12 @@ function P2PPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="EPWR">EPWR · Energy Power Token</SelectItem>
                     <SelectItem value="XLM">XLM · Stellar Lumen</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="font-mono text-[10px] text-muted-foreground">
+                  EPWR is settled only through energy contracts, not direct P2P.
+                </p>
                 {fieldError?.field === "asset" && (
                   <p className="font-mono text-[10px] text-destructive">
                     server · {fieldError.message}

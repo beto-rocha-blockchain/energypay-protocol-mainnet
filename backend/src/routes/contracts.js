@@ -774,7 +774,7 @@ router.post("/:id/execute-settlement", requireAuth, async (req, res) => {
         status: "SETTLED",
         // Pre-settlement risk audit columns
         energy_qty_mwh: Number(contract.volume_mwh),
-        epwr_amount: Number(contract.volume_mwh) * Number(contract.pld_brl || contract.price_brl),
+        epwr_amount: Number(contract.volume_mwh), // EPWR moved on-chain = volume in MWh (1 EPWR = 1 MWh)
         counterparty_risk_verified: settled.risk_status === "CLEARED",
         risk_status: settled.risk_status || "BYPASSED",
       });

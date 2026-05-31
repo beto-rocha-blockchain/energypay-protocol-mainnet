@@ -20,6 +20,17 @@ router.post("/transfer", requireAuth, async (req, res) => {
       });
     }
 
+    // EPWR represents energy tokenized under a registered bilateral contract; it
+    // must not move via free P2P. It is issued to the buyer only during contract
+    // settlement. P2P is restricted to XLM (fees/funding).
+    const requestedAsset = String(req.body?.asset ?? "XLM").toUpperCase();
+    if (requestedAsset === "EPWR") {
+      return res.status(400).json({
+        error: "EPWR is not transferable via P2P. EPWR moves only through contract settlement.",
+        code: "EPWR_P2P_FORBIDDEN",
+      });
+    }
+
     const payload = {
       ...(req.body ?? {}),
       sender_user_id: req.operator.sub || req.operator.id,

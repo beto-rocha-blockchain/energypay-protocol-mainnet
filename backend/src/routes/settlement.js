@@ -49,6 +49,16 @@ router.post("/prepare", requireAuth, async (req, res) => {
       return res.status(400).json({ success: false, error: "recipient_public_key and amount are required." });
     }
 
+    // EPWR is energy tokenized under a registered contract — it settles only via
+    // the contract flow, never as a free P2P transfer. Restrict this rail to XLM.
+    if (String(asset).toUpperCase() === "EPWR") {
+      return res.status(400).json({
+        success: false,
+        error: "EPWR is not transferable via P2P. EPWR moves only through contract settlement.",
+        code: "EPWR_P2P_FORBIDDEN",
+      });
+    }
+
     const unsignedXdr = await prepareUnsignedXdr({
       senderPublicKey,
       recipientPublicKey: recipient_public_key,
