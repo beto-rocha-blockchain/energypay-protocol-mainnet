@@ -145,6 +145,8 @@ export type AuthResponse = {
 export type RegisterPayload = {
   email: string;
   password: string;
+  document_type?: "INDIVIDUAL" | "COMPANY";
+  cpf_cnpj?: string;
   full_name: string;
   phone?: string;
   organization: string;
@@ -707,6 +709,31 @@ export const apiRejectContract = (id: string, reason?: string) =>
  * Upload the physical contract document (PDF, Word, image, etc.)
  * Uses raw fetch so the file Buffer is sent as the body — no FormData / multer needed.
  */
+export async function apiUploadIdentityDocument(
+  file: File,
+): Promise<{ success: boolean; document_name: string }> {
+  const session = getSession();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/pdf",
+    "x-file-name": encodeURIComponent(file.name),
+  };
+  if (session?.token) headers["Authorization"] = `Bearer ${session.token}`;
+  const res = await fetch(`${API_BASE_URL}/api/auth/identity-document`, {
+    method: "POST",
+    headers,
+    body: file,
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    const msg =
+      data && typeof data === "object" && "error" in data
+        ? String((data as Record<string, unknown>).error)
+        : `Upload failed (${res.status})`;
+    throw new Error(msg);
+  }
+  return data as { success: boolean; document_name: string };
+}
+
 export async function apiUploadContractDocument(
   contractId: string,
   file: File,

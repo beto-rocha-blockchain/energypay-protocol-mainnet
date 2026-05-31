@@ -347,6 +347,8 @@ type OperatorState = {
     walletMode?: "generate" | "link";
     existingPublicKey?: string;
     authorityType?: AuthorityType;
+    documentType?: "INDIVIDUAL" | "COMPANY";
+    cpfCnpj?: string;
   }) => Promise<OperatorIdentity>;
   setRoles: (roles: ParticipantRole[]) => void;
   setCoords: (coords: OperatorCoords | undefined) => void;
@@ -524,6 +526,8 @@ export const useOperator = create<OperatorState>()((set, get) => ({
     walletMode,
     existingPublicKey,
     authorityType,
+    documentType,
+    cpfCnpj,
   }) => {
     if (!roles.length) throw new Error("Select at least one market participant role.");
     const payload: RegisterPayload = {
@@ -532,6 +536,8 @@ export const useOperator = create<OperatorState>()((set, get) => ({
       full_name: fullName,
       phone: phone || undefined,
       organization,
+      document_type: documentType,
+      cpf_cnpj: cpfCnpj,
       country,
       state: state || undefined,
       city,

@@ -85,6 +85,8 @@ router.post("/register", async (req, res) => {
       // existing_secret intentionally NOT accepted — USER_CONTROLLED wallets
       // are identified by public key only; the secret never leaves the user's device.
       energy_type,
+      document_type,
+      cpf_cnpj,
     } = req.body;
 
     if (!email || !password || !full_name) {
@@ -118,6 +120,28 @@ router.post("/register", async (req, res) => {
     if (invalidRoles.length > 0) {
       return res.status(400).json({ success: false, error: `invalid roles: ${invalidRoles.join(", ")}` });
     }
+
+    // Identity document — number required. Brazil must be a valid CPF (11) or CNPJ (14);
+    // other countries accept a generic tax/registration ID (free-form).
+    const rawDoc = String(cpf_cnpj ?? "").trim();
+    const isBrazil = ["brasil", "brazil", "br"].includes(String(country ?? "").trim().toLowerCase());
+    if (!rawDoc) {
+      return res.status(400).json({ success: false, error: "A tax/identity document number is required." });
+    }
+    const docDigits = rawDoc.replace(/\D/g, "");
+    if (isBrazil) {
+      if (docDigits.length !== 11 && docDigits.length !== 14) {
+        return res.status(400).json({ success: false, error: "Brazilian document must be a CPF (11 digits) or CNPJ (14 digits)." });
+      }
+    } else if (rawDoc.length < 4) {
+      return res.status(400).json({ success: false, error: "Document / tax ID is too short." });
+    }
+    // Brazil stores digits (Asaas needs them); other countries keep the raw value.
+    const docNumberToStore = isBrazil ? docDigits : rawDoc;
+    const resolvedDocType =
+      document_type === "INDIVIDUAL" || document_type === "COMPANY"
+        ? document_type
+        : (isBrazil && docDigits.length === 14 ? "COMPANY" : "INDIVIDUAL");
 
     const { data: existingUser } = await supabase
       .from("users")
@@ -270,6 +294,8 @@ router.post("/register", async (req, res) => {
       password: hashedPassword,
       full_name,
       organization,
+      cpf_cnpj: docNumberToStore,
+      document_type: resolvedDocType,
       roles: activeRoles,
       pending_roles: pendingRoles,
       stellar_public_key: publicKey,
@@ -1170,6 +1196,48 @@ router.patch("/profile", requireAuth, async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// =====================================================
+// UPLOAD IDENTITY DOCUMENT (self-service · PDF only)
+// =====================================================
+
+router.post(
+  "/identity-document",
+  requireAuth,
+  express.raw({ type: "*/*", limit: "15mb" }),
+  async (req, res) => {
+    try {
+      const userId = req.operator.sub || req.operator.id;
+      const contentType = req.headers["content-type"] || "";
+      if (!contentType.toLowerCase().includes("application/pdf")) {
+        return res.status(400).json({ success: false, error: "Only PDF files are accepted." });
+      }
+      const rawName = req.headers["x-file-name"]
+        ? decodeURIComponent(req.headers["x-file-name"])
+        : "identity.pdf";
+      const fileName = rawName.replace(/[/\\]/g, "_").slice(0, 200);
+      const storagePath = `${userId}/${Date.now()}_${fileName}`;
+
+      const { error: upErr } = await supabase.storage
+        .from("identity-documents")
+        .upload(storagePath, req.body, { contentType: "application/pdf", upsert: true });
+      if (upErr) {
+        return res.status(500).json({ success: false, error: upErr.message });
+      }
+
+      const { error } = await supabase
+        .from("users")
+        .update({ document_path: storagePath, document_name: fileName })
+        .eq("id", userId);
+      if (error) throw error;
+
+      res.json({ success: true, document_name: fileName });
+    } catch (err) {
+      console.error("[auth/identity-document]", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
 
 // =====================================================
 // SEND PHONE VERIFICATION CODE

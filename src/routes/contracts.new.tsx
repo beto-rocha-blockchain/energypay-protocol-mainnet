@@ -797,10 +797,15 @@ function NewContract() {
                         id="doc-upload"
                         type="file"
                         className="hidden"
-                        accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                        accept="application/pdf,.pdf"
                         onChange={(e) => {
                           const f = e.target.files?.[0];
                           if (!f) return;
+                          if (f.type !== "application/pdf") {
+                            toast.error("Only PDF files are accepted.");
+                            e.target.value = "";
+                            return;
+                          }
                           if (f.size > 15 * 1024 * 1024) {
                             toast.error("File too large — maximum 15 MB.");
                             e.target.value = "";
@@ -813,7 +818,7 @@ function NewContract() {
                     </label>
                   )}
                   <p className="font-mono text-[10px] text-muted-foreground">
-                    Counterparties can review this document before approving. PDF, Word, or image · max 15 MB.
+                    Counterparties can review this document before approving. PDF only · max 15 MB.
                   </p>
                 </div>
               </Field>

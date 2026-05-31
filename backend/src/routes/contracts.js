@@ -1181,6 +1181,9 @@ router.post(
       // Sanitise: strip any path separators
       const fileName = rawFileName.replace(/[/\\]/g, "_").slice(0, 200);
       const contentType = req.headers["content-type"] || "application/octet-stream";
+      if (!contentType.toLowerCase().includes("application/pdf")) {
+        return res.status(400).json({ success: false, error: "Only PDF files are accepted." });
+      }
       const storagePath = `${contractId}/${Date.now()}_${fileName}`;
 
       const { error: uploadErr } = await supabase.storage

@@ -54,7 +54,7 @@ import { BrandBadge, BrandName } from "@/components/BrandLogo";
 import { useUiStore, type Theme } from "@/store/ui";
 import { toast } from "sonner";
 import { safeErrorMessage } from "@/lib/safe-error";
-import { apiResendVerification, apiSendPhoneCode, apiVerifyPhoneCode } from "@/lib/api";
+import { apiResendVerification, apiSendPhoneCode, apiVerifyPhoneCode, apiUploadIdentityDocument } from "@/lib/api";
 import { getSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
@@ -116,6 +116,9 @@ function RegisterPage() {
   const [energyType, setEnergyType] = useState<
     "SOLAR" | "HYDRO" | "SMALL_HYDRO" | "WIND" | "BIOMASS" | "NATURAL_GAS" | "NUCLEAR" | "THERMAL" | "COGENERATION"
   >("SOLAR");
+  const [documentType, setDocumentType] = useState<"INDIVIDUAL" | "COMPANY">("INDIVIDUAL");
+  const [documentNumber, setDocumentNumber] = useState("");
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
   // NOTE: authorityType / REGULATORY_AUTHORITY removed from public onboarding.
   // TODO: Regulatory/Institutional oversight access should remain internal/admin-only
   // or future enterprise configuration. Must not be exposed in the public onboarding flow.
@@ -157,6 +160,29 @@ useEffect(() => {
   const availableCities = useMemo(() => getCities(country, state || undefined), [country, state]);
   const stateRequired = availableStates.length > 0;
 
+  // Identity document — country-aware. Brazil validates CPF (11) / CNPJ (14);
+  // other countries accept a generic tax/registration ID.
+  const isBrazil = useMemo(
+    () => ["br", "bra", "brasil", "brazil"].includes(country.trim().toLowerCase()),
+    [country],
+  );
+  const docValid = useMemo(() => {
+    const raw = documentNumber.trim();
+    if (!raw) return false;
+    if (isBrazil) {
+      const d = raw.replace(/\D/g, "");
+      return documentType === "COMPANY" ? d.length === 14 : d.length === 11;
+    }
+    return raw.length >= 4;
+  }, [documentNumber, isBrazil, documentType]);
+  const docLabel = !isBrazil ? "Tax / Registration ID" : documentType === "COMPANY" ? "CNPJ" : "CPF";
+  const docPlaceholder = !isBrazil
+    ? "Tax / registration number"
+    : documentType === "COMPANY" ? "00.000.000/0000-00" : "000.000.000-00";
+  const docHint = !isBrazil
+    ? "Enter at least 4 characters."
+    : documentType === "COMPANY" ? "CNPJ must have 14 digits." : "CPF must have 11 digits.";
+
   const formValid = useMemo(
     () =>
       fullName.trim() &&
@@ -166,10 +192,11 @@ useEffect(() => {
       country.trim() &&
       (!stateRequired || state.trim()) &&
       city.trim() &&
+      docValid &&
       roles.length > 0 &&
       phoneValid &&
       linkValid,
-    [fullName, email, password, organization, country, state, stateRequired, city, roles, phoneValid, linkValid],
+    [fullName, email, password, organization, country, state, stateRequired, city, docValid, roles, phoneValid, linkValid],
   );
 
   const provisioningSteps = useMemo(
@@ -211,7 +238,17 @@ useEffect(() => {
         energyType: roles.includes("GENERATOR") ? energyType : undefined,
         walletMode,
         existingPublicKey: walletMode === "link" ? existingPublicKey : undefined,
+        documentType,
+        cpfCnpj: documentNumber.trim(),
       });
+      // Optional identity PDF — non-blocking (session is set by register()).
+      if (documentFile) {
+        try {
+          await apiUploadIdentityDocument(documentFile);
+        } catch (uploadErr) {
+          toast.error(`Identity document upload failed (you can add it later): ${(uploadErr as Error).message}`);
+        }
+      }
       setProvisionError(null);
       setStep("verify-email");
     } catch (err) {
@@ -588,6 +625,80 @@ useEffect(() => {
                       />
                     )}
                   </GeoSelectField>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                  § 02c · Identity Document
+                </div>
+                <div className="mt-2 grid gap-3 md:grid-cols-3">
+                  <Field label="Identity Type" icon={<ShieldCheck className="h-3.5 w-3.5" />}>
+                    <Select
+                      value={documentType}
+                      onValueChange={(v) => setDocumentType(v as "INDIVIDUAL" | "COMPANY")}
+                    >
+                      <SelectTrigger className="h-9 bg-input font-mono text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="INDIVIDUAL" className="font-mono text-xs">Individual</SelectItem>
+                        <SelectItem value="COMPANY" className="font-mono text-xs">Company</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field label={docLabel} icon={<ShieldCheck className="h-3.5 w-3.5" />} className="md:col-span-2">
+                    <Input
+                      value={documentNumber}
+                      onChange={(e) => setDocumentNumber(e.target.value)}
+                      placeholder={docPlaceholder}
+                      className="h-9 pl-8 font-mono text-xs"
+                    />
+                  </Field>
+
+                  <div className="md:col-span-3">
+                    <input
+                      id="id-doc"
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        if (f.type !== "application/pdf") {
+                          toast.error("Only PDF files are accepted.");
+                          e.target.value = "";
+                          return;
+                        }
+                        if (f.size > 15 * 1024 * 1024) {
+                          toast.error("File too large — maximum 15 MB.");
+                          e.target.value = "";
+                          return;
+                        }
+                        setDocumentFile(f);
+                        e.target.value = "";
+                      }}
+                    />
+                    <label
+                      htmlFor="id-doc"
+                      className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border bg-background/20 px-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                    >
+                      {documentFile ? `Attached · ${documentFile.name}` : "Attach document · PDF · optional"}
+                    </label>
+                    {documentFile && (
+                      <button
+                        type="button"
+                        onClick={() => setDocumentFile(null)}
+                        className="mt-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-destructive"
+                      >
+                        Remove document
+                      </button>
+                    )}
+                    {documentNumber.trim() && !docValid && (
+                      <p className="mt-1 font-mono text-[10px] text-destructive">{docHint}</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
