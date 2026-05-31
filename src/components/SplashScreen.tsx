@@ -120,6 +120,9 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
           style={{
             position: "fixed",
             inset: 0,
+            // Clip the pulsing drop-shadow glow + wordmark to the viewport so a
+            // transient scrollbar never appears during the entry animation.
+            overflow: "hidden",
             zIndex: 9999,
             display: "flex",
             alignItems: "center",
