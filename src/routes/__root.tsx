@@ -274,7 +274,7 @@ function RootComponent() {
       <SplashScreen>
         <QueryClientProvider client={queryClient}>
           <ThemeSync />
-          <div key={pathname} className="ep-page-in min-h-screen w-full bg-background">
+          <div key={pathname} className="ep-page-in-fade min-h-screen w-full bg-background">
             <Outlet />
           </div>
           <Toaster />

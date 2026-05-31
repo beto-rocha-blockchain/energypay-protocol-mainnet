@@ -366,6 +366,19 @@
   .ep-page-in {
     animation: ep-page-in 320ms var(--ease-ops) both;
   }
+  /* Opacity-only entrance for full-height / root wrappers: a translateY on a
+     100vh element pushes its bottom past the viewport (transforms count toward
+     scrollable overflow) and flashes a document scrollbar during the splash. */
+  @keyframes ep-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .ep-page-in-fade {
+    animation: ep-fade-in 320ms var(--ease-ops) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ep-page-in-fade { animation: none; }
+  }
   @media (prefers-reduced-motion: reduce) {
     .ep-page-in {
       animation: none;
