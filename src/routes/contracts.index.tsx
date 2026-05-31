@@ -975,6 +975,33 @@ function ContractsList() {
                     <div className="mt-2 border-t border-border pt-2">
                       <KV k="Net exposure" v={fmtBRL(computeExposure(selected))} mono highlight />
                     </div>
+                    <div className="mt-2 border-t border-border pt-2 space-y-1.5">
+                      <KV k="Submarket" v={selectedDb?.submarket ?? "—"} mono />
+                      <KV
+                        k="Settled"
+                        v={
+                          selectedDb
+                            ? `${Number(selectedDb.settled_mwh ?? 0).toLocaleString("pt-BR")} / ${Number(selectedDb.volume_mwh).toLocaleString("pt-BR")} MWh (${selectedDb.volume_mwh ? ((Number(selectedDb.settled_mwh ?? 0) / Number(selectedDb.volume_mwh)) * 100).toFixed(0) : 0}%)`
+                            : "—"
+                        }
+                        mono
+                      />
+                      <KV
+                        k="Exposure (PLD)"
+                        v={selectedDb?.exposure_brl != null ? fmtBRL(Number(selectedDb.exposure_brl)) : "—"}
+                        mono
+                      />
+                      <KV
+                        k="Risk"
+                        v={`${selectedDb?.risk_band ?? "—"}${selectedDb?.risk_status ? ` · ${selectedDb.risk_status}` : ""}`}
+                        mono
+                      />
+                      <KV
+                        k="PLD snapshot"
+                        v={selectedDb?.pld_snapshot_id ? `${selectedDb.pld_snapshot_id.slice(0, 8)}…` : "—"}
+                        mono
+                      />
+                    </div>
                   </div>
 
                   <div className="flex h-full flex-col rounded-md border border-border bg-card p-3.5">

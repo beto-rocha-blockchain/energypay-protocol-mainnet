@@ -214,6 +214,7 @@ function AuditPage() {
                 <TableHead className="text-[11px] uppercase tracking-wider">ID</TableHead>
                 <TableHead className="text-[11px] uppercase tracking-wider">Seller</TableHead>
                 <TableHead className="text-right text-[11px] uppercase tracking-wider">Amount</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">PLD snapshot</TableHead>
                 <TableHead className="text-[11px] uppercase tracking-wider">Tx Hash</TableHead>
                 <TableHead className="text-[11px] uppercase tracking-wider">Status</TableHead>
                 <TableHead className="text-[11px] uppercase tracking-wider">When</TableHead>
@@ -228,6 +229,9 @@ function AuditPage() {
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm text-success">
                     {s.amount_brl ? fmtBRL(s.amount_brl) : "—"}
+                  </TableCell>
+                  <TableCell className="font-mono text-[10px] text-muted-foreground">
+                    {s.pld_snapshot_id ? shortHash(s.pld_snapshot_id) : "—"}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">
                     {s.tx_hash && s.tx_hash !== "UNAVAILABLE" ? (

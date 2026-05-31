@@ -26,6 +26,10 @@ export type DashboardSettlement = {
   tx_hash: string;
   ledger: number;
   status: string;
+  pld_snapshot_id?: string | null;
+  energy_qty_mwh?: number | null;
+  epwr_amount?: number | null;
+  risk_status?: string | null;
   created_at: string;
 };
 

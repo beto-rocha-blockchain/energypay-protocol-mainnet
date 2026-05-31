@@ -534,6 +534,16 @@ export type DbContract = {
   tx_hash: string | null;
   ledger: number | null;
   finality_ms: number | null;
+  // PLD oracle + supply cap + informative risk (settlement engine controls)
+  settled_mwh?: number | null;
+  submarket?: string | null;
+  settlement_hour?: number | null;
+  pld_snapshot_id?: string | null;
+  exposure_brl?: number | null;
+  risk_band?: "LOW" | "MEDIUM" | "HIGH" | "UNKNOWN" | null;
+  risk_status?: string | null;
+  coverage_ratio?: number | null;
+  collateral_available_epwr?: number | null;
   settlement_window: string;
   memo: string | null;
   document_path: string | null;
