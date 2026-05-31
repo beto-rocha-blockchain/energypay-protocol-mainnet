@@ -18,6 +18,27 @@ import {
   getEPWRAssetInfo,
 } from "../services/tokenService.js";
 import { horizon } from "../lib/stellar-network.js";
+import { resolveValidatedSnapshot } from "../services/pldOracleService.js";
+
+// Default PLD reference when a contract doesn't specify one. SE/CO is the main
+// submarket; hour 14 is a representative intraday reference. (Per-hour-series
+// settlement is a future finance refinement.)
+const DEFAULT_SUBMARKET = "SE/CO";
+const DEFAULT_SETTLEMENT_HOUR = 14;
+
+/**
+ * Resolve (creating if needed) a VALIDATED, immutable PLD snapshot for a
+ * contract's settlement. Returns the snapshot row, or null so the caller blocks.
+ * Settlement must pin this snapshot id and never read "the current PLD".
+ */
+async function resolveContractPldSnapshot(contract, ingestedBy = null) {
+  const submarket = contract.submarket || DEFAULT_SUBMARKET;
+  const referenceDate = String(
+    contract.settlement_date || contract.end_date || new Date().toISOString().slice(0, 10),
+  ).slice(0, 10);
+  const hour = contract.settlement_hour ?? DEFAULT_SETTLEMENT_HOUR;
+  return resolveValidatedSnapshot({ submarket, referenceDate, hour, allowMock: false, ingestedBy });
+}
 
 const router = express.Router();
 
@@ -601,6 +622,17 @@ router.post("/:id/execute-settlement", requireAuth, async (req, res) => {
       });
     }
 
+    // Golden rule: pin a validated, immutable PLD snapshot — never "the current
+    // PLD". Block settlement if none is available for the period.
+    const pldSnap = await resolveContractPldSnapshot(contract, userId);
+    if (!pldSnap) {
+      return res.status(422).json({
+        success: false,
+        error: "No validated PLD snapshot available for the settlement period.",
+        code: "NO_PLD_SNAPSHOT",
+      });
+    }
+
     // Transition to BROADCASTING
     await supabase
       .from("contracts")
@@ -628,7 +660,7 @@ router.post("/:id/execute-settlement", requireAuth, async (req, res) => {
         contract.volume_mwh > 0 && (contract.pld_brl > 0 || contract.price_brl > 0)) {
       try {
         const { verifyCounterpartyRisk } = await import("../services/riskVerificationService.js");
-        const effectivePld = Number(contract.pld_brl || contract.price_brl);
+        const effectivePld = Number(pldSnap.price_brl);
         const risk = await verifyCounterpartyRisk(
           contract.buyer_public_key,
           Number(contract.volume_mwh),
@@ -727,6 +759,7 @@ router.post("/:id/execute-settlement", requireAuth, async (req, res) => {
         tx_hash: result.hash,
         ledger: result.ledger,
         finality_ms: finalityMs,
+        pld_snapshot_id: pldSnap.id,
       })
       .eq("id", req.params.id)
       .select()
@@ -767,7 +800,8 @@ router.post("/:id/execute-settlement", requireAuth, async (req, res) => {
         seller: contract.seller_public_key || contract.seller_label || "—",
         amount_brl: Number(contract.volume_mwh) * Number(contract.price_brl),
         volume_mwh: Number(contract.volume_mwh),
-        pld: Number(contract.pld_brl || contract.price_brl),
+        pld: Number(pldSnap.price_brl),
+        pld_snapshot_id: pldSnap.id,
         tx_hash: result.hash,
         ledger: result.ledger,
         finality_ms: finalityMs,
@@ -904,8 +938,27 @@ router.post("/:id/approve", requireAuth, async (req, res) => {
 
     let activated = false;
     let atomicSettled = false;
+    let settlementDeferred = false;
 
-    if (allApproved && contract.status === "DRAFT") {
+    // Golden rule: auto-settlement must consume a validated, immutable PLD
+    // snapshot — never "the current PLD". Resolve+pin it before tokenizing.
+    const pldSnap =
+      allApproved && contract.status === "DRAFT"
+        ? await resolveContractPldSnapshot(contract, userId)
+        : null;
+
+    if (allApproved && contract.status === "DRAFT" && !pldSnap) {
+      settlementDeferred = true;
+      await addMovement(contract.id, {
+        fromState: "CREATED",
+        toState: contract.state,
+        actorUserId: userId,
+        notes:
+          "All parties approved, but auto-settlement deferred: no validated PLD snapshot for the period (NO_PLD_SNAPSHOT).",
+      });
+    }
+
+    if (allApproved && contract.status === "DRAFT" && pldSnap) {
       // ── All parties approved → execute atomic Stellar tokenization ──────
       // 1. Auto-provision EPWR trustline for buyer if missing
       try {
@@ -963,6 +1016,7 @@ router.post("/:id/approve", requireAuth, async (req, res) => {
             tx_hash: atomicResult.hash,
             ledger: atomicResult.ledger,
             finality_ms: finalityMs,
+            pld_snapshot_id: pldSnap.id,
           })
           .eq("id", contract.id);
 
@@ -983,7 +1037,8 @@ router.post("/:id/approve", requireAuth, async (req, res) => {
           seller: contract.seller_public_key || getDistributionAddress(),
           amount_brl: Number(contract.volume_mwh) * Number(contract.price_brl),
           volume_mwh: Number(contract.volume_mwh),
-          pld: Number(contract.price_brl),
+          pld: Number(pldSnap.price_brl),
+          pld_snapshot_id: pldSnap.id,
           tx_hash: atomicResult.hash,
           ledger: atomicResult.ledger,
           finality_ms: finalityMs,
@@ -1042,7 +1097,13 @@ router.post("/:id/approve", requireAuth, async (req, res) => {
       }
     }
 
-    return res.json({ success: true, approved: true, activated, atomic_settled: atomicSettled });
+    return res.json({
+      success: true,
+      approved: true,
+      activated,
+      atomic_settled: atomicSettled,
+      settlement_deferred: settlementDeferred,
+    });
   } catch (err) {
     console.error("POST /api/contracts/:id/approve error:", err.message);
     return res.status(500).json({ success: false, error: err.message });
