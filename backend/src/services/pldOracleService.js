@@ -16,7 +16,7 @@
 import crypto from "node:crypto";
 import { supabase } from "../lib/supabase.js";
 import { getPldLimits, boundCmoToPld, isWithinPldLimits } from "../lib/pldLimits.js";
-import { fetchLatestCmoBySubmarket } from "../lib/onsCmo.js";
+import { getCmoForDateHour } from "../lib/onsCmo.js";
 
 // Canonical PLD source taxonomy + governance metadata.
 export const PLD_SOURCES = {
@@ -257,7 +257,7 @@ export async function resolveValidatedSnapshot({
   }
 
   try {
-    const ons = await fetchLatestCmoBySubmarket();
+    const ons = await getCmoForDateHour({ referenceDate, hour });
     const cmo = ons.bySubmarket?.[submarket];
     if (Number.isFinite(cmo)) {
       return await createSnapshot({
@@ -266,7 +266,7 @@ export async function resolveValidatedSnapshot({
         hour,
         priceBrl: cmo,
         source: "ONS_CMO_BOUNDED",
-        datasetVersion: ons.updatedAt || null,
+        datasetVersion: `ONS_CMO ${referenceDate}${hour == null ? "" : ` h${hour}`}`,
         ingestedBy,
       });
     }
