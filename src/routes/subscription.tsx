@@ -482,7 +482,7 @@ function CurrentPlanCard({
           <p className="mt-0.5 font-mono text-xl font-semibold">
             {meta.priceBrl === 0
               ? "Free"
-              : `R$ ${meta.priceBrl.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+              : `US$ ${meta.priceBrl.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
             {meta.priceBrl > 0 && <span className="ml-1 text-[10px] font-normal text-muted-foreground">/year</span>}
           </p>
         </div>
@@ -578,7 +578,7 @@ function PlanCard({
           <p className="font-display text-2xl font-bold">Free</p>
         ) : (
           <p className="font-display text-2xl font-bold">
-            R$ {meta.priceBrl.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            US$ {meta.priceBrl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             <span className="ml-1 text-sm font-normal text-muted-foreground">/year</span>
           </p>
         )}
