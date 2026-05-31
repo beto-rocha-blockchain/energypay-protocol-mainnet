@@ -51,6 +51,7 @@ type PldPrice = {
   subsistema: string;
   nome: string;
   cmo_brl_mwh: number;
+  pld_brl_mwh?: number;
   timestamp: string;
 };
 
@@ -107,6 +108,8 @@ function usePldData() {
   const [range, setRange] = useState<PldRange>("48h");
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [source, setSource] = useState<string>("");
+  const [pldSource, setPldSource] = useState<string>("");
+  const [pldLimits, setPldLimits] = useState<{ year: number; min_brl: number; max_hourly_brl: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,6 +124,8 @@ function usePldData() {
           setPrices(json.prices);
           setUpdatedAt(json.updated_at);
           setSource(json.source);
+          setPldSource(json.pld_source ?? "");
+          setPldLimits(json.pld_limits ?? null);
         }
       }
       setError(null);
@@ -167,7 +172,7 @@ function usePldData() {
     fetchHistory(range);
   }, [fetchPrices, fetchHistory, range]);
 
-  return { prices, history, range, changeRange, updatedAt, source, loading, historyLoading, error, refresh };
+  return { prices, history, range, changeRange, updatedAt, source, pldSource, pldLimits, loading, historyLoading, error, refresh };
 }
 
 /* ── Submercado helpers (built from market config at runtime) ── */
@@ -195,7 +200,7 @@ function OraclePage() {
 
   const { stats, horizon, loading: dashLoading } = useDashboard();
   const { health } = useSettlementRail();
-  const { prices, history, range, changeRange, updatedAt, source, loading: pldLoading, historyLoading, error: pldError, refresh: refreshPld } = usePldData();
+  const { prices, history, range, changeRange, updatedAt, source, pldSource, pldLimits, loading: pldLoading, historyLoading, error: pldError, refresh: refreshPld } = usePldData();
 
   const horizonLatency = horizon?.latency_ms ?? 0;
   const horizonOnline = horizon?.horizon_online ?? false;
@@ -235,6 +240,35 @@ function OraclePage() {
         </div>
       </div>
 
+      {/* PLD source / methodology banner */}
+      <Card className="border-border bg-card px-4 py-2.5">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          <Badge
+            variant="outline"
+            className={`font-mono text-[9px] uppercase tracking-widest ${
+              pldSource === "CCEE_PLD_OFFICIAL" || pldSource === "CCEE_CSV_OFFICIAL"
+                ? "border-success/40 text-success"
+                : "border-amber-400/40 text-amber-400"
+            }`}
+          >
+            {pldSource === "CCEE_PLD_OFFICIAL" || pldSource === "CCEE_CSV_OFFICIAL"
+              ? "Official PLD · CCEE"
+              : "Indicative PLD · ONS CMO bounded by ANEEL"}
+          </Badge>
+          {pldLimits && (
+            <span className="font-mono text-[10px] text-muted-foreground">
+              ANEEL limits {pldLimits.year}: {market.currencySymbol} {pldLimits.min_brl.toFixed(2)} – {pldLimits.max_hourly_brl.toFixed(2)} /{market.energyUnit}
+            </span>
+          )}
+          <span className="font-mono text-[10px] text-muted-foreground/70">
+            PLD = CMO clamped to the ANEEL floor/ceiling — proxy, not the official CCEE settled PLD.
+          </span>
+          {updatedAt && (
+            <span className="ml-auto font-mono text-[10px] text-muted-foreground">updated {updatedAt}</span>
+          )}
+        </div>
+      </Card>
+
       {/* PLD Price Cards */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {pldLoading && prices.length === 0 ? (
@@ -250,13 +284,13 @@ function OraclePage() {
             return (
               <Card key={p.subsistema} className="border-border bg-card p-3" style={{ borderTopColor: sm?.color, borderTopWidth: "2px" }}>
                 <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                  {market.referencePrice.costLabel} · {sm?.label ?? p.submercado}
+                  {market.referencePrice.label} · {sm?.label ?? p.submercado}
                 </p>
                 <p className="mt-1 font-mono text-2xl font-semibold text-primary">
-                  {market.currencySymbol} {p.cmo_brl_mwh.toFixed(2)}
+                  {market.currencySymbol} {(p.pld_brl_mwh ?? p.cmo_brl_mwh).toFixed(2)}
                 </p>
                 <p className="mt-0.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  /{market.energyUnit} · {sm?.name ?? p.nome}
+                  /{market.energyUnit} · CMO {market.currencySymbol} {p.cmo_brl_mwh.toFixed(2)}
                 </p>
               </Card>
             );

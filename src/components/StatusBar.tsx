@@ -33,6 +33,7 @@ type CryptoData = {
 type PldEntry = {
   submercado:  string;
   cmo_brl_mwh: number;
+  pld_brl_mwh?: number;
 };
 
 type HealthData = {
@@ -183,7 +184,7 @@ function buildItems(
     const entry = pld.find((p) => p.submercado === sub);
     items.push({
       label:   `PLD ${sub}`,
-      value:   entry != null ? fmtMWh(entry.cmo_brl_mwh) : "—",
+      value:   entry != null ? fmtMWh(entry.pld_brl_mwh ?? entry.cmo_brl_mwh) : "—",
       accent:  true,
       primary: sub === userSub,
     });
