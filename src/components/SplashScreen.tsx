@@ -64,15 +64,29 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
     const out = reduced ? 200 : ENTRY_OUT_MS;
     setFadeOutMs(out);
 
+    // Suppress a transient document scrollbar for the splash's lifetime. As the
+    // app mounts/hydrates under the overlay it can momentarily overflow and flash
+    // a scrollbar, which narrows the viewport width and makes the centered logo
+    // jump sideways. Locking html overflow keeps the width — and the logo — steady;
+    // it's restored once the entry splash is gone (idle).
+    const html = document.documentElement;
+    const prevOverflow = html.style.overflow;
+    html.style.overflow = "hidden";
+    const restoreScroll = () => {
+      html.style.overflow = prevOverflow;
+    };
+
     const t1 = setTimeout(() => setPhase("exit"), hold);
     const t2 = setTimeout(() => {
       setPhase("idle");
       entryActiveRef.current = false;
+      restoreScroll();
     }, hold + out);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
+      restoreScroll();
     };
   }, []);
 
