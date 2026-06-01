@@ -160,7 +160,7 @@ function AppHeader() {
             <div className="flex shrink-0 items-center gap-1.5 px-3">
               <svg
                 viewBox="0 0 24 24"
-                className="h-4 w-4 shrink-0 text-success"
+                className="h-6 w-6 shrink-0 text-success"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth={2.5}

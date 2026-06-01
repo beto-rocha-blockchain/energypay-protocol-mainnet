@@ -401,7 +401,7 @@
     stroke-dasharray: 0 15 3 222;
     stroke-dashoffset: 240;
     animation: ep-current 2.2s linear infinite;
-    filter: drop-shadow(0 0 3px currentColor);
+    filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 6px currentColor);
   }
   @media (prefers-reduced-motion: reduce) {
     .ep-current-pulse, .ep-current-dot { animation: none; stroke-dasharray: none; opacity: 0; }
