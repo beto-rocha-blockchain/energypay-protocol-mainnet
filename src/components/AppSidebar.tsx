@@ -451,7 +451,7 @@ export function AppSidebar() {
           <div className="flex flex-col overflow-hidden group-data-[collapsible=icon]:hidden" style={{ gap: "5px" }}>
             <BrandName size="sm" />
             <span className="font-mono text-[9px] uppercase leading-none tracking-[0.22em] text-muted-foreground">
-              Clearing &amp; Settlement OS
+              Programmable Pre-Clearing &amp; Settlement Infrastructure
             </span>
           </div>
         </div>

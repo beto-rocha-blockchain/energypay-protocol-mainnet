@@ -78,7 +78,7 @@ function buildContentStream(receipt) {
   // ── Header ──
   text("EnergyPay", { size: 24, bold: true });
   gap(20);
-  text("Clearing & Settlement OS", { size: 10, gray: 0.45 });
+  text("Programmable Pre-Clearing & Settlement Infrastructure", { size: 10, gray: 0.45 });
   gap(34);
 
   text(receipt.documentTitle || "PAYMENT RECEIPT · RECIBO DE PAGAMENTO", { size: 13, bold: true });

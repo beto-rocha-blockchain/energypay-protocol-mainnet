@@ -214,7 +214,7 @@ function SplashLogoContent({ showWords }: { showWords: boolean }) {
               lineHeight: 1,
             }}
           >
-            Clearing &amp; Settlement OS
+            Programmable Pre-Clearing &amp; Settlement Infrastructure
           </span>
 
           <span

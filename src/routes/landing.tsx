@@ -130,7 +130,7 @@ function LandingPage() {
             <div className="leading-tight">
               <BrandName size="md" />
               <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
-                Clearing &amp; Settlement OS
+                Programmable Pre-Clearing &amp; Settlement Infrastructure
               </div>
             </div>
           </div>
