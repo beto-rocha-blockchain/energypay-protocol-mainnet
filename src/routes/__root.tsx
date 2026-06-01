@@ -159,7 +159,7 @@ function AppHeader() {
           <div className="flex min-w-0 items-center">
             {/* Network (Stellar Mainnet) — first, next to the collapse toggle */}
             <div className="flex shrink-0 items-center gap-1.5 px-3">
-              <Activity className="h-2.5 w-2.5 shrink-0 text-success" />
+              <Activity className="h-4 w-4 shrink-0 text-success ep-live-wave" />
               <span className="font-mono text-[9px] text-foreground/85">
                 {STELLAR_NETWORK_LABEL}
               </span>

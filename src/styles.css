@@ -379,6 +379,21 @@
   @media (prefers-reduced-motion: reduce) {
     .ep-page-in-fade { animation: none; }
   }
+
+  /* Live "electromagnetic wave" pulse — real-time mainnet indicator in the header.
+     Scale + opacity + green glow (currentColor) evoke a pulsing energy signal. */
+  @keyframes ep-live-wave {
+    0%, 100% { opacity: 0.65; transform: scale(0.92); filter: drop-shadow(0 0 1px currentColor); }
+    50%      { opacity: 1;    transform: scale(1.12); filter: drop-shadow(0 0 6px currentColor); }
+  }
+  .ep-live-wave {
+    animation: ep-live-wave 1.5s ease-in-out infinite;
+    transform-origin: center;
+    will-change: transform, filter, opacity;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ep-live-wave { animation: none; filter: drop-shadow(0 0 3px currentColor); }
+  }
   @media (prefers-reduced-motion: reduce) {
     .ep-page-in {
       animation: none;
