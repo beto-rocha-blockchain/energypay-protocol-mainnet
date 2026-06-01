@@ -74,3 +74,43 @@ export async function sendVerificationOtp({ to, code, fullName }) {
 
 // Back-compat alias — older imports keep working regardless of the active channel.
 export const sendWhatsAppVerificationCode = sendVerificationOtp;
+
+// ─── Twilio Verify (managed OTP) ──────────────────────────────────────────────
+//
+// Twilio Verify generates, sends AND validates the code on Twilio's side, using
+// Twilio's APPROVED senders — so WhatsApp needs NO sandbox opt-in and SMS needs
+// no purchased number. We store nothing. Enable by setting:
+//   TWILIO_VERIFY_SERVICE_SID  — the Verify Service SID (VA…) from the Twilio console.
+// (Production sending to arbitrary numbers still requires a non-trial account.)
+
+const VERIFY_SID = (process.env.TWILIO_VERIFY_SERVICE_SID || "").trim();
+
+/** True when Twilio Verify is configured (preferred OTP path). */
+export function isVerifyConfigured() {
+  return !!(client && VERIFY_SID);
+}
+
+/**
+ * Start a Twilio Verify OTP over the given channel ("whatsapp" default, or "sms").
+ * Twilio sends the code. Throws on provider error.
+ */
+export async function startPhoneVerification({ to, channel }) {
+  if (!isVerifyConfigured()) throw new Error("Twilio Verify not configured");
+  const ch = (channel || CHANNEL) === "sms" ? "sms" : "whatsapp";
+  const v = await client.verify.v2
+    .services(VERIFY_SID)
+    .verifications.create({ to: toE164(to), channel: ch });
+  return { ok: true, channel: ch, status: v.status, sid: v.sid };
+}
+
+/**
+ * Check a Twilio Verify OTP. Returns { approved } — true only when Twilio
+ * confirms the code. Throws on provider error.
+ */
+export async function checkPhoneVerification({ to, code }) {
+  if (!isVerifyConfigured()) throw new Error("Twilio Verify not configured");
+  const check = await client.verify.v2
+    .services(VERIFY_SID)
+    .verificationChecks.create({ to: toE164(to), code: String(code).trim() });
+  return { approved: check.status === "approved", status: check.status };
+}

@@ -15,7 +15,7 @@ import {
 import { encryptSecret } from "../lib/crypto.js";
 import { Asset } from "@stellar/stellar-sdk";
 import { sendWelcomeEmail, sendPasswordResetEmail, sendVerificationEmail } from "../services/emailService.js";
-import { sendVerificationOtp } from "../services/whatsappService.js";
+import { sendVerificationOtp, isVerifyConfigured, startPhoneVerification, checkPhoneVerification } from "../services/whatsappService.js";
 import { requireAuth } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -1276,7 +1276,31 @@ router.post("/send-phone-code", async (req, res) => {
       return res.status(400).json({ success: false, error: "No phone number registered. Update your profile first." });
     }
 
-    // Generate 6-digit code and persist it in the DB (survives across serverless instances)
+    const maskedPhone = data.phone.replace(/(\+\d{2})\d+(\d{2})$/, "$1·····$2");
+
+    // Preferred path: Twilio Verify (managed OTP — WhatsApp or SMS, no sandbox
+    // opt-in, no purchased number). Twilio generates, sends and later validates
+    // the code, so we store nothing here.
+    if (isVerifyConfigured()) {
+      try {
+        const started = await startPhoneVerification({ to: data.phone });
+        return res.json({
+          success: true,
+          message: `Verification code sent to ${maskedPhone} via ${started.channel}.`,
+          channel: started.channel,
+        });
+      } catch (verErr) {
+        console.error("[SendPhoneCode] Twilio Verify start failed:", verErr.message);
+        return res.status(502).json({
+          success: false,
+          error: "OTP_DELIVERY_UNAVAILABLE",
+          message: "Could not send the verification code right now. Please try again shortly.",
+        });
+      }
+    }
+
+    // Legacy fallback (no Verify Service configured): self-generated 6-digit code
+    // persisted in the DB (survives across serverless instances).
     const code = String(crypto.randomInt(100000, 1000000));
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
     await supabase
@@ -1285,7 +1309,6 @@ router.post("/send-phone-code", async (req, res) => {
       .eq("id", userId);
 
     // Send code via the configured OTP channel (WhatsApp or SMS).
-    const maskedPhone = data.phone.replace(/(\+\d{2})\d+(\d{2})$/, "$1·····$2");
     let otpResult;
     try {
       otpResult = await sendVerificationOtp({
@@ -1353,10 +1376,31 @@ router.post("/verify-phone-code", async (req, res) => {
 
     const { data: userRow } = await supabase
       .from("users")
-      .select("phone_verification_code, phone_verification_expires_at")
+      .select("phone, phone_verification_code, phone_verification_expires_at")
       .eq("id", userId)
       .single();
 
+    // Preferred path: validate via Twilio Verify (managed OTP).
+    if (isVerifyConfigured()) {
+      if (!userRow?.phone) {
+        return res.status(400).json({ success: false, error: "No phone number on file." });
+      }
+      let approved = false;
+      try {
+        approved = (await checkPhoneVerification({ to: userRow.phone, code })).approved;
+      } catch (verErr) {
+        console.error("[VerifyPhoneCode] Twilio Verify check failed:", verErr.message);
+        return res.status(502).json({ success: false, error: "Could not verify the code right now. Please try again." });
+      }
+      if (!approved) {
+        return res.status(400).json({ success: false, error: "Invalid or expired code." });
+      }
+      const { error: vErr } = await supabase.from("users").update({ phone_verified: true }).eq("id", userId);
+      if (vErr) return res.status(500).json({ success: false, error: vErr.message });
+      return res.json({ success: true, message: "Phone verified successfully." });
+    }
+
+    // Legacy fallback: compare the DB-stored code.
     if (
       !userRow?.phone_verification_code ||
       !userRow?.phone_verification_expires_at ||
