@@ -446,7 +446,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="!p-0 border-b border-sidebar-border">
-        <div className="flex h-14 items-center gap-2.5 px-3">
+        <div className="flex h-12 items-center gap-2.5 px-3">
           <BrandBadge size="md" />
           <span
             className="group-data-[collapsible=icon]:hidden"
@@ -460,7 +460,7 @@ export function AppSidebar() {
 
       {/* Brand tagline — moved below the header divider; pushes the nav down. */}
       <div className="border-b border-sidebar-border px-3 py-2 group-data-[collapsible=icon]:hidden">
-        <span className="block font-mono text-[9px] uppercase leading-tight tracking-[0.12em] text-muted-foreground">
+        <span className="block text-center font-mono text-[9px] uppercase leading-tight tracking-[0.12em] text-muted-foreground">
           Programmable Pre-Clearing &amp; <span className="whitespace-nowrap">Settlement Infrastructure</span>
         </span>
       </div>
