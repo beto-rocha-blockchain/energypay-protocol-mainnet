@@ -404,9 +404,25 @@
     stroke-width: 4.5;
     filter: drop-shadow(0 0 4px currentColor) drop-shadow(0 0 8px currentColor);
   }
+  /* Status dot — phase-locked to the traveling current. Same 3.3s period, and it
+     mounts alongside the wave so both animations start together and stay in sync:
+     a bright sweep while the current crosses the graph (~0–28% of the cycle), then
+     a calm baseline through the gap. Glow uses the dot's own currentColor. */
+  @keyframes ep-status-pulse {
+    0%   { opacity: 0.5;  transform: scale(0.82); box-shadow: 0 0 0 0 transparent; }
+    4%   { opacity: 0.85; transform: scale(1.1);  box-shadow: 0 0 4px 0 currentColor; }
+    13%  { opacity: 1;    transform: scale(1.35); box-shadow: 0 0 7px 1px currentColor; }
+    26%  { opacity: 0.8;  transform: scale(1.05); box-shadow: 0 0 3px 0 currentColor; }
+    34%  { opacity: 0.5;  transform: scale(0.82); box-shadow: 0 0 0 0 transparent; }
+    100% { opacity: 0.5;  transform: scale(0.82); box-shadow: 0 0 0 0 transparent; }
+  }
+  .ep-status-dot {
+    animation: ep-status-pulse 3.3s linear infinite;
+  }
   @media (prefers-reduced-motion: reduce) {
     .ep-current-pulse, .ep-current-dot { animation: none; stroke-dasharray: none; opacity: 0; }
     .ep-current-base { opacity: 1; }
+    .ep-status-dot { animation: none; }
   }
   @media (prefers-reduced-motion: reduce) {
     .ep-page-in {

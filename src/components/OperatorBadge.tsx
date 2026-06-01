@@ -154,7 +154,6 @@ export function OperatorBadge() {
           className="relative flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1 font-mono text-[9.5px] uppercase tracking-widest text-foreground transition hover:bg-accent/10"
         >
           <span className="flex items-center gap-1.5 leading-none text-success">
-            <span className="inline-block h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-success" />
             Profile Settings
           </span>
           {unreadCount > 0 && (

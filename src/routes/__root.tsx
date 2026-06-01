@@ -187,7 +187,7 @@ function AppHeader() {
                   {STELLAR_NETWORK_LABEL}
                 </span>
                 <span
-                  className={`mt-0.5 font-mono text-[8px] uppercase tracking-[0.18em] ${
+                  className={`mt-0.5 flex items-center gap-1 font-mono text-[8px] uppercase tracking-[0.18em] ${
                     online === null
                       ? "text-muted-foreground/70"
                       : online
@@ -195,7 +195,14 @@ function AppHeader() {
                         : "text-destructive"
                   }`}
                 >
-                  {online === null ? "Checking" : online ? "Online" : "Offline"}
+                  {online === false ? (
+                    /* Offline — solid red dot, no pulse. */
+                    <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-destructive text-destructive" />
+                  ) : (
+                    /* Online (or checking) — pulse synced to the wave graph. */
+                    <span className="ep-status-dot inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-success text-success" />
+                  )}
+                  {online === null ? "Checking" : online ? "Status Online" : "Status Offline"}
                 </span>
               </div>
               <svg
