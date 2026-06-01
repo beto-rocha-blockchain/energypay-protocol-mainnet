@@ -219,11 +219,13 @@ router.get("/pld/history", async (req, res) => {
       series = aggregateBy(filtered, (r) => r.timestamp.slice(0, 10));
 
     } else if (range === "1m" || range === "12m") {
-      // Daily averages — current calendar month (day 1 → today).
-      const rows = await getCache();
-      const now = new Date();
-      const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-      const filtered = rows.filter((r) => r.timestamp.slice(0, 10) >= monthStart);
+      // Daily averages — rolling last 30 days. Robust at the start of a calendar
+      // month, where "current month" alone would render only 1-2 points.
+      const cutoffStr = toBrtCutoff(Date.now() - 30 * 24 * 3600_000, true);
+      const cutoffYear = parseInt(cutoffStr.slice(0, 4));
+      const rows =
+        cutoffYear < new Date().getFullYear() ? await getMultiYearCache() : await getCache();
+      const filtered = rows.filter((r) => r.timestamp.slice(0, 10) >= cutoffStr);
       series = aggregateBy(filtered, (r) => r.timestamp.slice(0, 10));
 
     } else if (range === "1y") {

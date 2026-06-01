@@ -96,7 +96,7 @@ type PldRange = "48h" | "7d" | "1m" | "1y";
 const RANGE_OPTIONS: { id: PldRange; label: string; subtitle: string }[] = [
   { id: "48h", label: "Hour",  subtitle: "Semi-hourly · Last 48h" },
   { id: "7d",  label: "Day",   subtitle: "Daily average · Last 7 days" },
-  { id: "1m",  label: "Month", subtitle: "Daily average · Current month" },
+  { id: "1m",  label: "Month", subtitle: "Daily average · Last 30 days" },
   { id: "1y",  label: "Year",  subtitle: "Monthly average · Last 12 months" },
 ];
 
