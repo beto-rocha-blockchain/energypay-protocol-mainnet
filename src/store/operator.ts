@@ -219,7 +219,7 @@ export const SUBSCRIPTION_PLAN_META: Record<
   },
   OPERATOR: {
     label: "Operator",
-    priceBrl: 30000,
+    priceBrl: 15000,
     interval: "year",
     textColor: "text-primary",
     dotColor: "bg-primary",
@@ -237,7 +237,7 @@ export const SUBSCRIPTION_PLAN_META: Record<
   },
   ENTERPRISE: {
     label: "Enterprise",
-    priceBrl: 100000,
+    priceBrl: 30000,
     interval: "year",
     textColor: "text-violet-400",
     dotColor: "bg-violet-400",

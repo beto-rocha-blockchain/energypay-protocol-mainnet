@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
 -- Seed plans (idempotent)
 INSERT INTO subscription_plans (id, name, price_brl, interval, settlements_limit, features) VALUES
   ('free',       'Free',       0.00,      'monthly', 5,    '["5 settlements / month","Basic dashboard","Market grid access","Community support"]'),
-  ('operator',   'Operator',   30000.00,  'annual',  NULL, '["Unlimited settlements","Full market analytics","Active custody wallet","Basic risk metrics","Priority support","P2P contract access"]'),
-  ('enterprise', 'Enterprise', 100000.00, 'annual',  NULL, '["Everything in Operator","x402 API (50k calls / month)","Multi-account","Counterparty risk scoring (AI)","Market price forecasting","Advanced regulatory reports","99.9% SLA","Dedicated support"]')
+  ('operator',   'Operator',   15000.00,  'annual',  NULL, '["Unlimited settlements","Full market analytics","Active custody wallet","Basic risk metrics","Priority support","P2P contract access"]'),
+  ('enterprise', 'Enterprise', 30000.00,  'annual',  NULL, '["Everything in Operator","x402 API (50k calls / month)","Multi-account","Counterparty risk scoring (AI)","Market price forecasting","Advanced regulatory reports","99.9% SLA","Dedicated support"]')
 ON CONFLICT (id) DO UPDATE SET
   name        = EXCLUDED.name,
   price_brl   = EXCLUDED.price_brl,
