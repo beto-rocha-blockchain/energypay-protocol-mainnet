@@ -157,7 +157,10 @@ function AppHeader() {
         {operator ? (
           <div className="flex min-w-0 items-center">
             {/* Network (Stellar Mainnet) — first, next to the collapse toggle */}
-            <div className="flex shrink-0 items-center gap-1.5 px-3">
+            <div className="flex shrink-0 items-center gap-1.5 pl-1 pr-3">
+              <span className="font-mono text-[9px] text-foreground/85">
+                {STELLAR_NETWORK_LABEL}
+              </span>
               <svg
                 viewBox="0 0 36 24"
                 className="h-6 w-9 shrink-0 text-success"
@@ -172,9 +175,6 @@ function AppHeader() {
                 <path d="M2 12h16l3-9 6 18 3-9h4" pathLength={100} className="ep-current-pulse" />
                 <path d="M2 12h16l3-9 6 18 3-9h4" pathLength={100} className="ep-current-dot" />
               </svg>
-              <span className="font-mono text-[9px] text-foreground/85">
-                {STELLAR_NETWORK_LABEL}
-              </span>
             </div>
             <HDivider />
             {/* Roles — individual colored dot + readable label per role */}
