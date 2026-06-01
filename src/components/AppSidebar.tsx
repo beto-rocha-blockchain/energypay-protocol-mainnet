@@ -450,8 +450,8 @@ export function AppSidebar() {
           <BrandBadge size="sm" />
           <div className="flex flex-col overflow-hidden group-data-[collapsible=icon]:hidden" style={{ gap: "5px" }}>
             <BrandName size="sm" />
-            <span className="font-mono text-[9px] uppercase leading-none tracking-[0.22em] text-muted-foreground">
-              Programmable Pre-Clearing &amp; Settlement Infrastructure
+            <span className="font-mono text-[9px] uppercase leading-tight tracking-[0.12em] text-muted-foreground">
+              Programmable Pre-Clearing &amp; <span className="whitespace-nowrap">Settlement Infrastructure</span>
             </span>
           </div>
         </div>
