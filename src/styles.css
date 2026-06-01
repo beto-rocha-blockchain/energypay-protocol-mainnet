@@ -380,23 +380,32 @@
     .ep-page-in-fade { animation: none; }
   }
 
-  /* Live "current" pulse — a lit segment travels LEFT→RIGHT along the wave line,
-     tracing its shape, like electric current flowing (real-time mainnet signal). */
+  /* Live "current" pulse — a lit segment with a glowing leading dot travels
+     LEFT→RIGHT along the wave line (electric current flowing). Period (240) is
+     larger than the path (100) so there's a clear gap between pulses; the pulse
+     and its head share one animation so the dot rides at the pulse's front. */
   @keyframes ep-current {
     to { stroke-dashoffset: 0; }
   }
   .ep-current-base {
-    opacity: 0.35;
+    opacity: 0.3;
   }
   .ep-current-pulse {
-    stroke-dasharray: 22 78;
-    stroke-dashoffset: 100;
-    animation: ep-current 1.5s linear infinite;
+    stroke-dasharray: 16 224;
+    stroke-dashoffset: 240;
+    animation: ep-current 2.2s linear infinite;
     filter: drop-shadow(0 0 2px currentColor);
   }
+  /* Glowing leading dot — sits at the pulse's front edge (same color, soft glow). */
+  .ep-current-dot {
+    stroke-dasharray: 0 15 3 222;
+    stroke-dashoffset: 240;
+    animation: ep-current 2.2s linear infinite;
+    filter: drop-shadow(0 0 3px currentColor);
+  }
   @media (prefers-reduced-motion: reduce) {
-    .ep-current-pulse { animation: none; stroke-dasharray: none; }
-    .ep-current-base { opacity: 0; }
+    .ep-current-pulse, .ep-current-dot { animation: none; stroke-dasharray: none; opacity: 0; }
+    .ep-current-base { opacity: 1; }
   }
   @media (prefers-reduced-motion: reduce) {
     .ep-page-in {

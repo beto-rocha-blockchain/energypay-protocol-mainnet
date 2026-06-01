@@ -170,6 +170,7 @@ function AppHeader() {
               >
                 <path d="M2 12h4l3-9 6 18 3-9h4" className="ep-current-base" />
                 <path d="M2 12h4l3-9 6 18 3-9h4" pathLength={100} className="ep-current-pulse" />
+                <path d="M2 12h4l3-9 6 18 3-9h4" pathLength={100} className="ep-current-dot" />
               </svg>
               <span className="font-mono text-[9px] text-foreground/85">
                 {STELLAR_NETWORK_LABEL}
