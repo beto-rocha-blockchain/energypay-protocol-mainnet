@@ -402,6 +402,7 @@ export function AppSidebar() {
     select: (s) => s.location.pathname,
   });
   const navigate = useNavigate();
+  const { setOpenMobile } = useSidebar();
 
   const operator = useOperator((s) => s.operator);
   const roles = (operator?.roles ?? []) as Role[];
@@ -431,6 +432,9 @@ export function AppSidebar() {
   useEffect(() => {
     const g = groupForPath(path);
     if (g) setOpenGroup(g);
+    // Mobile: auto-close the overlay sidebar on navigation so the chosen page is
+    // fully visible (no manual collapse needed after picking a route).
+    setOpenMobile(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path]);
 

@@ -240,17 +240,17 @@ function SubscriptionPage() {
       <CurrentPlanCard onCancel={handleCancel} cancelLoading={cancelLoading} />
 
       <Tabs defaultValue="plan" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-          <TabsTrigger value="plan" className="gap-1.5 font-mono text-[10px] uppercase tracking-widest">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4">
+          <TabsTrigger value="plan" className="gap-1.5 py-2 font-mono text-[10px] uppercase tracking-widest">
             <Zap className="h-3 w-3" /> Plan
           </TabsTrigger>
-          <TabsTrigger value="invoices" className="gap-1.5 font-mono text-[10px] uppercase tracking-widest">
+          <TabsTrigger value="invoices" className="gap-1.5 py-2 font-mono text-[10px] uppercase tracking-widest">
             <Receipt className="h-3 w-3" /> Invoices
           </TabsTrigger>
-          <TabsTrigger value="fiscal" className="gap-1.5 font-mono text-[10px] uppercase tracking-widest">
+          <TabsTrigger value="fiscal" className="gap-1.5 py-2 font-mono text-[10px] uppercase tracking-widest">
             <FileText className="h-3 w-3" /> Receipts
           </TabsTrigger>
-          <TabsTrigger value="cards" className="gap-1.5 font-mono text-[10px] uppercase tracking-widest">
+          <TabsTrigger value="cards" className="gap-1.5 py-2 font-mono text-[10px] uppercase tracking-widest">
             <CreditCard className="h-3 w-3" /> Cards
           </TabsTrigger>
         </TabsList>
