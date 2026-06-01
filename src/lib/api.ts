@@ -95,6 +95,23 @@ export async function apiRequest<T = unknown>(path: string, opts: RequestOptions
 }
 
 /* ------------------------------------------------------------------ */
+/*  Network status                                                    */
+/* ------------------------------------------------------------------ */
+
+export type StellarStatus = {
+  online: boolean;
+  network?: string;
+  latencyMs?: number;
+  ledger?: number | null;
+  reason?: string;
+};
+
+/** Read-only Stellar Mainnet reachability (backend pings Horizon). Public — no auth. */
+export async function apiStellarStatus(signal?: AbortSignal): Promise<StellarStatus> {
+  return apiRequest<StellarStatus>("/api/health/stellar", { auth: false, signal });
+}
+
+/* ------------------------------------------------------------------ */
 /*  Auth                                                              */
 /* ------------------------------------------------------------------ */
 

@@ -76,6 +76,39 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// Stellar Mainnet reachability — READ-ONLY Horizon ping (no custody/keys/settlement).
+// Returns { online } so the UI can bind the network indicator to the live link state.
+app.get("/api/health/stellar", async (req, res) => {
+  const HORIZON = IS_MAINNET
+    ? "https://horizon.stellar.org"
+    : "https://horizon-testnet.stellar.org";
+  const started = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 4000);
+  try {
+    const r = await fetch(`${HORIZON}/ledgers?limit=1&order=desc`, {
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+    });
+    clearTimeout(timer);
+    const latencyMs = Date.now() - started;
+    if (!r.ok) {
+      return res.json({ online: false, network: NETWORK_NAME, latencyMs, reason: `HTTP ${r.status}` });
+    }
+    const body = await r.json().catch(() => null);
+    const ledger = body?._embedded?.records?.[0]?.sequence ?? null;
+    return res.json({ online: true, network: NETWORK_NAME, latencyMs, ledger });
+  } catch (err) {
+    clearTimeout(timer);
+    return res.json({
+      online: false,
+      network: NETWORK_NAME,
+      latencyMs: Date.now() - started,
+      reason: err?.name === "AbortError" ? "timeout" : "unreachable",
+    });
+  }
+});
+
 // ========================================
 // Settlement Telemetry — real Supabase data
 // ========================================

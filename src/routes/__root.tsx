@@ -9,7 +9,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { OperatorBadge } from "@/components/OperatorBadge";
@@ -19,6 +19,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { useOperator, maskAddress, ROLE_COLORS, ROLE_META } from "@/store/operator";
 import { useUiStore } from "@/store/ui";
 import { STELLAR_NETWORK_LABEL } from "@/lib/stellar";
+import { apiStellarStatus } from "@/lib/api";
 import { SplashScreen } from "@/components/SplashScreen";
 
 import appCss from "../styles.css?url";
@@ -147,6 +148,29 @@ const BUILD_VERSION = "v0.5 · b9f4c2e";
 function AppHeader() {
   const operator = useOperator((s) => s.operator);
 
+  // Live Stellar Mainnet reachability (read-only Horizon ping via the backend).
+  // null = checking, true = online (pulse), false = offline (red, no pulse).
+  const [online, setOnline] = useState<boolean | null>(null);
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    const check = async () => {
+      try {
+        const s = await apiStellarStatus(controller.signal);
+        if (active) setOnline(Boolean(s?.online));
+      } catch {
+        if (active) setOnline(false);
+      }
+    };
+    check();
+    const id = setInterval(check, 30_000);
+    return () => {
+      active = false;
+      controller.abort();
+      clearInterval(id);
+    };
+  }, []);
+
   return (
     <header className="sticky top-0 z-30 flex h-12 items-center border-b border-border bg-background/90 backdrop-blur">
       {/* LEFT — collapse toggle */}
@@ -156,14 +180,27 @@ function AppHeader() {
       <div className="flex min-w-0 flex-1 items-center overflow-hidden px-3">
         {operator ? (
           <div className="flex min-w-0 items-center">
-            {/* Network (Stellar Mainnet) — first, next to the collapse toggle */}
+            {/* Network — Stellar Mainnet live status bound to the wave icon */}
             <div className="flex shrink-0 items-center gap-1.5 pl-1 pr-3">
-              <span className="font-mono text-[9px] text-foreground/85">
-                {STELLAR_NETWORK_LABEL}
-              </span>
+              <div className="flex flex-col justify-center leading-none">
+                <span className="font-mono text-[9px] text-foreground/85">
+                  {STELLAR_NETWORK_LABEL}
+                </span>
+                <span
+                  className={`mt-0.5 font-mono text-[8px] uppercase tracking-[0.18em] ${
+                    online === null
+                      ? "text-muted-foreground/70"
+                      : online
+                        ? "text-success"
+                        : "text-destructive"
+                  }`}
+                >
+                  {online === null ? "Checking" : online ? "Online" : "Offline"}
+                </span>
+              </div>
               <svg
                 viewBox="0 0 36 24"
-                className="h-6 w-9 shrink-0 text-success"
+                className={`h-6 w-9 shrink-0 ${online === false ? "text-destructive" : "text-success"}`}
                 fill="none"
                 stroke="currentColor"
                 strokeWidth={2.5}
@@ -171,9 +208,17 @@ function AppHeader() {
                 strokeLinejoin="round"
                 aria-hidden="true"
               >
-                <path d="M2 12h16l3-9 6 18 3-9h4" className="ep-current-base" />
-                <path d="M2 12h16l3-9 6 18 3-9h4" pathLength={100} className="ep-current-pulse" />
-                <path d="M2 12h16l3-9 6 18 3-9h4" pathLength={100} className="ep-current-dot" />
+                {online === false ? (
+                  /* Offline — static red wave, no pulse. */
+                  <path d="M2 12h16l3-9 6 18 3-9h4" />
+                ) : (
+                  /* Online (or checking) — traveling current pulse + glowing head. */
+                  <>
+                    <path d="M2 12h16l3-9 6 18 3-9h4" className="ep-current-base" />
+                    <path d="M2 12h16l3-9 6 18 3-9h4" pathLength={100} className="ep-current-pulse" />
+                    <path d="M2 12h16l3-9 6 18 3-9h4" pathLength={100} className="ep-current-dot" />
+                  </>
+                )}
               </svg>
             </div>
             <HDivider />
