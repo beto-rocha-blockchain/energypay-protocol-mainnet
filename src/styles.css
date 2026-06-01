@@ -391,17 +391,18 @@
     opacity: 0.3;
   }
   .ep-current-pulse {
-    stroke-dasharray: 16 224;
-    stroke-dashoffset: 240;
-    animation: ep-current 2.2s linear infinite;
+    stroke-dasharray: 16 344;
+    stroke-dashoffset: 360;
+    animation: ep-current 3.3s linear infinite;
     filter: drop-shadow(0 0 2px currentColor);
   }
-  /* Glowing leading dot — sits at the pulse's front edge (same color, soft glow). */
+  /* Glowing leading dot — bigger, brighter head riding the pulse's front edge. */
   .ep-current-dot {
-    stroke-dasharray: 0 15 3 222;
-    stroke-dashoffset: 240;
-    animation: ep-current 2.2s linear infinite;
-    filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 6px currentColor);
+    stroke-dasharray: 0 14 3 343;
+    stroke-dashoffset: 360;
+    animation: ep-current 3.3s linear infinite;
+    stroke-width: 4.5;
+    filter: drop-shadow(0 0 4px currentColor) drop-shadow(0 0 8px currentColor);
   }
   @media (prefers-reduced-motion: reduce) {
     .ep-current-pulse, .ep-current-dot { animation: none; stroke-dasharray: none; opacity: 0; }
