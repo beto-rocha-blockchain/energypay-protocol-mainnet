@@ -159,8 +159,8 @@ function AppHeader() {
             {/* Network (Stellar Mainnet) — first, next to the collapse toggle */}
             <div className="flex shrink-0 items-center gap-1.5 px-3">
               <svg
-                viewBox="0 0 24 24"
-                className="h-6 w-6 shrink-0 text-success"
+                viewBox="0 0 36 24"
+                className="h-6 w-9 shrink-0 text-success"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth={2.5}
@@ -168,9 +168,9 @@ function AppHeader() {
                 strokeLinejoin="round"
                 aria-hidden="true"
               >
-                <path d="M2 12h4l3-9 6 18 3-9h4" className="ep-current-base" />
-                <path d="M2 12h4l3-9 6 18 3-9h4" pathLength={100} className="ep-current-pulse" />
-                <path d="M2 12h4l3-9 6 18 3-9h4" pathLength={100} className="ep-current-dot" />
+                <path d="M2 12h16l3-9 6 18 3-9h4" className="ep-current-base" />
+                <path d="M2 12h16l3-9 6 18 3-9h4" pathLength={100} className="ep-current-pulse" />
+                <path d="M2 12h16l3-9 6 18 3-9h4" pathLength={100} className="ep-current-dot" />
               </svg>
               <span className="font-mono text-[9px] text-foreground/85">
                 {STELLAR_NETWORK_LABEL}
