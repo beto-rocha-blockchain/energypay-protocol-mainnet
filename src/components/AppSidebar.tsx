@@ -39,7 +39,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Button } from "@/components/ui/button";
 
 import { useOperator, SUBSCRIPTION_PLAN_META, type SubscriptionPlan } from "@/store/operator";
-import { BrandBadge, BrandName } from "@/components/BrandLogo";
+import { BrandBadge } from "@/components/BrandLogo";
 
 type Role = "GENERATOR" | "SELLER" | "INVESTOR" | "USER" | "UTILITY" | "REGULATORY_AUTHORITY";
 
@@ -446,16 +446,24 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="!p-0 border-b border-sidebar-border">
-        <div className="flex h-12 items-center gap-2.5 px-3">
-          <BrandBadge size="sm" />
-          <div className="flex flex-col overflow-hidden group-data-[collapsible=icon]:hidden" style={{ gap: "5px" }}>
-            <BrandName size="sm" />
-            <span className="font-mono text-[9px] uppercase leading-tight tracking-[0.12em] text-muted-foreground">
-              Programmable Pre-Clearing &amp; <span className="whitespace-nowrap">Settlement Infrastructure</span>
-            </span>
-          </div>
+        <div className="flex h-14 items-center gap-2.5 px-3">
+          <BrandBadge size="md" />
+          <span
+            className="group-data-[collapsible=icon]:hidden"
+            style={{ fontFamily: "var(--font-brand)", fontSize: 24, fontWeight: 700, letterSpacing: "0.04em", lineHeight: 1 }}
+          >
+            <span style={{ color: "var(--brand-energy-color, #F2F2F2)" }}>ENERGY</span>
+            <span style={{ color: "var(--brand-pay-color, #66E619)" }}>PAY</span>
+          </span>
         </div>
       </SidebarHeader>
+
+      {/* Brand tagline — moved below the header divider; pushes the nav down. */}
+      <div className="border-b border-sidebar-border px-3 py-2 group-data-[collapsible=icon]:hidden">
+        <span className="block font-mono text-[9px] uppercase leading-tight tracking-[0.12em] text-muted-foreground">
+          Programmable Pre-Clearing &amp; <span className="whitespace-nowrap">Settlement Infrastructure</span>
+        </span>
+      </div>
 
       {/* group-data-[collapsible=icon]:overflow-hidden prevents a vertical
           scrollbar from appearing in icon-only mode when there are many items. */}
