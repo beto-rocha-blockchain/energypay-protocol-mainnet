@@ -460,8 +460,8 @@ export function AppSidebar() {
 
       {/* Brand tagline — moved below the header divider; pushes the nav down. */}
       <div className="border-b border-sidebar-border px-3 py-2 group-data-[collapsible=icon]:hidden">
-        <span className="block text-justify [text-align-last:justify] font-mono text-[9px] uppercase leading-tight tracking-[0.12em] text-muted-foreground">
-          Programmable Pre-Clearing &amp; Settlement Infrastructure
+        <span className="block text-center font-mono text-[9px] uppercase leading-tight tracking-[0.12em] text-muted-foreground">
+          Programmable Pre-Clearing &amp; <span className="whitespace-nowrap">Settlement Infrastructure</span>
         </span>
       </div>
 
