@@ -497,36 +497,25 @@ const ROLE_CONTEXT = {
 
 function RoleContextPanel({ role }: { role: ParticipantRole }) {
   const ctx = ROLE_CONTEXT[role as keyof typeof ROLE_CONTEXT];
-  if (!ctx) return null;
-  const { Icon, accent, iconAccent, label, actions } = ctx;
+  if (!ctx?.actions?.length) return null;
 
+  // Only the quick-action buttons — no framed card, icon, title or description.
   return (
-    <Card className={`border ${accent} px-4 py-3`}>
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Icon + label */}
-        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${iconAccent}`}>
-          <Icon className="h-3.5 w-3.5" />
-        </div>
-        <p className="font-display text-sm font-semibold leading-tight">{label}</p>
-
-        {/* Quick actions */}
-        <div className="ml-auto flex flex-wrap gap-1.5">
-          {actions.map((a) => (
-            <Button
-              key={a.to}
-              asChild
-              size="sm"
-              variant={a.primary ? "default" : "outline"}
-              className="h-7 font-mono text-[10px] uppercase tracking-widest"
-            >
-              <Link to={a.to}>
-                {a.label}
-                <ArrowRight className="ml-1.5 h-3 w-3" />
-              </Link>
-            </Button>
-          ))}
-        </div>
-      </div>
-    </Card>
+    <div className="flex flex-wrap gap-1.5">
+      {ctx.actions.map((a) => (
+        <Button
+          key={a.to}
+          asChild
+          size="sm"
+          variant={a.primary ? "default" : "outline"}
+          className="h-7 font-mono text-[10px] uppercase tracking-widest"
+        >
+          <Link to={a.to}>
+            {a.label}
+            <ArrowRight className="ml-1.5 h-3 w-3" />
+          </Link>
+        </Button>
+      ))}
+    </div>
   );
 }
