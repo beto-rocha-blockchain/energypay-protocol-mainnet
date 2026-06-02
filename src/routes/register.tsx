@@ -679,7 +679,7 @@ useEffect(() => {
                       value={documentType}
                       onValueChange={(v) => setDocumentType(v as "INDIVIDUAL" | "COMPANY")}
                     >
-                      <SelectTrigger className="h-9 bg-input font-mono text-xs">
+                      <SelectTrigger className="h-9 bg-input pl-8 font-mono text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
