@@ -388,10 +388,11 @@ useEffect(() => {
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> Nominal
                   </span>
                 </div>
-                <div className="mt-1.5 text-foreground">{STELLAR_NETWORK_LABEL}</div>
-                <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-border/40 pt-1.5">
+                <div className="mt-2 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1.5 border-t border-border/40 pt-2">
+                  <span>Chain</span>
+                  <span className="text-right text-foreground">{STELLAR_NETWORK_LABEL}</span>
                   <span>Horizon</span>
-                  <span className="text-foreground">{HORIZON_URL.replace("https://", "")}</span>
+                  <span className="break-all text-right text-foreground">{HORIZON_URL.replace("https://", "")}</span>
                 </div>
               </div>
 
