@@ -323,7 +323,7 @@ useEffect(() => {
           <div className="flex flex-wrap items-start gap-5 lg:flex-nowrap lg:gap-6">
 
             {/* A · Brand + heading */}
-            <div className="flex shrink-0 flex-col gap-3">
+            <div className="flex w-full flex-col gap-3 lg:w-[14rem] lg:shrink-0">
               <div className="flex items-center gap-2">
                 <BrandBadge size="md" />
                 <div className="leading-tight" style={{ gap: 3, display: "flex", flexDirection: "column" }}>
@@ -338,11 +338,9 @@ useEffect(() => {
                   Network Provisioning · Pilot Environment
                 </div>
                 <h1 className="font-display text-lg font-semibold leading-snug">
-                  Provision a settlement
-                  <br />
-                  participant identity.
+                  Provision a settlement participant identity.
                 </h1>
-                <p className="mt-1 max-w-[210px] text-[11px] text-muted-foreground">
+                <p className="mt-1 text-[11px] text-muted-foreground">
                   Mints an identity, binds an ed25519 keypair and registers your market roles on Stellar.
                 </p>
               </div>
