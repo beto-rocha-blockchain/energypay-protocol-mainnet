@@ -201,7 +201,7 @@ function LoginPage() {
             <Separator className="bg-border/60" />
 
             <div className="space-y-1.5">
-              <p className="text-center text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+              <p className="text-center text-sm font-mono uppercase tracking-widest text-muted-foreground">
                 First time here?
               </p>
               <Link
