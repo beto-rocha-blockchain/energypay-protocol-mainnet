@@ -1507,15 +1507,15 @@ function Field({
       <Label className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
         {label}
       </Label>
-      {hint && (
-        <p className="font-mono text-[9px] text-muted-foreground/70">{hint}</p>
-      )}
       <div className="relative">
         <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
           {icon}
         </span>
         {children}
       </div>
+      {hint && (
+        <p className="font-mono text-[9px] text-muted-foreground/70">{hint}</p>
+      )}
     </div>
   );
 }
