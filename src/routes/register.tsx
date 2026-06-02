@@ -453,7 +453,7 @@ useEffect(() => {
                     <Input
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Maria L. Andrade"
+                      placeholder="Full name"
                       className="h-9 pl-8 font-mono text-xs"
                     />
                   </Field>
@@ -462,7 +462,7 @@ useEffect(() => {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="operator@clearing-desk.com"
+                      placeholder="Email address"
                       className="h-9 pl-8 font-mono text-xs"
                     />
                   </Field>
@@ -477,7 +477,7 @@ useEffect(() => {
                         required
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        placeholder="+55 11 9 0000-0000"
+                        placeholder="Phone with country code"
                         className={cn(
                           "h-9 pl-8 font-mono text-xs",
                           phone && !phoneValid && "border-destructive/60",
@@ -529,7 +529,7 @@ useEffect(() => {
                     <Input
                       value={organization}
                       onChange={(e) => setOrganization(e.target.value)}
-                      placeholder="Treasury · Energy Trading Desk"
+                      placeholder="Organization name"
                       className="h-9 pl-8 font-mono text-xs"
                     />
                   </Field>

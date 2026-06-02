@@ -158,7 +158,7 @@ function LoginPage() {
                   autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="operator@clearing-desk.com"
+                  placeholder="Email address"
                   className="h-9 pl-8 font-mono text-xs"
                 />
               </div>
@@ -200,20 +200,25 @@ function LoginPage() {
 
             <Separator className="bg-border/60" />
 
-            <Link
-              to="/register"
-              className="flex items-center justify-between rounded-md border border-border bg-background/40 px-3 py-2.5 text-xs transition hover:border-primary/40 hover:bg-primary/5"
-            >
-              <span>
-                <span className="block font-mono uppercase tracking-widest text-foreground">
-                  Provision new settlement identity
+            <div className="space-y-1.5">
+              <p className="text-center text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                First time here?
+              </p>
+              <Link
+                to="/register"
+                className="flex items-center justify-between rounded-md border border-primary/60 bg-primary/10 px-3 py-3 text-xs shadow-sm transition hover:border-primary hover:bg-primary/20"
+              >
+                <span>
+                  <span className="block font-mono font-semibold uppercase tracking-widest text-primary">
+                    Provision new settlement identity
+                  </span>
+                  <span className="block text-[11px] text-muted-foreground">
+                    Create your operator account · ed25519 keypair · market roles
+                  </span>
                 </span>
-                <span className="block text-[11px] text-muted-foreground">
-                  Mint operator identity · ed25519 keypair · market participant roles
-                </span>
-              </span>
-              <ArrowRight className="h-4 w-4 text-muted-foreground" />
-            </Link>
+                <ArrowRight className="h-4 w-4 shrink-0 text-primary" />
+              </Link>
+            </div>
 
             <div className="flex items-center justify-between border-t border-border pt-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
               <Link to="/forgot-password" className="text-muted-foreground hover:text-primary">
