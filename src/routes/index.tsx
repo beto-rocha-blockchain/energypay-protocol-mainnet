@@ -401,10 +401,10 @@ const ROLE_CONTEXT = {
     accent: "border-red-400/30 bg-red-400/5",
     iconAccent: "text-red-400 bg-red-400/10 border-red-400/30",
     label: "Generator Operations",
-    description: "You produce energy and sell it on the settlement network. Create sell contracts to offer your production to sellers and consumers. All settlements arrive as EPWR to your custody wallet.",
+    description: "You produce energy and sell it on the settlement network. Register your real-world energy contracts on the platform so the counterparty can review and approve them. All settlements arrive as EPWR to your custody wallet.",
     actions: [
-      { label: "Create Sell Contract", to: "/contracts/new", primary: true },
-      { label: "Settlement History", to: "/settlement", primary: false },
+      { label: "Register Energy Contract", to: "/contracts/new", primary: true },
+      { label: "Settlement History", to: "/settlement", primary: true },
     ],
     tips: [
       "You only sell — never buy. Sellers and consumers come to you.",
