@@ -23,6 +23,7 @@ import {
   Loader2,
   Check,
   ArrowRight,
+  ArrowLeft,
   Factory,
   Coins,
   LineChart,
@@ -93,6 +94,7 @@ function RegisterPage() {
   const [step, setStep] = useState<Step>("form");
   const [progress, setProgress] = useState(0);
   const [provisionError, setProvisionError] = useState<string | null>(null);
+  const [formStep, setFormStep] = useState(0);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -176,9 +178,6 @@ useEffect(() => {
     return raw.length >= 4;
   }, [documentNumber, isBrazil, documentType]);
   const docLabel = !isBrazil ? "Tax / Registration ID" : documentType === "COMPANY" ? "CNPJ" : "CPF";
-  const docPlaceholder = !isBrazil
-    ? "Tax / registration number"
-    : documentType === "COMPANY" ? "00.000.000/0000-00" : "000.000.000-00";
   const docHint = !isBrazil
     ? "Enter at least 4 characters."
     : documentType === "COMPANY" ? "CNPJ must have 14 digits." : "CPF must have 11 digits.";
@@ -199,6 +198,25 @@ useEffect(() => {
     [fullName, email, password, organization, country, state, stateRequired, city, docValid, roles, phoneValid, linkValid],
   );
 
+  // Onboarding wizard — sub-steps shown one at a time within the "form" phase.
+  const FORM_STEPS = ["Credentials", "Organization & identity", "Market roles", "Settlement setup"];
+  const stepValid = [
+    Boolean(fullName.trim() && email.trim() && password.length >= 6 && phoneValid),
+    Boolean(
+      organization.trim() && country.trim() && (!stateRequired || state.trim()) && city.trim() && docValid,
+    ),
+    roles.length > 0,
+    linkValid,
+  ];
+  const goNext = () => {
+    if (!stepValid[formStep]) {
+      toast.error("Complete the highlighted fields to continue.");
+      return;
+    }
+    setFormStep((s) => Math.min(s + 1, FORM_STEPS.length - 1));
+  };
+  const goBack = () => setFormStep((s) => Math.max(s - 1, 0));
+
   const provisioningSteps = useMemo(
     () =>
       PROVISIONING_STEPS.map((s) =>
@@ -211,6 +229,11 @@ useEffect(() => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // On non-final steps the primary button just advances the wizard.
+    if (formStep < FORM_STEPS.length - 1) {
+      goNext();
+      return;
+    }
     if (!formValid) {
       toast.error("Operational credentials incomplete.");
       return;
@@ -420,6 +443,22 @@ useEffect(() => {
 
           {step === "form" && (
             <form onSubmit={submit} className="space-y-5 p-5">
+              {/* Wizard progress — one step at a time */}
+              <div className="flex items-center gap-2">
+                {FORM_STEPS.map((label, i) => (
+                  <div key={label} className="flex flex-1 flex-col gap-1">
+                    <div
+                      className={`h-1 rounded-full transition-colors ${i <= formStep ? "bg-primary" : "bg-border"}`}
+                    />
+                    <span
+                      className={`font-mono text-[9px] uppercase tracking-widest ${i === formStep ? "text-primary" : "text-muted-foreground/60"}`}
+                    >
+                      {String(i + 1).padStart(2, "0")} {label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
               {provisionError && (
                 <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3">
                   <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-destructive">
@@ -444,6 +483,7 @@ useEffect(() => {
                   </div>
                 </div>
               )}
+              {formStep === 0 && (
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
                   § 01 · Operator Credentials
@@ -453,7 +493,7 @@ useEffect(() => {
                     <Input
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Full name"
+                      placeholder=""
                       className="h-9 pl-8 font-mono text-xs"
                     />
                   </Field>
@@ -462,7 +502,7 @@ useEffect(() => {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Email address"
+                      placeholder=""
                       className="h-9 pl-8 font-mono text-xs"
                     />
                   </Field>
@@ -477,7 +517,7 @@ useEffect(() => {
                         required
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        placeholder="Phone with country code"
+                        placeholder=""
                         className={cn(
                           "h-9 pl-8 font-mono text-xs",
                           phone && !phoneValid && "border-destructive/60",
@@ -498,7 +538,7 @@ useEffect(() => {
                       type={showPw ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••••••"
+                      placeholder=""
                       className="h-9 pl-8 pr-9 font-mono text-xs tracking-widest"
                     />
                     <button
@@ -515,7 +555,9 @@ useEffect(() => {
                   </Field>
                 </div>
               </div>
+              )}
 
+              {formStep === 1 && (<>
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
                   § 02 · Organization &amp; Jurisdiction
@@ -529,7 +571,7 @@ useEffect(() => {
                     <Input
                       value={organization}
                       onChange={(e) => setOrganization(e.target.value)}
-                      placeholder="Organization name"
+                      placeholder=""
                       className="h-9 pl-8 font-mono text-xs"
                     />
                   </Field>
@@ -608,7 +650,7 @@ useEffect(() => {
                       <Input
                         value={city}
                         onChange={(e) => setCity(e.target.value)}
-                        placeholder="City name"
+                        placeholder=""
                         className="h-9 font-mono text-xs"
                         disabled={!country}
                       />
@@ -617,7 +659,7 @@ useEffect(() => {
                     {city === "__other__" && (
                       <Input
                         autoFocus
-                        placeholder="Enter city name…"
+                        placeholder=""
                         className="mt-1.5 h-9 font-mono text-xs"
                         onChange={(e) => {
                           if (e.target.value) setCity(e.target.value);
@@ -652,7 +694,7 @@ useEffect(() => {
                     <Input
                       value={documentNumber}
                       onChange={(e) => setDocumentNumber(e.target.value)}
-                      placeholder={docPlaceholder}
+                      placeholder=""
                       className="h-9 pl-8 font-mono text-xs"
                     />
                   </Field>
@@ -755,13 +797,13 @@ useEffect(() => {
                   <Input
                     value={manualLat}
                     onChange={(e) => setManualLat(e.target.value)}
-                    placeholder="Manual Latitude (e.g. -23.55)"
+                    placeholder=""
                     className="h-9 font-mono text-xs"
                   />
                   <Input
                     value={manualLng}
                     onChange={(e) => setManualLng(e.target.value)}
-                    placeholder="Manual Longitude (e.g. -46.63)"
+                    placeholder=""
                     className="h-9 font-mono text-xs"
                   />
                   <Button
@@ -774,7 +816,9 @@ useEffect(() => {
                   </Button>
                 </div>
               </div>
+              </>)}
 
+              {formStep === 2 && (<>
               <div>
                 <div className="flex items-center justify-between">
                   <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
@@ -902,7 +946,9 @@ useEffect(() => {
                   </div>
                 </div>
               )}
+              </>)}
 
+              {formStep === 3 && (<>
               <label className="flex cursor-pointer items-start gap-2 rounded-md border border-border bg-background/40 p-3 text-xs">
                 <input
                   type="checkbox"
@@ -1013,7 +1059,7 @@ useEffect(() => {
                       <Input
                         value={existingPublicKey}
                         onChange={(e) => setExistingPublicKey(e.target.value.trim())}
-                        placeholder="GABC… · 56 characters"
+                        placeholder=""
                         className="h-9 pl-8 font-mono text-xs"
                         maxLength={58}
                         autoComplete="off"
@@ -1046,15 +1092,29 @@ useEffect(() => {
                     : "User-controlled · public key only · local signing modal for every transaction"}
                 </div>
               </div>
+              </>)}
 
-              <Button
-                type="submit"
-                disabled={!formValid}
-                className="h-10 w-full font-mono text-xs uppercase tracking-widest"
-              >
-                Provision Settlement Identity
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
+              {/* Wizard navigation */}
+              <div className="flex items-center gap-3 pt-1">
+                {formStep > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={goBack}
+                    className="h-10 shrink-0 font-mono text-xs uppercase tracking-widest"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" /> Back
+                  </Button>
+                )}
+                <Button
+                  type="submit"
+                  disabled={formStep === FORM_STEPS.length - 1 ? !formValid : !stepValid[formStep]}
+                  className="h-10 flex-1 font-mono text-xs uppercase tracking-widest"
+                >
+                  {formStep === FORM_STEPS.length - 1 ? "Provision Settlement Identity" : "Continue"}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
 
               <div className="flex items-center justify-between border-t border-border pt-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
                 <span>Already provisioned?</span>
