@@ -201,6 +201,8 @@ function SplashLogoContent({ showWords }: { showWords: boolean }) {
             flexDirection: "column",
             alignItems: "center",
             gap: "0.65rem",
+            maxWidth: "min(94vw, 1100px)",
+            paddingInline: "1rem",
           }}
         >
           {/* Name — larger than BrandName lg so it reads at splash scale */}
@@ -225,7 +227,8 @@ function SplashLogoContent({ showWords }: { showWords: boolean }) {
               letterSpacing: "0.30em",
               textTransform: "uppercase",
               color: "oklch(0.68 0.028 240)",
-              lineHeight: 1,
+              lineHeight: 1.5,
+              textAlign: "center",
             }}
           >
             Programmable Pre-Clearing &amp; Settlement Infrastructure
@@ -239,7 +242,8 @@ function SplashLogoContent({ showWords }: { showWords: boolean }) {
               letterSpacing: "0.20em",
               textTransform: "uppercase",
               color: "oklch(0.44 0.018 240)",
-              lineHeight: 1,
+              lineHeight: 1.5,
+              textAlign: "center",
             }}
           >
             Programmable Settlement for Energy Markets
