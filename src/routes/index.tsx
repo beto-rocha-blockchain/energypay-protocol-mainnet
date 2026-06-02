@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDashboard } from "@/hooks/useDashboard";
-import { useSettlementRail } from "@/hooks/useSettlementRail";
+import { useNetworkStore } from "@/store/network";
 import { stellarExpertTx, STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import { useOperator, type ParticipantRole } from "@/store/operator";
 
@@ -72,13 +72,16 @@ const timeAgo = (iso: string) => {
 
 function OperationsPage() {
   const { stats, settlements, horizon, loading, error, refresh } = useDashboard();
-  const { health } = useSettlementRail();
   const operator = useOperator((s) => s.operator);
   // Primary role drives the contextual panel (first role wins)
   const primaryRole = operator?.roles?.[0] ?? null;
 
+  // Live connection status — from the shared store, independent of this page's fetch.
+  const stellarStatus = useNetworkStore((s) => s.stellar);
+  const backendOnline = useNetworkStore((s) => s.backend.online);
+
   const finalityMs = stats?.avg_finality_ms ?? 0;
-  const horizonLatency = horizon?.latency_ms ?? 0;
+  const horizonLatency = stellarStatus.latencyMs ?? 0;
 
   return (
     <div className="space-y-4">
@@ -100,13 +103,13 @@ function OperationsPage() {
           <Badge
             variant="outline"
             className={`font-mono text-[10px] uppercase tracking-widest ${
-              horizon?.horizon_online
-                ? "border-success/40 text-success"
-                : "border-destructive/40 text-destructive"
+              stellarStatus.online === false
+                ? "border-destructive/40 text-destructive"
+                : "border-success/40 text-success"
             }`}
           >
             <Activity className="mr-1.5 h-3 w-3" />
-            {horizon?.horizon_online ? "HORIZON ONLINE" : "HORIZON OFFLINE"}
+            {stellarStatus.online === false ? "HORIZON OFFLINE" : "HORIZON ONLINE"}
           </Badge>
           <Button size="sm" variant="outline" onClick={refresh} disabled={loading}>
             <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
@@ -167,10 +170,10 @@ function OperationsPage() {
         />
         <KpiCard
           label="Horizon"
-          value={horizon?.horizon_online ? "ONLINE" : "OFFLINE"}
+          value={stellarStatus.online === false ? "OFFLINE" : "ONLINE"}
           sub={`${horizonLatency} ms latency`}
-          loading={loading && !horizon}
-          tone={horizon?.horizon_online ? "ok" : "warn"}
+          loading={stellarStatus.online === null}
+          tone={stellarStatus.online === false ? "warn" : "ok"}
           led
         />
       </div>
@@ -194,7 +197,7 @@ function OperationsPage() {
           </p>
           <div className="mt-3 space-y-2">
             <TelRow icon={<Gauge className="h-3.5 w-3.5" />} label="Horizon latency" value={`${horizonLatency} ms`} tone={horizonLatency < 1000 ? "ok" : "warn"} />
-            <TelRow icon={<Activity className="h-3.5 w-3.5" />} label="Backend API" value={health?.status === "ok" ? "ONLINE" : "OFFLINE"} tone={health?.status === "ok" ? "ok" : "warn"} />
+            <TelRow icon={<Activity className="h-3.5 w-3.5" />} label="Backend API" value={backendOnline === false ? "OFFLINE" : "ONLINE"} tone={backendOnline === false ? "warn" : "ok"} />
           </div>
         </Card>
       </div>

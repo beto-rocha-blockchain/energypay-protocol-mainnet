@@ -9,7 +9,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { OperatorBadge } from "@/components/OperatorBadge";
@@ -19,7 +19,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { useOperator, maskAddress, ROLE_COLORS, ROLE_META } from "@/store/operator";
 import { useUiStore } from "@/store/ui";
 import { STELLAR_NETWORK_LABEL } from "@/lib/stellar";
-import { apiStellarStatus } from "@/lib/api";
+import { useNetworkStore, useNetworkPolling } from "@/store/network";
 import { SplashScreen } from "@/components/SplashScreen";
 
 import appCss from "../styles.css?url";
@@ -148,28 +148,10 @@ const BUILD_VERSION = "v0.5 · b9f4c2e";
 function AppHeader() {
   const operator = useOperator((s) => s.operator);
 
-  // Live Stellar Mainnet reachability (read-only Horizon ping via the backend).
-  // null = checking, true = online (pulse), false = offline (red, no pulse).
-  const [online, setOnline] = useState<boolean | null>(null);
-  useEffect(() => {
-    let active = true;
-    const controller = new AbortController();
-    const check = async () => {
-      try {
-        const s = await apiStellarStatus(controller.signal);
-        if (active) setOnline(Boolean(s?.online));
-      } catch {
-        if (active) setOnline(false);
-      }
-    };
-    check();
-    const id = setInterval(check, 30_000);
-    return () => {
-      active = false;
-      controller.abort();
-      clearInterval(id);
-    };
-  }, []);
+  // Single app-wide connection-status poller — updates in real time, independent
+  // of any page's data. null = checking, true = online (pulse), false = offline.
+  useNetworkPolling();
+  const online = useNetworkStore((s) => s.stellar.online);
 
   return (
     <header className="sticky top-0 z-30 flex h-12 items-center border-b border-border bg-background/90 backdrop-blur">
