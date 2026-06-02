@@ -409,12 +409,14 @@
      a bright sweep while the current crosses the graph (~0–28% of the cycle), then
      a calm baseline through the gap. Glow uses the dot's own currentColor. */
   @keyframes ep-status-pulse {
-    0%   { opacity: 0.5;  transform: scale(0.82); box-shadow: 0 0 0 0 transparent; }
-    4%   { opacity: 0.85; transform: scale(1.1);  box-shadow: 0 0 4px 0 currentColor; }
-    13%  { opacity: 1;    transform: scale(1.35); box-shadow: 0 0 7px 1px currentColor; }
-    26%  { opacity: 0.8;  transform: scale(1.05); box-shadow: 0 0 3px 0 currentColor; }
-    34%  { opacity: 0.5;  transform: scale(0.82); box-shadow: 0 0 0 0 transparent; }
-    100% { opacity: 0.5;  transform: scale(0.82); box-shadow: 0 0 0 0 transparent; }
+    /* Calm while the current sweeps the graph (~0–28%) and through the gap. */
+    0%, 80% { opacity: 0.5; transform: scale(0.82); box-shadow: 0 0 0 0 transparent; }
+    /* Flash at the END of the cycle so the dot lights up JUST BEFORE the current
+       re-enters the graph at 0%/100% — reads as "the pulse passes the dot, then
+       travels into the graph". */
+    88%     { opacity: 0.9; transform: scale(1.18); box-shadow: 0 0 5px 1px currentColor; }
+    94%     { opacity: 1;   transform: scale(1.4);  box-shadow: 0 0 8px 2px currentColor; }
+    100%    { opacity: 0.5; transform: scale(0.82); box-shadow: 0 0 0 0 transparent; }
   }
   .ep-status-dot {
     animation: ep-status-pulse 3.3s linear infinite;
