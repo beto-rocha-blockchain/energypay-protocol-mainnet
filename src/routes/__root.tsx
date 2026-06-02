@@ -74,20 +74,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "EnergyPay — Programmable Settlement for Power Markets" },
+      { title: "EnergyPay — Programmable Pre-Clearing & Settlement Infrastructure" },
       {
         name: "description",
-        content: "Institutional settlement infrastructure for electricity contracts on Stellar.",
+        content: "Programmable Settlement for Energy Markets — bilateral energy contracts settled and reconciled on Stellar Mainnet.",
       },
-      { property: "og:title", content: "EnergyPay — Programmable Settlement for Power Markets" },
-      { name: "twitter:title", content: "EnergyPay — Programmable Settlement for Power Markets" },
+      { property: "og:title", content: "EnergyPay — Programmable Pre-Clearing & Settlement Infrastructure" },
+      { name: "twitter:title", content: "EnergyPay — Programmable Pre-Clearing & Settlement Infrastructure" },
       {
         property: "og:description",
-        content: "Institutional settlement infrastructure for electricity contracts on Stellar.",
+        content: "Programmable Settlement for Energy Markets — bilateral energy contracts settled and reconciled on Stellar Mainnet.",
       },
       {
         name: "twitter:description",
-        content: "Institutional settlement infrastructure for electricity contracts on Stellar.",
+        content: "Programmable Settlement for Energy Markets — bilateral energy contracts settled and reconciled on Stellar Mainnet.",
       },
       { name: "twitter:card", content: "summary" },
       { property: "og:type", content: "website" },
