@@ -310,7 +310,7 @@ function ClearingPage() {
             <HealthBar label="Settlement Success" value={successRate} />
             <HealthBar label="Horizon Availability" value={horizon?.horizon_online ? 100 : 0} />
             <HealthBar label="Backend Availability" value={health?.status === "ok" ? 100 : health?.status === "degraded" ? 50 : 0} />
-            <HealthBar label="Finality SLA (< 6s)" value={finalityMs > 0 ? Math.min(100, (6000 / finalityMs) * 100) : 0} />
+            <HealthBar label="Finality SLA (< 6s)" value={finalityMs > 0 ? Math.min(100, (6000 / finalityMs) * 100) : 0} noData={finalityMs <= 0} />
           </div>
         </Card>
 
@@ -613,19 +613,25 @@ function StateMini({
   );
 }
 
-function HealthBar({ label, value }: { label: string; value: number }) {
+function HealthBar({ label, value, noData }: { label: string; value: number; noData?: boolean }) {
   const pct = Math.max(0, Math.min(100, value));
   const color = pct >= 95 ? "bg-success" : pct >= 70 ? "bg-warning" : "bg-destructive";
   return (
     <div>
       <div className="flex items-center justify-between">
         <span className="text-[11px] text-muted-foreground">{label}</span>
-        <span className={`font-mono text-[11px] ${pct >= 95 ? "text-success" : pct >= 70 ? "text-warning" : "text-destructive"}`}>
-          {pct.toFixed(1)}%
-        </span>
+        {noData ? (
+          <span className="font-mono text-[11px] text-muted-foreground/60">Awaiting data</span>
+        ) : (
+          <span className={`font-mono text-[11px] ${pct >= 95 ? "text-success" : pct >= 70 ? "text-warning" : "text-destructive"}`}>
+            {pct.toFixed(1)}%
+          </span>
+        )}
       </div>
       <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-        <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${pct}%` }} />
+        {!noData && (
+          <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${pct}%` }} />
+        )}
       </div>
     </div>
   );
