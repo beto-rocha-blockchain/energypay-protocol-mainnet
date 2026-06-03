@@ -756,7 +756,27 @@ useEffect(() => {
                         : "UNBOUND"}
                   </span>
                 </div>
-                <div className="mt-2 grid gap-2 md:grid-cols-[1fr_auto]">
+                <div className="mt-2 grid gap-2 md:grid-cols-[auto_1fr]">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={requestGeo}
+                    className="h-9 self-stretch font-mono text-[10px] uppercase tracking-widest md:w-56"
+                  >
+                    {geoStatus === "requesting" ? (
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin" /> Requesting…
+                      </>
+                    ) : coords?.source === "GPS" ? (
+                      <>
+                        <Check className="h-3 w-3" /> GPS Bound
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="h-3 w-3" /> Capture GPS coordinates
+                      </>
+                    )}
+                  </Button>
                   <div className="rounded-md border border-border bg-background/40 p-3">
                     <div className="font-mono text-[11px] text-foreground">
                       Bind operational coordinates to your settlement identity
@@ -771,26 +791,6 @@ useEffect(() => {
                       </div>
                     )}
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={requestGeo}
-                    className="h-9 self-stretch font-mono text-[10px] uppercase tracking-widest md:w-44"
-                  >
-                    {geoStatus === "requesting" ? (
-                      <>
-                        <Loader2 className="h-3 w-3 animate-spin" /> Requesting…
-                      </>
-                    ) : coords?.source === "GPS" ? (
-                      <>
-                        <Check className="h-3 w-3" /> GPS Bound
-                      </>
-                    ) : (
-                      <>
-                        <MapPin className="h-3 w-3" /> Capture GPS
-                      </>
-                    )}
-                  </Button>
                 </div>
                 <div className="mt-2 grid gap-2 md:grid-cols-[1fr_1fr_auto]">
                   <Input
