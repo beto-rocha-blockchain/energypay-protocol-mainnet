@@ -31,7 +31,7 @@ export const Route = createFileRoute("/x402")({
       {
         name: "description",
         content:
-          "x402-compatible HTTP 402 payment flow for EnergyPay premium energy market APIs.",
+          "x402-compatible HTTP 402 payment flow for EnergyPay's machine-to-machine energy market-data API.",
       },
     ],
   }),
@@ -201,8 +201,8 @@ function X402Page() {
 
       setAccessGranted(data);
       append(`✓ ACCESS_GRANTED · ledger #${data.payment.ledger}`, "ok");
-      append("✓ Premium PLD market data unlocked", "ok");
-      toast.success("Premium PLD feed unlocked");
+      append("✓ Market-data API response returned", "ok");
+      toast.success("Market-data API response unlocked");
     } catch (error) {
       append(`✗ ${(error as Error).message}`, "warn");
       toast.error("Payment verification failed");
@@ -227,8 +227,9 @@ function X402Page() {
             x402 API Access
           </h1>
           <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-            Demonstrates an x402-compatible HTTP 402 payment flow for premium PLD market data,
-            using {STELLAR_NETWORK_LABEL} transactions as verifiable payment proofs.
+            Demonstrates an x402-compatible HTTP 402 payment flow for EnergyPay's
+            machine-to-machine market-data API, using {STELLAR_NETWORK_LABEL} transactions as
+            verifiable payment proofs.
           </p>
         </div>
 
@@ -243,7 +244,7 @@ function X402Page() {
           <div className="mb-4 flex items-center gap-2">
             <DatabaseZap className="h-5 w-5 text-primary" />
             <div>
-              <h2 className="text-lg font-semibold">Premium PLD Feed</h2>
+              <h2 className="text-lg font-semibold">Metered Market-Data API</h2>
               <p className="text-xs text-muted-foreground">
                 Protected API resource: <span className="font-mono">/api/x402/pld</span>
               </p>
@@ -339,7 +340,7 @@ function X402Page() {
                   <p className="font-mono text-sm font-semibold text-primary">ACCESS_GRANTED</p>
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Premium market data unlocked after {STELLAR_NETWORK_LABEL} payment verification.
+                  Market-data API response returned after {STELLAR_NETWORK_LABEL} payment verification.
                 </p>
               </div>
 
@@ -352,7 +353,7 @@ function X402Page() {
 
               <div className="rounded-lg border border-border bg-background/70 p-4">
                 <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                  Premium Data
+                  API Response
                 </p>
                 <div className="grid gap-3 md:grid-cols-2">
                   <Info label="Market" value={accessGranted.data.market} />
@@ -419,9 +420,10 @@ function X402Page() {
         <div className="flex flex-wrap items-center gap-3">
           <Zap className="h-5 w-5 text-primary" />
           <p className="text-sm text-muted-foreground">
-            x402 does not replace EnergyPay’s institutional settlement engine. It adds a
-            programmable monetization layer for paid energy APIs, oracle feeds and
-            machine-to-machine market data access.
+            x402 does not replace EnergyPay’s institutional settlement engine, and it is not how
+            operators unlock in-app premium analytics — those are included with the Operator and
+            Enterprise licenses. x402 is the pay-per-call rail for external machines and agents to
+            reach EnergyPay’s metered market-data and oracle APIs.
           </p>
         </div>
       </Card>

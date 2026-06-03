@@ -25,7 +25,7 @@ export function getX402PaymentRequirement() {
     amount,
     destination,
     memo,
-    description: "EnergyPay premium PLD market data API access",
+    description: "EnergyPay metered market-data API access (x402)",
     resource: "/api/x402/pld",
   };
 }
