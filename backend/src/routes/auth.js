@@ -180,6 +180,22 @@ router.post("/register", async (req, res) => {
       }
       publicKey = existing_public_key.trim();
 
+      // A wallet can be linked to only one account — reject if this public key
+      // is already registered on the platform.
+      const { data: walletInUse } = await supabase
+        .from("users")
+        .select("id")
+        .eq("stellar_public_key", publicKey)
+        .maybeSingle();
+      if (walletInUse) {
+        return res.status(409).json({
+          success: false,
+          error:
+            "This wallet is already registered on the platform. Each Stellar public key can be linked to only one account.",
+          code: "WALLET_ALREADY_REGISTERED",
+        });
+      }
+
       // Validate the account exists on Stellar Mainnet
       try {
         await horizon.loadAccount(publicKey);
