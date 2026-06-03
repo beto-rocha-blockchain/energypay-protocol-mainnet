@@ -170,7 +170,8 @@ function ClearingPage() {
   const { stats, settlements, horizon, loading, refresh } = useDashboard();
   const { health, telemetry } = useSettlementRail();
   const operator = useOperator((s) => s.operator);
-  const isVerified = operator?.emailVerified && operator?.phoneVerified;
+  // Phone verification is optional (event policy): email-verified operators transact.
+  const isVerified = !!operator?.emailVerified;
   const { snapshot: risk, loading: riskLoading, refresh: refreshRisk } = useRiskSnapshot();
   const cpRisk = useCounterpartyRisk();
 

@@ -374,10 +374,10 @@ router.get("/counterparty-risk", requireAuth, async (req, res) => {
       .eq("id", callerId)
       .single();
 
-    if (!caller?.email_verified || !caller?.phone_verified) {
+    if (!caller?.email_verified) {
       return res.status(403).json({
         success: false,
-        error: "Full verification (email + phone) required to access counterparty risk data.",
+        error: "Email verification required to access counterparty risk data.",
       });
     }
 
@@ -386,7 +386,7 @@ router.get("/counterparty-risk", requireAuth, async (req, res) => {
       .from("users")
       .select("id, full_name, organization, roles, stellar_public_key, country, city, email_verified, phone_verified, created_at")
       .eq("email_verified", true)
-      .eq("phone_verified", true)
+      // Phone verification is optional (event policy): email-verified users included.
       .order("full_name", { ascending: true });
 
     if (usersErr) throw usersErr;

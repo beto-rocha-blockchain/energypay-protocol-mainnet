@@ -91,7 +91,7 @@ router.get("/participants", requireAuth, async (req, res) => {
         "id, full_name, organization, city, country, coords, stellar_public_key",
       )
       .eq("email_verified", true)
-      .eq("phone_verified", true)
+      // Phone verification is optional (event policy): email-verified users included.
       .contains("roles", ["UTILITY"])
       .order("full_name", { ascending: true });
 

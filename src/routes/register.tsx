@@ -358,9 +358,8 @@ useEffect(() => {
                 {(
                   [
                     { n: "01", label: "Fill this form",         sub: "Credentials, roles & wallet" },
-                    { n: "03", label: "Verify via WhatsApp",    sub: "6-digit code to your phone" },
                     { n: "02", label: "Verify your email",      sub: "Confirmation link sent to your inbox" },
-                    { n: "04", label: "Access the environment", sub: "Settlement identity is live" },
+                    { n: "03", label: "Access the environment", sub: "Settlement identity is live" },
                   ] as const
                 ).map(({ n, label, sub }) => (
                   <div key={n} className="flex items-start gap-2">
@@ -1189,7 +1188,9 @@ useEffect(() => {
           )}
 
           {step === "verify-email" && (
-            <VerifyEmailStep onVerified={() => setStep("verify-phone")} />
+            // Phone verification is optional (event policy): email-verified users get
+            // straight into the environment. Phone OTP stays available but is not required.
+            <VerifyEmailStep onVerified={() => setStep("success")} />
           )}
 
           {step === "verify-phone" && (

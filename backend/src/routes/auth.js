@@ -795,7 +795,7 @@ router.get("/counterparties", requireAuth, async (req, res) => {
         "id, full_name, email, organization, roles, stellar_public_key, country, city, email_verified, phone_verified, phone",
       )
       .eq("email_verified", true)
-      .eq("phone_verified", true)
+      // Phone verification is optional (event policy): email-verified users may transact.
       .not("stellar_public_key", "is", null)
       .order("full_name", { ascending: true });
 
@@ -1096,7 +1096,7 @@ router.get("/grid-participants", requireAuth, async (req, res) => {
       .from("users")
       .select("id, full_name, organization, roles, stellar_public_key, country, city, coords, email_verified, phone_verified, has_solar_generation, energy_type, energy_types")
       .eq("email_verified", true)   // must have verified email
-      .eq("phone_verified", true)   // must have verified phone (full 2-step verification)
+      // Phone verification is optional (event policy): email-verified users participate.
       // coords not required — city-level fallback applied below
       .order("full_name", { ascending: true });
 
