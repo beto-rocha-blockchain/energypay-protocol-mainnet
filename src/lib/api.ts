@@ -175,7 +175,9 @@ export type RegisterPayload = {
   fund?: boolean;
   wallet_mode?: "generate" | "link";
   existing_public_key?: string;
-  /** Energy generation source — required when roles includes GENERATOR */
+  /** Energy generation sources — one or more, when roles includes GENERATOR */
+  energy_types?: ("SOLAR" | "HYDRO" | "SMALL_HYDRO" | "WIND" | "BIOMASS" | "NATURAL_GAS" | "NUCLEAR" | "THERMAL" | "COGENERATION")[];
+  /** Primary generation source (first of energy_types) — kept for backward compatibility. */
   energy_type?: "SOLAR" | "HYDRO" | "SMALL_HYDRO" | "WIND" | "BIOMASS" | "NATURAL_GAS" | "NUCLEAR" | "THERMAL" | "COGENERATION";
   /** Granular oversight sub-category — internal/admin-only, not used in public signup.
    * TODO: block REGULATORY_AUTHORITY in the backend /api/auth/register route for
@@ -510,6 +512,8 @@ export type GridParticipantDTO = {
   /** All roles assigned to this participant. Falls back to [role] when absent (older API). */
   roles?: string[];
   energyType: string;
+  /** All generation sources for this participant (Generators may operate several). */
+  energyTypes?: string[];
   settlementAddress: string;
   region: string;
   jurisdiction: string;

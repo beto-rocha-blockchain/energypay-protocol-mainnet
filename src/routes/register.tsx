@@ -115,9 +115,9 @@ function RegisterPage() {
   const [manualLng, setManualLng] = useState("");
   const [walletMode, setWalletMode] = useState<"generate" | "link">("generate");
   const [existingPublicKey, setExistingPublicKey] = useState("");
-  const [energyType, setEnergyType] = useState<
-    "SOLAR" | "HYDRO" | "SMALL_HYDRO" | "WIND" | "BIOMASS" | "NATURAL_GAS" | "NUCLEAR" | "THERMAL" | "COGENERATION"
-  >("SOLAR");
+  const [energyTypes, setEnergyTypes] = useState<
+    ("SOLAR" | "HYDRO" | "SMALL_HYDRO" | "WIND" | "BIOMASS" | "NATURAL_GAS" | "NUCLEAR" | "THERMAL" | "COGENERATION")[]
+  >(["SOLAR"]);
   const [documentType, setDocumentType] = useState<"INDIVIDUAL" | "COMPANY">("INDIVIDUAL");
   const [documentNumber, setDocumentNumber] = useState("");
   const [documentFile, setDocumentFile] = useState<File | null>(null);
@@ -258,7 +258,7 @@ useEffect(() => {
         roles,
         fund,
         coords,
-        energyType: roles.includes("GENERATOR") ? energyType : undefined,
+        energyTypes: roles.includes("GENERATOR") ? energyTypes : undefined,
         walletMode,
         existingPublicKey: walletMode === "link" ? existingPublicKey : undefined,
         documentType,
@@ -919,12 +919,18 @@ useEffect(() => {
                         { type: "COGENERATION",label: "Cogeneration",  Icon: Recycle  },
                       ] as const
                     ).map(({ type, label, Icon }) => {
-                      const active = energyType === type;
+                      const active = energyTypes.includes(type);
                       return (
                         <button
                           key={type}
                           type="button"
-                          onClick={() => setEnergyType(type)}
+                          onClick={() =>
+                            setEnergyTypes((prev) =>
+                              prev.includes(type)
+                                ? prev.filter((t) => t !== type)
+                                : [...prev, type],
+                            )
+                          }
                           className={`group flex flex-col items-center gap-1.5 rounded-md border p-3 text-center transition-all duration-200 ${
                             active
                               ? "border-success/50 bg-success/10 text-success"
@@ -941,7 +947,7 @@ useEffect(() => {
                     })}
                   </div>
                   <div className="mt-1.5 font-mono text-[10px] text-muted-foreground">
-                    Primary energy source used for generation and settlement.
+                    Select every generation source you operate — choose as many as apply.
                   </div>
                 </div>
               )}

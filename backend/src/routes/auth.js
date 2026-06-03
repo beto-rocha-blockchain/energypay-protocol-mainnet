@@ -85,6 +85,7 @@ router.post("/register", async (req, res) => {
       // existing_secret intentionally NOT accepted — USER_CONTROLLED wallets
       // are identified by public key only; the secret never leaves the user's device.
       energy_type,
+      energy_types,
       document_type,
       cpf_cnpj,
     } = req.body;
@@ -294,10 +295,18 @@ router.post("/register", async (req, res) => {
     const emailVerificationToken = crypto.randomBytes(32).toString("hex");
 
     const VALID_ENERGY_TYPES = ["SOLAR", "HYDRO", "SMALL_HYDRO", "WIND", "BIOMASS", "NATURAL_GAS", "NUCLEAR", "THERMAL", "COGENERATION", "GRID"];
-    const resolvedEnergyType =
-      roles?.includes("GENERATOR") && VALID_ENERGY_TYPES.includes(energy_type)
-        ? energy_type
-        : null;
+    // Generators may operate several generation sources. Accept an array
+    // (energy_types) and validate/dedupe it; keep energy_type (single) as the
+    // primary source for backward-compatible readers (grid map, legacy rows).
+    const incomingEnergyTypes = Array.isArray(energy_types)
+      ? energy_types
+      : energy_type
+        ? [energy_type]
+        : [];
+    const resolvedEnergyTypes = roles?.includes("GENERATOR")
+      ? [...new Set(incomingEnergyTypes.filter((t) => VALID_ENERGY_TYPES.includes(t)))]
+      : [];
+    const resolvedEnergyType = resolvedEnergyTypes[0] ?? null;
 
     // Privileged market roles require admin approval — park them in pending_roles
     // (inactive) until an admin approves. Non-privileged roles are active at once.
@@ -338,9 +347,21 @@ router.post("/register", async (req, res) => {
       ...(state ? { state } : {}),
       ...(phone ? { phone } : {}),
       ...(resolvedEnergyType ? { energy_type: resolvedEnergyType } : {}),
+      ...(resolvedEnergyTypes.length ? { energy_types: resolvedEnergyTypes } : {}),
     };
 
     ({ data, error } = await supabase.from("users").insert([withExtras]).select());
+
+    if (error && error.message?.includes("energy_types")) {
+      console.warn("[Auth] energy_types column not found — retrying without it.");
+      const withoutEnergyTypes = {
+        ...baseInsert,
+        ...(state ? { state } : {}),
+        ...(phone ? { phone } : {}),
+        ...(resolvedEnergyType ? { energy_type: resolvedEnergyType } : {}),
+      };
+      ({ data, error } = await supabase.from("users").insert([withoutEnergyTypes]).select());
+    }
 
     if (error && (error.message?.includes("energy_type") || error.code === "42703")) {
       console.warn("[Auth] energy_type column not found — retrying without it.");
@@ -1073,7 +1094,7 @@ router.get("/grid-participants", requireAuth, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("users")
-      .select("id, full_name, organization, roles, stellar_public_key, country, city, coords, email_verified, phone_verified, has_solar_generation, energy_type")
+      .select("id, full_name, organization, roles, stellar_public_key, country, city, coords, email_verified, phone_verified, has_solar_generation, energy_type, energy_types")
       .eq("email_verified", true)   // must have verified email
       .eq("phone_verified", true)   // must have verified phone (full 2-step verification)
       // coords not required — city-level fallback applied below
@@ -1098,6 +1119,19 @@ router.get("/grid-participants", requireAuth, async (req, res) => {
         }
       }
 
+      // Full set of generation sources — Generators may operate several.
+      const VALID_ENERGY_FULL = ["SOLAR", "HYDRO", "SMALL_HYDRO", "WIND", "BIOMASS", "NATURAL_GAS", "NUCLEAR", "THERMAL", "COGENERATION", "GRID"];
+      let energyTypes = [];
+      if (primaryRole === "GENERATOR") {
+        if (Array.isArray(u.energy_types) && u.energy_types.length) {
+          energyTypes = u.energy_types.filter((t) => VALID_ENERGY_FULL.includes(t));
+        } else if (u.energy_type && VALID_ENERGY_FULL.includes(u.energy_type)) {
+          energyTypes = [u.energy_type];
+        } else {
+          energyTypes = [energyType];
+        }
+      }
+
       // Resolve coordinates: GPS > MANUAL > city lookup > country centroid > Brazil default
       let coords = u.coords;
       let approximateLocation = false;
@@ -1118,6 +1152,7 @@ router.get("/grid-participants", requireAuth, async (req, res) => {
         role: primaryRole,
         roles,
         energyType,
+        energyTypes,
         settlementAddress: u.stellar_public_key,
         region: `${u.city || "—"} · ${u.country || "—"}`,
         jurisdiction: u.country || "—",

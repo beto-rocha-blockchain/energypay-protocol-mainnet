@@ -343,7 +343,7 @@ type OperatorState = {
     roles: ParticipantRole[];
     coords?: OperatorCoords;
     fund?: boolean;
-    energyType?: "SOLAR" | "HYDRO" | "SMALL_HYDRO" | "WIND" | "BIOMASS" | "NATURAL_GAS" | "NUCLEAR" | "THERMAL" | "COGENERATION";
+    energyTypes?: ("SOLAR" | "HYDRO" | "SMALL_HYDRO" | "WIND" | "BIOMASS" | "NATURAL_GAS" | "NUCLEAR" | "THERMAL" | "COGENERATION")[];
     walletMode?: "generate" | "link";
     existingPublicKey?: string;
     authorityType?: AuthorityType;
@@ -522,7 +522,7 @@ export const useOperator = create<OperatorState>()((set, get) => ({
     roles,
     coords,
     fund,
-    energyType,
+    energyTypes,
     walletMode,
     existingPublicKey,
     authorityType,
@@ -544,7 +544,8 @@ export const useOperator = create<OperatorState>()((set, get) => ({
       roles,
       coords,
       fund: fund ?? true,
-      energy_type: energyType,
+      energy_types: energyTypes,
+      energy_type: energyTypes?.[0],
       wallet_mode: walletMode,
       existing_public_key: walletMode === "link" ? existingPublicKey : undefined,
       authority_type: roles.includes("REGULATORY_AUTHORITY") ? authorityType : undefined,
