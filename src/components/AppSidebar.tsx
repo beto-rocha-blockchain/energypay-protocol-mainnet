@@ -139,7 +139,7 @@ const SETTLEMENT: Item[] = [
     url: "/x402",
     icon: PlugZap,
     code: "STL-04",
-    roles: ["SELLER", "INVESTOR", "USER", "UTILITY"],
+    roles: ["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY"],
   },
   {
     title: "Custody Wallet",
