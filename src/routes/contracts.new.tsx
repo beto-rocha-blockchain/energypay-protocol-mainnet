@@ -896,10 +896,12 @@ function NewContract() {
             <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Summary</p>
             <p className="mt-1 font-display text-base font-semibold">Notional Exposure</p>
             <div className="mt-6 space-y-4 text-sm">
-              <Row
-                k="Buyer"
-                v={form.buyerLabel || (form.buyerKey ? `${form.buyerKey.slice(0, 8)}…` : "—")}
-              />
+              <div>
+                <span className="text-muted-foreground">Buyer</span>
+                <p className="mt-0.5 break-words font-mono">
+                  {form.buyerLabel || (form.buyerKey ? `${form.buyerKey.slice(0, 8)}…` : "—")}
+                </p>
+              </div>
 
               {/* Party summary */}
               {parties.length > 0 ? (
