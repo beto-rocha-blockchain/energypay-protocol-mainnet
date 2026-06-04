@@ -72,6 +72,8 @@ export const Route = createFileRoute("/landing")({
 /** Main mainnet app. Auth-gated at the root → logged-out visitors land on /login. */
 const PLATFORM_URL = "/";
 const EXPLORER_PUBLIC = "https://stellar.expert/explorer/public";
+// Real EnergyPay EPWR settlement on Stellar Mainnet (100 EPWR · ledger 62,865,799) — publicly verifiable.
+const LIVE_SETTLEMENT_TX = "2ae6f9a67bbab0fa121ddaf704948e5bea68fdb0395093e68522a67abb40d4c2";
 
 const PRIMARY_CTA =
   "inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 font-mono text-xs font-medium uppercase tracking-widest text-primary-foreground transition hover:bg-primary/90";
@@ -296,7 +298,7 @@ function LandingPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             {[
               { icon: Layers, t: "Register obligations", d: "Capture bilateral energy contracts as structured, programmable settlement terms." },
-              { icon: Scale, t: "Manage counterparty risk", d: "Netting, clearing and exposure supervision across market roles." },
+              { icon: Scale, t: "Manage counterparty risk", d: "Counterparty exposure and risk visibility across market roles." },
               { icon: Send, t: "Execute on Stellar", d: "Deterministic settlement with ~5s finality on the public network." },
               { icon: ShieldCheck, t: "Reconcile & audit", d: "Auto-match settlements to on-chain receipts with an immutable trail." },
             ].map((x) => (
@@ -476,11 +478,11 @@ function LandingPage() {
             </ul>
           </div>
 
-          {/* Example settlement receipt */}
+          {/* Real settlement receipt — independently verifiable on mainnet */}
           <Card className="overflow-hidden border-border bg-card/70">
             <div className="flex items-center justify-between border-b border-border bg-background/40 px-4 py-2.5">
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Settlement Receipt · Example
+                Settlement Receipt · Mainnet
               </span>
               <Badge
                 variant="outline"
@@ -491,9 +493,9 @@ function LandingPage() {
             </div>
             <div className="space-y-3 p-5 font-mono">
               {[
-                { icon: Coins, k: "Asset", v: "EPWR" },
-                { icon: Hash, k: "Tx Hash", v: "a1b2c3…e9f0 (example)" },
-                { icon: Layers, k: "Ledger", v: "#54,210,887" },
+                { icon: Coins, k: "Asset", v: "100 EPWR" },
+                { icon: Hash, k: "Tx Hash", v: "2ae6f9a6…40d4c2" },
+                { icon: Layers, k: "Ledger", v: "#62,865,799" },
                 { icon: Globe, k: "Network", v: STELLAR_NETWORK_LABEL },
               ].map((r) => (
                 <div key={r.k} className="flex items-center justify-between gap-4 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
@@ -504,7 +506,7 @@ function LandingPage() {
                 </div>
               ))}
               <a
-                href={EXPLORER_PUBLIC}
+                href={`${EXPLORER_PUBLIC}/tx/${LIVE_SETTLEMENT_TX}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-1.5 rounded-md border border-border bg-background/40 py-2 text-[10px] uppercase tracking-widest text-primary transition hover:border-primary/40 hover:bg-primary/5"
