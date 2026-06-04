@@ -10,6 +10,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { isChunkLoadError, reloadForFreshBundle } from "@/lib/chunk-reload";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { OperatorBadge } from "@/components/OperatorBadge";
@@ -46,23 +47,36 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+  // A stale bundle after a deploy (Vite rotated the hashed chunks) surfaces here
+  // as a failed dynamic import. Auto-reload to fetch the fresh build instead of
+  // stranding the operator on this screen.
+  const staleBundle = isChunkLoadError(error);
+  useEffect(() => {
+    if (staleBundle) reloadForFreshBundle();
+  }, [staleBundle]);
   const isProd = import.meta.env?.PROD;
-  const safeMessage = isProd
-    ? "An unexpected error occurred. Please retry or return home."
-    : error.message;
+  const safeMessage = staleBundle
+    ? "Updating to the latest version…"
+    : isProd
+      ? "An unexpected error occurred. Please retry or return home."
+      : error.message;
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold">Something went wrong</h1>
+        <h1 className="text-xl font-semibold">{staleBundle ? "Updating…" : "Something went wrong"}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{safeMessage}</p>
         <button
           onClick={() => {
+            if (staleBundle) {
+              reloadForFreshBundle();
+              return;
+            }
             router.invalidate();
             reset();
           }}
           className="mt-6 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
         >
-          Retry
+          {staleBundle ? "Reload" : "Retry"}
         </button>
       </div>
     </div>
