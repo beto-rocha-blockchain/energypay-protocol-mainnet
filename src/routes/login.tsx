@@ -11,6 +11,7 @@ import {
   ArrowRight,
   Sun,
   Moon,
+  HelpCircle,
 } from "lucide-react";
 import { BrandBadge, BrandName } from "@/components/BrandLogo";
 import { Card } from "@/components/ui/card";
@@ -22,6 +23,7 @@ import { useOperator } from "@/store/operator";
 import { useUiStore, type Theme } from "@/store/ui";
 import { toast } from "sonner";
 import { safeErrorMessage } from "@/lib/safe-error";
+import { startLoginTour, LOGIN_TOUR_KEY, hasSeenTour } from "@/lib/tour";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -49,6 +51,13 @@ function LoginPage() {
       window.history.replaceState({}, "", "/login");
     }
   }, []);
+
+  // Auto-start the guided tour on first visit (shown once, then on demand).
+  useEffect(() => {
+    if (isAuthenticated || hasSeenTour(LOGIN_TOUR_KEY)) return;
+    const t = window.setTimeout(() => startLoginTour(), 600);
+    return () => window.clearTimeout(t);
+  }, [isAuthenticated]);
 
   const onAccess = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,6 +170,7 @@ function LoginPage() {
                 <Mail className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="email"
+                  data-tour="login-email"
                   type="email"
                   autoComplete="off"
                   value={email}
@@ -182,6 +192,7 @@ function LoginPage() {
                 <KeyRound className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="key"
+                  data-tour="login-password"
                   type="password"
                   autoComplete="current-password"
                   value={password}
@@ -198,6 +209,7 @@ function LoginPage() {
 
             <Button
               type="submit"
+              data-tour="login-access"
               disabled={busy}
               className="h-9 w-full font-mono text-xs uppercase tracking-widest"
             >
@@ -213,6 +225,7 @@ function LoginPage() {
               </p>
               <Link
                 to="/register"
+                data-tour="login-provision"
                 className="flex items-center justify-between rounded-md border border-primary/60 bg-primary/10 px-3 py-3 text-xs shadow-sm transition hover:border-primary hover:bg-primary/20"
               >
                 <span>
@@ -226,6 +239,14 @@ function LoginPage() {
                 <ArrowRight className="h-4 w-4 shrink-0 text-primary" />
               </Link>
             </div>
+
+            <button
+              type="button"
+              onClick={() => startLoginTour()}
+              className="flex w-full items-center justify-center gap-1.5 rounded-md border border-border bg-background/40 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition hover:border-primary/50 hover:text-primary"
+            >
+              <HelpCircle className="h-3 w-3" /> Tutorial guiado · como entrar
+            </button>
 
             <div className="flex items-center justify-between border-t border-border pt-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
               <Link to="/forgot-password" className="text-muted-foreground hover:text-primary">

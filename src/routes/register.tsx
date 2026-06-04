@@ -44,6 +44,7 @@ import {
   Atom,
   Recycle,
   Scale,
+  HelpCircle,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -58,6 +59,7 @@ import { safeErrorMessage } from "@/lib/safe-error";
 import { apiResendVerification, apiSendPhoneCode, apiVerifyPhoneCode, apiUploadIdentityDocument } from "@/lib/api";
 import { getSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
+import { startRegisterTour, REGISTER_TOUR_KEY, hasSeenTour } from "@/lib/tour";
 
 export const Route = createFileRoute("/register")({
   component: RegisterPage,
@@ -134,6 +136,13 @@ function RegisterPage() {
 useEffect(() => {
   // Intentionally empty.
 }, []);
+
+  // Auto-start the guided onboarding tour on first visit (shown once, then on demand).
+  useEffect(() => {
+    if (step !== "form" || hasSeenTour(REGISTER_TOUR_KEY)) return;
+    const t = window.setTimeout(() => startRegisterTour({ setStep: setFormStep }), 700);
+    return () => window.clearTimeout(t);
+  }, [step]);
 
   const toggleRole = (r: ParticipantRole) => {
     if (roles.includes(r)) {
@@ -441,6 +450,20 @@ useEffect(() => {
 
           {step === "form" && (
             <form onSubmit={submit} className="space-y-5 p-5">
+              {/* Guided tour trigger */}
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Step {formStep + 1} of {FORM_STEPS.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => startRegisterTour({ setStep: setFormStep })}
+                  className="flex items-center gap-1.5 rounded-md border border-border bg-background/40 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition hover:border-primary/50 hover:text-primary"
+                >
+                  <HelpCircle className="h-3 w-3" /> Tutorial guiado
+                </button>
+              </div>
+
               {/* Wizard progress — one step at a time */}
               <div className="flex items-center gap-2">
                 {FORM_STEPS.map((label, i) => (
@@ -489,6 +512,7 @@ useEffect(() => {
                 <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   <Field label="Full Name" icon={<User className="h-3.5 w-3.5" />}>
                     <Input
+                      data-tour="reg-fullname"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder=""
@@ -497,6 +521,7 @@ useEffect(() => {
                   </Field>
                   <Field label="Operator Email" icon={<Mail className="h-3.5 w-3.5" />}>
                     <Input
+                      data-tour="reg-email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -511,6 +536,7 @@ useEffect(() => {
                       hint="Required for 2FA. Include country code, e.g. +55 11 99999-9999"
                     >
                       <Input
+                        data-tour="reg-phone"
                         type="tel"
                         required
                         value={phone}
@@ -533,6 +559,7 @@ useEffect(() => {
                     icon={<Lock className="h-3.5 w-3.5" />}
                   >
                     <Input
+                      data-tour="reg-password"
                       type={showPw ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -567,6 +594,7 @@ useEffect(() => {
                     className="md:col-span-3"
                   >
                     <Input
+                      data-tour="reg-org"
                       value={organization}
                       onChange={(e) => setOrganization(e.target.value)}
                       placeholder=""
@@ -580,7 +608,7 @@ useEffect(() => {
                       value={country}
                       onValueChange={(v) => { setCountry(v); setState(""); setCity(""); }}
                     >
-                      <SelectTrigger className="h-9 bg-input font-mono text-xs">
+                      <SelectTrigger data-tour="reg-country" className="h-9 bg-input font-mono text-xs">
                         <SelectValue placeholder="Select country…" />
                       </SelectTrigger>
                       <SelectContent className="max-h-60">
@@ -668,7 +696,7 @@ useEffect(() => {
                 </div>
               </div>
 
-              <div>
+              <div data-tour="reg-identity">
                 <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
                   § 02c · Identity Document
                 </div>
@@ -830,7 +858,7 @@ useEffect(() => {
                     Enable all capabilities →
                   </button>
                 </div>
-                <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                <div data-tour="reg-roles" className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {(Object.keys(ROLE_META) as ParticipantRole[])
                     .filter((r) => r !== "REGULATORY_AUTHORITY" && r !== "ADMIN")
                     .map((r) => {
@@ -953,7 +981,7 @@ useEffect(() => {
               </>)}
 
               {formStep === 3 && (<>
-              <label className="flex cursor-pointer items-start gap-2 rounded-md border border-border bg-background/40 p-3 text-xs">
+              <label data-tour="reg-fund" className="flex cursor-pointer items-start gap-2 rounded-md border border-border bg-background/40 p-3 text-xs">
                 <input
                   type="checkbox"
                   checked={fund}
@@ -977,7 +1005,7 @@ useEffect(() => {
                 <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
                   § 04b · Settlement Wallet
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-2">
+                <div data-tour="reg-wallet" className="mt-2 grid grid-cols-2 gap-2">
                   {(
                     [
                       {
@@ -1112,6 +1140,7 @@ useEffect(() => {
                 )}
                 <Button
                   type="submit"
+                  data-tour="reg-continue"
                   disabled={formStep === FORM_STEPS.length - 1 ? !formValid : !stepValid[formStep]}
                   className="h-10 flex-1 font-mono text-xs uppercase tracking-widest"
                 >
