@@ -121,7 +121,14 @@ function FeatureCard({
 
 function LandingPage() {
   return (
-    <div className="min-h-screen w-full bg-background text-foreground">
+    <div className="min-h-screen w-full text-foreground">
+      {/* Fixed background image — stays behind the page while the content scrolls over it */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center"
+        style={{ backgroundImage: "url(/grid-bg.jpg)" }}
+      />
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-background/70" />
       {/* ── Top nav ─────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5">
@@ -150,17 +157,6 @@ function LandingPage() {
 
       {/* ── 1 · Hero ────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden border-b border-border">
-        {/* Background image — grid / power lines */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url(/grid-bg.jpg)" }}
-        />
-        {/* Darkening gradient: readable at top (headline), shows the glowing lines at the bottom */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/40 via-background/55 to-background/85"
-        />
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-60"
@@ -478,10 +474,6 @@ function LandingPage() {
                 </li>
               ))}
             </ul>
-
-            <a href={EXPLORER_PUBLIC} target="_blank" rel="noopener noreferrer" className={`${OUTLINE_CTA} mt-7`}>
-              Open Stellar Expert <ExternalLink className="h-3.5 w-3.5" />
-            </a>
           </div>
 
           {/* Example settlement receipt */}
@@ -547,8 +539,8 @@ function LandingPage() {
             <Link to={PLATFORM_URL} className={PRIMARY_CTA}>
               Launch Mainnet Platform <ArrowRight className="h-3.5 w-3.5" />
             </Link>
-            <Link to="/login" className={OUTLINE_CTA}>
-              Operator sign in
+            <Link to="/register" className={OUTLINE_CTA}>
+              Provision settlement identity
             </Link>
           </div>
         </div>
