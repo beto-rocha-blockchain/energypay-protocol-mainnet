@@ -205,6 +205,35 @@ function LandingPage() {
         </div>
       </section>
 
+      {/* ── Product video ───────────────────────────────────────────────────── */}
+      <section className="border-b border-border bg-card/20">
+        <div className="mx-auto max-w-5xl px-5 py-20">
+          <div className="text-center">
+            <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70">
+              Demo
+            </p>
+            <h2 className="mt-2 font-display text-2xl font-semibold md:text-3xl">
+              See EnergyPay in action
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              A walkthrough of programmable pre-clearing and settlement of bilateral
+              energy contracts on {STELLAR_NETWORK_LABEL}.
+            </p>
+          </div>
+          <div className="mx-auto mt-8 max-w-4xl overflow-hidden rounded-xl border border-border bg-background/40 shadow-lg">
+            <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+              <iframe
+                src="https://drive.google.com/file/d/1LT8rV_N1KavR8iABE1BbxantPwqP-DHv/preview"
+                title="EnergyPay — Product Video"
+                allow="autoplay; fullscreen"
+                allowFullScreen
+                className="absolute inset-0 h-full w-full"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── 2 · Problem ─────────────────────────────────────────────────────── */}
       <section className="border-b border-border">
         <div className="mx-auto max-w-6xl px-5 py-20">
