@@ -69,8 +69,15 @@ function LoginPage() {
   };
 
   return (
-    <div className="grid min-h-screen w-full place-items-center px-4">
-      <div className="grid w-full max-w-5xl gap-6 lg:grid-cols-[1.05fr_1fr] lg:items-stretch">
+    <div className="relative grid min-h-screen w-full place-items-center overflow-hidden px-4">
+      {/* Background image — grid / power lines (login front door) */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url(/grid-bg.jpg)" }}
+      />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-background/65" />
+      <div className="relative z-10 grid w-full max-w-5xl gap-6 lg:grid-cols-[1.05fr_1fr] lg:items-stretch">
         <Card className="hidden flex-col justify-between overflow-hidden border-border bg-card/60 p-6 lg:flex">
           <div>
             <div className="flex items-center gap-2">

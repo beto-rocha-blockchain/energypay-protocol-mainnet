@@ -150,6 +150,17 @@ function LandingPage() {
 
       {/* ── 1 · Hero ────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden border-b border-border">
+        {/* Background image — grid / power lines */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url(/grid-bg.jpg)" }}
+        />
+        {/* Darkening gradient: readable at top (headline), shows the glowing lines at the bottom */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/40 via-background/55 to-background/85"
+        />
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-60"
