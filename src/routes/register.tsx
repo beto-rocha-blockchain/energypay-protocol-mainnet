@@ -170,14 +170,14 @@ useEffect(() => {
   );
   const docValid = useMemo(() => {
     const raw = documentNumber.trim();
-    if (!raw) return false;
+    if (!raw) return true; // CPF/CNPJ is optional — empty is allowed; format is only checked if filled
     if (isBrazil) {
       const d = raw.replace(/\D/g, "");
       return documentType === "COMPANY" ? d.length === 14 : d.length === 11;
     }
     return raw.length >= 4;
   }, [documentNumber, isBrazil, documentType]);
-  const docLabel = !isBrazil ? "Tax / Registration ID" : documentType === "COMPANY" ? "CNPJ" : "CPF";
+  const docLabel = (!isBrazil ? "Tax / Registration ID" : documentType === "COMPANY" ? "CNPJ" : "CPF") + " (optional)";
   const docHint = !isBrazil
     ? "Enter at least 4 characters."
     : documentType === "COMPANY" ? "CNPJ must have 14 digits." : "CPF must have 11 digits.";
