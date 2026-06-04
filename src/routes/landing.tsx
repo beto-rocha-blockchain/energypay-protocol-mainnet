@@ -335,7 +335,7 @@ function LandingPage() {
               Execute bilateral transfers with ~5s Stellar finality.
             </FeatureCard>
             <FeatureCard icon={Code2} title="x402 API Access" tag="STL-04">
-              Programmatic settlement over the x402 machine-payable rail.
+              Machine-to-machine payments (x402) for metered, pay-per-call access to market-data and oracle APIs.
             </FeatureCard>
             <FeatureCard icon={Wallet} title="Custody Wallet" tag="STL-05">
               Platform-managed or user-controlled Stellar settlement accounts.
@@ -403,7 +403,7 @@ function LandingPage() {
                 { k: "Active network", v: STELLAR_NETWORK_LABEL },
                 { k: "Settlement asset", v: "EPWR · tokenized energy receivable" },
                 { k: "Network reserve / gas", v: "XLM" },
-                { k: "Programmable rail", v: "x402 machine payments" },
+                { k: "Machine payments", v: "x402 (pay-per-call API)" },
                 { k: "Receipt", v: "txHash + ledger + Stellar Expert" },
               ].map((r) => (
                 <div key={r.k} className="flex items-center justify-between gap-4 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
