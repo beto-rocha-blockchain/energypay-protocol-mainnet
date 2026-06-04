@@ -681,7 +681,7 @@ export type Notification = {
   id: string;
   user_id: string;
   contract_id: string | null;
-  type: "APPROVAL_REQUIRED" | "APPROVED" | "REJECTED" | "SETTLED" | "INFO";
+  type: "APPROVAL_REQUIRED" | "APPROVED" | "REJECTED" | "SETTLED" | "INFO" | "ADMIN_ACTION";
   title: string;
   message: string;
   action_label: string | null;
@@ -837,7 +837,7 @@ export type AuditLogEntry = {
   details: Record<string, unknown>;
   ip_address: string | null;
   created_at: string;
-  actor: { id: string; email: string; full_name: string | null } | null;
+  actor: { id: string; email: string; full_name: string | null; platform_role?: PlatformRole } | null;
   target: { id: string; email: string; full_name: string | null } | null;
 };
 
@@ -912,6 +912,16 @@ export const apiAdminAuditLog = (params?: { page?: number; limit?: number; actio
   if (params?.target_id) qs.set("target_id", params.target_id);
   return apiRequest<{ success: boolean; entries: AuditLogEntry[]; total: number }>(
     `/api/admin/audit-log${qs.toString() ? `?${qs}` : ""}`,
+  );
+};
+
+// Owner-only feed of actions performed by OTHER admins ("Deus" activity feed).
+export const apiAdminActivity = (params?: { page?: number; limit?: number }) => {
+  const qs = new URLSearchParams();
+  if (params?.page)  qs.set("page", String(params.page));
+  if (params?.limit) qs.set("limit", String(params.limit));
+  return apiRequest<{ success: boolean; entries: AuditLogEntry[]; total: number }>(
+    `/api/admin/activity${qs.toString() ? `?${qs}` : ""}`,
   );
 };
 

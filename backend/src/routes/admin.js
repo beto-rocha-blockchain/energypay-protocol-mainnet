@@ -32,6 +32,7 @@ import {
 import { supabase } from "../lib/supabase.js";
 import { NETWORK_PASSPHRASE, horizon } from "../lib/stellar-network.js";
 import { requirePlatformRole } from "../middleware/auth.js";
+import { logAudit } from "../lib/adminAudit.js";
 
 const router = express.Router();
 
@@ -307,23 +308,9 @@ const USER_SELECT =
   "wallet_mode, wallet_status, wallet_network, stellar_public_key, " +
   "email_verified, phone_verified, funded, created_at, updated_at";
 
-// Audit helper — fire-and-forget
-async function logAudit({ actorId, targetId = null, action, details = {}, ip = null }) {
-  // Supabase query builder is thenable but has no .catch() — handle via try/catch
-  // and the returned { error } so audit logging never throws into the caller.
-  try {
-    const { error } = await supabase.from("admin_audit_log").insert([{
-      actor_id:   actorId,
-      target_id:  targetId,
-      action,
-      details,
-      ip_address: ip,
-    }]);
-    if (error) console.error("[audit]", error.message);
-  } catch (err) {
-    console.error("[audit]", err.message);
-  }
-}
+// Audit helper (logAudit) is imported from ../lib/adminAudit.js. Besides writing
+// the immutable admin_audit_log entry, it notifies every PLATFORM_OWNER ("Deus")
+// of actions performed by any other administrator.
 
 /**
  * Recovery permission model — who may reset (recover) whose password.
@@ -999,6 +986,41 @@ router.delete(
       res.json({ success: true });
     } catch (err) {
       console.error("[admin/recovery-links DELETE]", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+);
+
+// ─── GET /api/admin/activity ─────────────────────────────────────────────────
+// Owner-only feed of actions performed by OTHER admins (everyone except the
+// requesting owner). Backs the "Activity Feed" tab seen only by the PLATFORM_OWNER.
+router.get(
+  "/activity",
+  requirePlatformRole("PLATFORM_OWNER"),
+  async (req, res) => {
+    try {
+      const { page = "1", limit = "50" } = req.query;
+      const pageNum  = Math.max(1, parseInt(page, 10));
+      const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10)));
+      const offset   = (pageNum - 1) * limitNum;
+
+      const { data, count, error } = await supabase
+        .from("admin_audit_log")
+        .select(
+          "id, action, details, ip_address, created_at, " +
+          "actor:actor_id(id, email, full_name, platform_role), " +
+          "target:target_id(id, email, full_name)",
+          { count: "exact" }
+        )
+        .neq("actor_id", req.adminUser.id)
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limitNum - 1);
+
+      if (error) throw error;
+
+      res.json({ success: true, entries: data ?? [], total: count ?? 0, page: pageNum, limit: limitNum });
+    } catch (err) {
+      console.error("[admin/activity]", err);
       res.status(500).json({ success: false, error: err.message });
     }
   }

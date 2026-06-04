@@ -18,6 +18,7 @@ import {
   Mail,
   Ban,
   Layers,
+  Activity,
 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
@@ -55,6 +56,7 @@ import {
   apiAdminBlockUser,
   apiAdminUnblockUser,
   apiAdminAuditLog,
+  apiAdminActivity,
   apiAdminGetRecoveryLinks,
   apiAdminRemoveRecoveryLink,
   type AdminUser,
@@ -966,6 +968,126 @@ function AuditLogTab() {
   );
 }
 
+// ─── Activity Feed Tab (owner-only — actions by other admins) ─────────────────
+
+const ADMIN_ACTION_LABEL: Record<string, string> = {
+  UPDATE_PROFILE: "Updated profile",
+  RECOVER_PASSWORD: "Reset password",
+  BLOCK_USER: "Blocked user",
+  UNBLOCK_USER: "Unblocked user",
+  SET_EMAIL: "Changed email",
+  SET_PLATFORM_ROLE: "Changed platform role",
+  SET_MARKET_ROLES: "Changed market roles",
+  APPROVE_ROLES: "Approved roles",
+  REJECT_ROLES: "Rejected roles",
+  ADD_RECOVERY_LINK: "Added recovery link",
+  REMOVE_RECOVERY_LINK: "Removed recovery link",
+  DELETE_INACTIVE_ACCOUNT: "Deleted inactive account",
+  PLD_INGEST: "Ingested PLD data",
+};
+
+function ActivityFeedTab() {
+  const [entries, setEntries] = useState<AuditLogEntry[]>([]);
+  const [total, setTotal]     = useState(0);
+  const [page, setPage]       = useState(1);
+  const [loading, setLoading] = useState(true);
+  const limit = 50;
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await apiAdminActivity({ page, limit });
+      setEntries(res.entries);
+      setTotal(res.total);
+    } catch (err) {
+      toast.error((err as Error).message || "Failed to load activity feed.");
+    } finally {
+      setLoading(false);
+    }
+  }, [page]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const pages = Math.ceil(total / limit);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Activity className="h-3.5 w-3.5 text-violet-400" />
+          <span className="font-mono text-xs text-muted-foreground">
+            {total} action{total === 1 ? "" : "s"} by other admins
+          </span>
+        </div>
+        <Button variant="outline" size="sm" onClick={load} className="h-7 w-7 p-0">
+          <RefreshCw className="h-3 w-3" />
+        </Button>
+      </div>
+
+      <div className="rounded-md border border-border/50 overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-border/50">
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">WHEN</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">ADMIN</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">ACTION</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">TARGET</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">DETAILS</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading
+              ? Array.from({ length: 6 }).map((_, i) => (
+                  <TableRow key={i} className="border-border/30">
+                    {Array.from({ length: 5 }).map((_, j) => (
+                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              : entries.length === 0
+                ? <TableRow><TableCell colSpan={5} className="py-8 text-center text-xs text-muted-foreground">No actions by other admins yet.</TableCell></TableRow>
+                : entries.map(e => (
+                    <TableRow key={e.id} className="border-border/30 hover:bg-muted/30">
+                      <TableCell className="font-mono text-[10px] text-muted-foreground whitespace-nowrap">{timeAgo(e.created_at)}</TableCell>
+                      <TableCell className="font-mono text-[10px]">
+                        <span className="text-foreground">{e.actor?.email ?? "—"}</span>
+                        {e.actor?.platform_role && (
+                          <span className="ml-1.5 rounded bg-muted px-1 py-0.5 text-[9px] text-muted-foreground">
+                            {ROLE_BADGE[e.actor.platform_role]?.label ?? e.actor.platform_role}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="rounded bg-violet-500/10 px-1.5 py-0.5 font-mono text-[10px] text-violet-300">
+                          {ADMIN_ACTION_LABEL[e.action] ?? e.action}
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-mono text-[10px] text-muted-foreground">{e.target?.email ?? "—"}</TableCell>
+                      <TableCell className="font-mono text-[10px] text-muted-foreground/70 max-w-xs truncate">
+                        {JSON.stringify(e.details)}
+                      </TableCell>
+                    </TableRow>
+                  ))
+            }
+          </TableBody>
+        </Table>
+      </div>
+
+      {pages > 1 && (
+        <div className="flex items-center justify-end gap-2">
+          <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </Button>
+          <span className="font-mono text-xs text-muted-foreground">{page} / {pages}</span>
+          <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setPage(p => Math.min(pages, p + 1))} disabled={page === pages}>
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Recovery Links Tab ───────────────────────────────────────────────────────
 
 function RecoveryLinksTab({ isOwner }: { isOwner: boolean }) {
@@ -1069,7 +1191,7 @@ function RecoveryLinksTab({ isOwner }: { isOwner: boolean }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-type Tab = "users" | "audit" | "recovery";
+type Tab = "users" | "audit" | "recovery" | "activity";
 
 function AdminPage() {
   const operator = useOperator(s => s.operator);
@@ -1082,6 +1204,13 @@ function AdminPage() {
     if (operator.platformRole === "USER") { navigate({ to: "/" }); }
   }, [operator, navigate]);
 
+  // Honor a ?tab= deep-link (e.g. from an owner "Admin activity" notification).
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t === "users" || t === "audit" || t === "recovery") setTab(t);
+    else if (t === "activity" && operator?.platformRole === "PLATFORM_OWNER") setTab("activity");
+  }, [operator]);
+
   if (!operator || operator.platformRole === "USER") return null;
 
   const isOwner = operator.platformRole === "PLATFORM_OWNER";
@@ -1091,6 +1220,8 @@ function AdminPage() {
     { id: "audit",    label: "Audit Log",       icon: ClipboardList },
     { id: "recovery", label: "Recovery Links",  icon: Link2 },
   ];
+  // Owner-only: live feed of every other admin's actions ("Deus" oversight).
+  if (isOwner) TABS.push({ id: "activity", label: "Activity Feed", icon: Activity });
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -1150,6 +1281,7 @@ function AdminPage() {
           {tab === "users"    && <UsersTab    operatorEmail={operator.email} operatorRole={operator.platformRole} />}
           {tab === "audit"    && <AuditLogTab />}
           {tab === "recovery" && <RecoveryLinksTab isOwner={isOwner} />}
+          {tab === "activity" && isOwner && <ActivityFeedTab />}
         </div>
       </Card>
     </div>

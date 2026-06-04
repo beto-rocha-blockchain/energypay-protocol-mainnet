@@ -22,6 +22,7 @@ import {
   resolveValidatedSnapshot,
   listSnapshots,
 } from "../services/pldOracleService.js";
+import { logAudit } from "../lib/adminAudit.js";
 
 const router = express.Router();
 
@@ -315,6 +316,12 @@ router.post("/pld/ingest", requirePlatformRole("PLATFORM_OWNER", "PLATFORM_ADMIN
         datasetVersion: dataset_version || null,
         ingestedBy,
       });
+      await logAudit({
+        actorId: req.adminUser?.id ?? ingestedBy,
+        action: "PLD_INGEST",
+        details: { mode: "manual", submarket, reference_date, hour },
+        ip: req.ip,
+      });
       return res.json({ success: true, snapshot });
     }
 
@@ -335,6 +342,12 @@ router.post("/pld/ingest", requirePlatformRole("PLATFORM_OWNER", "PLATFORM_ADMIN
           }),
         );
       }
+      await logAudit({
+        actorId: req.adminUser?.id ?? ingestedBy,
+        action: "PLD_INGEST",
+        details: { mode: "csv", count: snapshots.length, dataset_version: req.body.dataset_version || null },
+        ip: req.ip,
+      });
       return res.json({ success: true, count: snapshots.length, snapshots });
     }
 

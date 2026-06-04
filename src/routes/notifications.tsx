@@ -72,6 +72,7 @@ function TypeBadge({ type }: { type: Notification["type"] }) {
     REJECTED:          { label: "Rejected",           cls: "border-destructive/40 text-destructive" },
     SETTLED:           { label: "Settled",            cls: "border-primary/40 text-primary" },
     INFO:              { label: "Info",               cls: "border-border text-muted-foreground" },
+    ADMIN_ACTION:      { label: "Admin Activity",     cls: "border-violet-500/40 text-violet-300" },
   };
   const { label, cls } = map[type];
   return (
