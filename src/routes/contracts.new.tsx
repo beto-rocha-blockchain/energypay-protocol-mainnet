@@ -923,6 +923,7 @@ function NewContract() {
               )}
 
               <Row k="Volume" v={`${form.volume || "—"} MWh`} />
+              <Row k="Settles as" v={form.volume ? `${form.volume} EPWR` : "—"} />
               <Row k="Price" v={`R$ ${form.price || "—"}`} />
               <Row k="Start" v={form.startDate ? format(form.startDate, "yyyy-MM-dd") : "—"} />
               <Row k="End" v={form.endDate ? format(form.endDate, "yyyy-MM-dd") : "—"} />
@@ -937,6 +938,9 @@ function NewContract() {
                     : "R$ 0,00"}
                 </p>
               </div>
+              <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground/70">
+                On settlement, EPWR is minted to the buyer · 1 EPWR = 1 MWh.
+              </p>
             </div>
 
             <Button
