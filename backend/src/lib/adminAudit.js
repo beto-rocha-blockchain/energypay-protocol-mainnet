@@ -1,10 +1,10 @@
 /**
  * Admin audit + owner ("Deus") notification.
  *
- * logAudit() writes the immutable admin_audit_log entry (as before) AND, for any
- * action performed by someone who is NOT the platform owner, drops an in-app
- * notification into every PLATFORM_OWNER's inbox — so the owner is informed of
- * all actions taken by other administrators.
+ * logAudit() writes the immutable admin_audit_log entry (as before) AND drops an
+ * in-app notification into every PLATFORM_OWNER's inbox for any action performed
+ * by anyone other than that owner — so each owner is informed of every action
+ * taken by another administrator (and by any co-owner).
  *
  * Reuses the existing tables: admin_audit_log (migration 006) and notifications
  * (migration 003). No schema change required. Both writes are best-effort and
@@ -41,25 +41,9 @@ async function notifyOwnersOfAdminAction({ actorId, targetId, action }) {
   try {
     if (!actorId) return;
 
-    // Acting admin (for a readable message)
-    const { data: actor } = await supabase
-      .from("users")
-      .select("id, email, full_name, platform_role")
-      .eq("id", actorId)
-      .single();
-
-    // Optional target user
-    let targetEmail = null;
-    if (targetId) {
-      const { data: target } = await supabase
-        .from("users")
-        .select("email")
-        .eq("id", targetId)
-        .single();
-      targetEmail = target?.email ?? null;
-    }
-
-    // Every platform owner EXCEPT the actor gets informed.
+    // Every platform owner EXCEPT the actor gets informed. Query this first and
+    // short-circuit when there is no one to notify (e.g. the sole owner acting),
+    // so we skip the actor/target lookups entirely on the common path.
     const { data: owners } = await supabase
       .from("users")
       .select("id")
@@ -67,6 +51,17 @@ async function notifyOwnersOfAdminAction({ actorId, targetId, action }) {
       .neq("id", actorId);
 
     if (!owners?.length) return;
+
+    // Resolve actor + (optional) target in parallel for a readable message.
+    const [actorRes, targetRes] = await Promise.all([
+      supabase.from("users").select("email, full_name").eq("id", actorId).single(),
+      targetId
+        ? supabase.from("users").select("email").eq("id", targetId).single()
+        : Promise.resolve({ data: null }),
+    ]);
+
+    const actor = actorRes?.data;
+    const targetEmail = targetRes?.data?.email ?? null;
 
     const actorName = actor?.full_name || actor?.email || "An administrator";
     const label = humanLabel(action);

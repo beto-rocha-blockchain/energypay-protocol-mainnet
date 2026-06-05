@@ -277,6 +277,21 @@ router.post(
     const deleted = results.filter((r) => r.action === "deleted").length;
     const kept = results.filter((r) => r.action === "kept").length;
 
+    if (!dryRun && deleted > 0) {
+      await logAudit({
+        actorId: req.adminUser.id,
+        action: "DELETE_INACTIVE_ACCOUNT",
+        details: {
+          deleted,
+          kept,
+          checked: candidates.length,
+          days_threshold: days,
+          emails: results.filter((r) => r.action === "deleted").map((r) => r.email),
+        },
+        ip: req.ip,
+      });
+    }
+
     return res.json({
       success: true,
       dry_run: dryRun,

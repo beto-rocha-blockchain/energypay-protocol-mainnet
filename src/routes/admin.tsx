@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Shield,
   Search,
@@ -1204,11 +1204,15 @@ function AdminPage() {
     if (operator.platformRole === "USER") { navigate({ to: "/" }); }
   }, [operator, navigate]);
 
-  // Honor a ?tab= deep-link (e.g. from an owner "Admin activity" notification).
+  // Honor a ?tab= deep-link (e.g. from an owner "Admin activity" notification),
+  // applied exactly once so later operator-store updates don't reassert the tab.
+  const deepLinkApplied = useRef(false);
   useEffect(() => {
+    if (deepLinkApplied.current || !operator) return;
+    deepLinkApplied.current = true;
     const t = new URLSearchParams(window.location.search).get("tab");
     if (t === "users" || t === "audit" || t === "recovery") setTab(t);
-    else if (t === "activity" && operator?.platformRole === "PLATFORM_OWNER") setTab("activity");
+    else if (t === "activity" && operator.platformRole === "PLATFORM_OWNER") setTab("activity");
   }, [operator]);
 
   if (!operator || operator.platformRole === "USER") return null;
