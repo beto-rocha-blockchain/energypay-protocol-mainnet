@@ -48,9 +48,10 @@ function markSeen(key: string) {
 const SHARED = {
   showProgress: true,
   allowClose: true,
-  overlayColor: "rgba(2, 6, 12, 0.72)",
-  stagePadding: 6,
-  stageRadius: 8,
+  overlayColor: "#04070e",
+  overlayOpacity: 0.9,
+  stagePadding: 8,
+  stageRadius: 10,
   popoverClass: "ep-tour",
   nextBtnText: "Próximo →",
   prevBtnText: "← Voltar",
