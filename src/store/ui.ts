@@ -8,6 +8,13 @@ import type { TelemetryChannel } from "@/lib/terminology";
 
 type Density = "compact" | "default";
 export type Theme = "dark" | "light";
+export type Lang = "en" | "pt";
+
+function getStoredLang(): Lang | null {
+  if (typeof window === "undefined") return null;
+  const v = localStorage.getItem("ep-lang");
+  return v === "pt" || v === "en" ? v : null;
+}
 
 function getStoredTheme(): Theme {
   if (typeof window === "undefined") return "dark";
@@ -25,9 +32,13 @@ interface UiState {
   density: Density;
   sidebarPinned: boolean;
   theme: Theme;
+  lang: Lang;
+  langChosen: boolean;
   setDensity: (d: Density) => void;
   toggleSidebar: () => void;
   setTheme: (t: Theme) => void;
+  setLang: (l: Lang) => void;
+  hydrateLang: () => void;
 }
 export const useUiStore = create<UiState>((set) => ({
   density: "default",
@@ -39,6 +50,25 @@ export const useUiStore = create<UiState>((set) => ({
     localStorage.setItem("ep-theme", theme);
     applyTheme(theme);
     set({ theme });
+  },
+  lang: "en",
+  langChosen: false,
+  setLang: (lang) => {
+    if (typeof window !== "undefined") localStorage.setItem("ep-lang", lang);
+    if (typeof document !== "undefined")
+      document.documentElement.lang = lang === "pt" ? "pt-BR" : "en";
+    set({ lang, langChosen: true });
+  },
+  hydrateLang: () => {
+    const stored = getStoredLang();
+    if (stored) {
+      if (typeof document !== "undefined")
+        document.documentElement.lang = stored === "pt" ? "pt-BR" : "en";
+      set({ lang: stored, langChosen: true });
+      return;
+    }
+    const nav = typeof navigator !== "undefined" ? (navigator.language || "").toLowerCase() : "";
+    set({ lang: nav.startsWith("pt") ? "pt" : "en", langChosen: false });
   },
 }));
 

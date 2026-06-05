@@ -22,6 +22,7 @@ import { useUiStore } from "@/store/ui";
 import { STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import { useNetworkStore, useNetworkPolling } from "@/store/network";
 import { SplashScreen } from "@/components/SplashScreen";
+import { LanguageGate } from "@/components/LanguageGate";
 
 import appCss from "../styles.css?url";
 
@@ -334,6 +335,7 @@ function RootComponent() {
       <SplashScreen>
         <QueryClientProvider client={queryClient}>
           <ThemeSync />
+          <LanguageGate />
           <div key={pathname} className="ep-page-in-fade min-h-screen w-full bg-background">
             <Outlet />
           </div>
@@ -347,6 +349,7 @@ function RootComponent() {
     <SplashScreen>
       <QueryClientProvider client={queryClient}>
         <ThemeSync />
+        <LanguageGate />
         {/* --sidebar-width controls both the fixed overlay and the gap-holder.
             Keep this in sync with any w-* override on <Sidebar> to prevent
             the 32px overlap that hides the StatusBar "Live" LED in expanded mode.

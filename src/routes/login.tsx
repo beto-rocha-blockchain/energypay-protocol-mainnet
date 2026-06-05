@@ -24,6 +24,8 @@ import { useUiStore, type Theme } from "@/store/ui";
 import { toast } from "sonner";
 import { safeErrorMessage } from "@/lib/safe-error";
 import { startLoginTour, LOGIN_TOUR_KEY, hasSeenTour } from "@/lib/tour";
+import { useT } from "@/lib/i18n";
+import { LanguageToggle } from "@/components/LanguageToggle";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -33,6 +35,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const isAuthenticated = useOperator((s) => s.isAuthenticated);
   const login = useOperator((s) => s.login);
+  const t = useT();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -62,7 +65,7 @@ function LoginPage() {
   const onAccess = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      toast.error("Operator email and password are required.");
+      toast.error(t("Operator email and password are required."));
       return;
     }
     setBusy(true);
@@ -71,7 +74,7 @@ function LoginPage() {
       toast.success(`Operator ${id.operatorId} connected · ${STELLAR_NETWORK_LABEL} active`);
       navigate({ to: "/" });
     } catch (err) {
-      toast.error(safeErrorMessage(err, "Authentication failed"));
+      toast.error(safeErrorMessage(err, t("Authentication failed")));
     } finally {
       setBusy(false);
     }
@@ -101,12 +104,12 @@ function LoginPage() {
 
             <div className="mt-8 space-y-1">
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                Operator Access · Pilot Environment
+                {t("Operator Access · Pilot Environment")}
               </div>
               <h1 className="font-display text-2xl font-semibold leading-tight">
-                Programmable settlement
+                {t("Programmable settlement")}
                 <br />
-                for energy markets.
+                {t("for energy markets.")}
               </h1>
               <p className="mt-2 max-w-sm text-xs text-muted-foreground">
                 Operator access connects an existing settlement identity to the EnergyPay clearing
@@ -164,7 +167,7 @@ function LoginPage() {
                 htmlFor="email"
                 className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
               >
-                Operator Email
+                {t("Operator Email")}
               </Label>
               <div className="relative">
                 <Mail className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -186,7 +189,7 @@ function LoginPage() {
                 htmlFor="key"
                 className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
               >
-                Password
+                {t("Password")}
               </Label>
               <div className="relative">
                 <KeyRound className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -202,8 +205,7 @@ function LoginPage() {
                 />
               </div>
               <p className="text-[10px] font-mono text-muted-foreground">
-                Authenticated against the EnergyPay clearing backend. Sessions are scoped to this
-                browser tab.
+                {t("Authenticated against the EnergyPay clearing backend. Sessions are scoped to this browser tab.")}
               </p>
             </div>
 
@@ -214,14 +216,14 @@ function LoginPage() {
               className="h-9 w-full font-mono text-xs uppercase tracking-widest"
             >
               {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              {busy ? "Authenticating…" : "Access Clearing Environment"}
+              {busy ? t("Authenticating…") : t("Access Clearing Environment")}
             </Button>
 
             <Separator className="bg-border/60" />
 
             <div className="space-y-1.5">
               <p className="text-center text-sm font-mono uppercase tracking-widest text-muted-foreground">
-                First time here?
+                {t("First time here?")}
               </p>
               <Link
                 to="/register"
@@ -230,10 +232,10 @@ function LoginPage() {
               >
                 <span>
                   <span className="block font-mono font-semibold uppercase tracking-widest text-primary">
-                    Provision new settlement identity
+                    {t("Provision new settlement identity")}
                   </span>
                   <span className="block text-[11px] text-muted-foreground">
-                    Create your operator account · ed25519 keypair · market roles
+                    {t("Create your operator account · ed25519 keypair · market roles")}
                   </span>
                 </span>
                 <ArrowRight className="h-4 w-4 shrink-0 text-primary" />
@@ -245,14 +247,17 @@ function LoginPage() {
               onClick={() => startLoginTour()}
               className="flex w-full items-center justify-center gap-1.5 rounded-md border border-border bg-background/40 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition hover:border-primary/50 hover:text-primary"
             >
-              <HelpCircle className="h-3 w-3" /> Tutorial guiado · como entrar
+              <HelpCircle className="h-3 w-3" /> {t("Guided tour · how to sign in")}
             </button>
 
             <div className="flex items-center justify-between border-t border-border pt-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
               <Link to="/forgot-password" className="text-muted-foreground hover:text-primary">
-                Forgot password →
+                {t("Forgot password →")}
               </Link>
-              <LoginThemeToggle />
+              <div className="flex items-center gap-3">
+                <LanguageToggle />
+                <LoginThemeToggle />
+              </div>
             </div>
           </form>
         </Card>
