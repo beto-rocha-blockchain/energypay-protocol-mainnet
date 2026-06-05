@@ -141,10 +141,14 @@ function FeatureCard({
  * axes. We deliberately use overflow-hidden + h-full here so the page itself
  * never scrolls; the carousel + header + footer together fit 100svh exactly,
  * and per-slide content is laid out tight enough to fit a standard viewport.
+ *
+ * `pb-16` reserves room at the bottom for the floating dots indicator pill —
+ * without it, the last row of tall slides (e.g. Product Modules' 3×3 grid)
+ * gets covered by the overlay.
  */
 function Slide({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-full w-full items-center justify-center overflow-hidden px-12 py-4 sm:px-16">
+    <div className="flex h-full w-full items-center justify-center overflow-hidden px-12 pt-4 pb-16 sm:px-16">
       <div className="w-full">{children}</div>
     </div>
   );
