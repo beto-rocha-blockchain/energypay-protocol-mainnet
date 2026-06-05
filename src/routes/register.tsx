@@ -139,15 +139,12 @@ useEffect(() => {
   // Intentionally empty.
 }, []);
 
-  // Always (re)start the guided onboarding tour on every visit to the form,
-  // once a language is chosen so the bubbles match the user's choice — and
-  // regardless of how many times the user has been through onboarding before.
+  // With the per-field carousel each slide is self-explanatory (big title +
+  // description), so the floating-bubble tour is no longer needed here. The
+  // `startRegisterTour` import is preserved for a possible "help" button in
+  // the future, but we intentionally do NOT auto-start it.
   const langChosen = useUiStore((s) => s.langChosen);
-  useEffect(() => {
-    if (step !== "form" || !langChosen) return;
-    const timer = window.setTimeout(() => startRegisterTour({ setStep: setFormStep }), 700);
-    return () => window.clearTimeout(timer);
-  }, [step, langChosen]);
+  void langChosen;
 
   const toggleRole = (r: ParticipantRole) => {
     if (roles.includes(r)) {
@@ -212,22 +209,72 @@ useEffect(() => {
     [fullName, email, password, organization, country, state, stateRequired, city, docValid, roles, phoneValid, linkValid],
   );
 
-  // Onboarding wizard — sub-steps shown one at a time within the "form" phase.
-  const FORM_STEPS = ["Credentials", "Organization & identity", "Market roles", "Settlement setup"];
-  const stepValid = [
-    Boolean(fullName.trim() && email.trim() && password.length >= 6 && phoneValid),
-    Boolean(
-      organization.trim() && country.trim() && (!stateRequired || state.trim()) && city.trim() && docValid,
-    ),
-    roles.length > 0,
-    linkValid,
+  // ── Per-field carousel onboarding ──────────────────────────────────────────
+  //
+  // Each sign-up field is shown one at a time on its own slide. The list below
+  // is the canonical order; `shouldShow` lets some slides be skipped based on
+  // earlier answers (e.g. State only appears when the chosen country has one;
+  // Generation sources only when GENERATOR is among the roles).
+  type FieldKey =
+    | "fullName"
+    | "email"
+    | "phone"
+    | "password"
+    | "organization"
+    | "country"
+    | "state"
+    | "city"
+    | "documentType"
+    | "documentNumber"
+    | "roles"
+    | "energyTypes"
+    | "wallet"
+    | "review";
+
+  type FieldDef = {
+    key: FieldKey;
+    title: string;        // big heading on the slide
+    description: string;  // one-paragraph explanation
+    optional?: boolean;
+    valid: boolean;       // is the field currently filled correctly?
+    shouldShow: boolean;  // include this slide in the carousel?
+  };
+
+  const FIELDS: FieldDef[] = [
+    { key: "fullName",       title: t("What's your full name?"),               description: t("Your name is the human-readable identity for your operator account. Use the same name that appears on official documents — it's how the network will recognise you."), valid: Boolean(fullName.trim()), shouldShow: true },
+    { key: "email",          title: t("Your operator email"),                  description: t("This is how you sign in to the platform and where we send the verification link at the end of sign-up. Use an email you check regularly."),                          valid: Boolean(email.trim()),    shouldShow: true },
+    { key: "phone",          title: t("Your phone number"),                    description: t("Required for two-factor authentication. Include the country code — for example +55 11 99999-9999. We'll never share this number."),                                  valid: phoneValid,                shouldShow: true },
+    { key: "password",       title: t("Create a password"),                    description: t("Use at least 6 characters. This password protects your settlement identity — pick something only you know."),                                                          valid: password.length >= 6,      shouldShow: true },
+    { key: "organization",   title: t("Your organization"),                    description: t("Tell us the name of the company, generator, distributor or institution you represent. If you're an individual operator, use your own name."),                          valid: Boolean(organization.trim()), shouldShow: true },
+    { key: "country",        title: t("Where are you based?"),                 description: t("Choose your country. The next slides — state and city — will load the available options for the country you pick here."),                                            valid: Boolean(country.trim()),    shouldShow: true },
+    { key: "state",          title: t("Your state / province"),                description: t("Select the state or province inside the country you chose. This helps with regional liquidity attribution and regulatory reporting."),                                valid: !stateRequired || Boolean(state.trim()), shouldShow: stateRequired },
+    { key: "city",           title: t("Your city"),                            description: t("Choose your city from the list, or pick \"Other…\" to type it in. This pins your operator on the grid map."),                                                       valid: Boolean(city.trim()),       shouldShow: true },
+    { key: "documentType",   title: t("Are you an individual or a company?"),  description: t("Pick \"Individual\" if you'll operate as a person (CPF) or \"Company\" if you'll operate as a legal entity (CNPJ)."),                                                valid: true,                       shouldShow: true },
+    { key: "documentNumber", title: t("Tax / identity document (optional)"),   description: t("Add your CPF, CNPJ or local tax/registration ID. This step is optional — you can complete it later from your profile."), optional: true, valid: docValid,                shouldShow: true },
+    { key: "roles",          title: t("Pick your market roles"),               description: t("Select every role you want to act as on the platform — Generator, Trader, Investor, Consumer or Utility. Roles define what you can do; you can pick more than one."), valid: roles.length > 0,           shouldShow: true },
+    { key: "energyTypes",    title: t("Your generation sources"),              description: t("Since you're operating as a Generator, tell us every type of energy you produce. Pick all that apply — solar, wind, hydro, biomass, and so on."),                    valid: energyTypes.length > 0,     shouldShow: roles.includes("GENERATOR") },
+    { key: "wallet",         title: t("Activate your settlement wallet"),      description: t("Your wallet is the Stellar account that holds EPWR (1 token = 1 MWh) and settles your contracts. Choose Managed if you want EnergyPay to safeguard the keys for you (recommended for first-time users), or Link to use your own existing Stellar wallet."), valid: linkValid, shouldShow: true },
+    { key: "review",         title: t("Ready to provision your identity"),     description: t("Review everything below and confirm — we'll mint your identity, bind your ed25519 keypair and register your roles on Stellar. Email confirmation follows."),         valid: Boolean(formValid),         shouldShow: true },
   ];
+
+  const visibleFields = FIELDS.filter((f) => f.shouldShow);
+  const safeStep = Math.min(formStep, visibleFields.length - 1);
+  const currentField = visibleFields[safeStep];
+
+  // Auto-rewind when a previously-visible step becomes hidden (e.g. user
+  // deselects GENERATOR while sitting on the Generation Sources slide).
+  useEffect(() => {
+    if (formStep > visibleFields.length - 1) {
+      setFormStep(visibleFields.length - 1);
+    }
+  }, [visibleFields.length, formStep]);
+
   const goNext = () => {
-    if (!stepValid[formStep]) {
+    if (currentField && !currentField.valid && !currentField.optional) {
       toast.error(t("Complete the highlighted fields to continue."));
       return;
     }
-    setFormStep((s) => Math.min(s + 1, FORM_STEPS.length - 1));
+    setFormStep((s) => Math.min(s + 1, visibleFields.length - 1));
   };
   const goBack = () => setFormStep((s) => Math.max(s - 1, 0));
 
@@ -244,7 +291,7 @@ useEffect(() => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     // On non-final steps the primary button just advances the wizard.
-    if (formStep < FORM_STEPS.length - 1) {
+    if (safeStep < visibleFields.length - 1) {
       goNext();
       return;
     }
@@ -453,35 +500,34 @@ useEffect(() => {
           </div>
 
           {step === "form" && (
-            <form onSubmit={submit} className="space-y-5 p-5">
-              {/* Guided tour trigger */}
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  {t("Step")} {formStep + 1} {t("of")} {FORM_STEPS.length}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => startRegisterTour({ setStep: setFormStep })}
-                  className="flex items-center gap-1.5 rounded-md border border-border bg-background/40 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition hover:border-primary/50 hover:text-primary"
-                >
-                  <HelpCircle className="h-3 w-3" /> Tutorial guiado
-                </button>
-              </div>
-
-              {/* Wizard progress — one step at a time */}
-              <div className="flex items-center gap-2">
-                {FORM_STEPS.map((label, i) => (
-                  <div key={label} className="flex flex-1 flex-col gap-1">
-                    <div
-                      className={`h-1 rounded-full transition-colors ${i <= formStep ? "bg-primary" : "bg-border"}`}
+            <form onSubmit={submit} className="space-y-6 p-5 sm:p-8">
+              {/* Header row — step counter + carousel dots */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                    {t("Step")} {safeStep + 1} {t("of")} {visibleFields.length}
+                  </span>
+                  <span className="font-mono text-xs uppercase tracking-widest text-primary">
+                    {currentField?.optional ? t("Optional") : t("Required")}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {visibleFields.map((f, i) => (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => i <= safeStep && setFormStep(i)}
+                      aria-label={`${t("Go to step")} ${i + 1}`}
+                      className={`h-1.5 flex-1 rounded-full transition-all ${
+                        i < safeStep
+                          ? "bg-primary"
+                          : i === safeStep
+                            ? "bg-primary"
+                            : "bg-border"
+                      } ${i <= safeStep ? "cursor-pointer hover:opacity-80" : "cursor-not-allowed"}`}
                     />
-                    <span
-                      className={`font-mono text-[9px] uppercase tracking-widest ${i === formStep ? "text-primary" : "text-muted-foreground/60"}`}
-                    >
-                      {String(i + 1).padStart(2, "0")} {t(label)}
-                    </span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
 
               {provisionError && (
@@ -507,630 +553,578 @@ useEffect(() => {
                   </div>
                 </div>
               )}
-              {formStep === 0 && (
-              <div>
-                <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                  {t("§ 01 · Operator Credentials")}
+
+              {/* ── Carousel slide · one field at a time ─────────────────── */}
+              <div
+                key={currentField?.key}
+                className="space-y-5 rounded-lg border border-border bg-background/30 p-5 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-2 sm:p-6"
+              >
+                {/* Slide heading */}
+                <div className="space-y-2">
+                  <h2 className="font-display text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">
+                    {currentField?.title}
+                  </h2>
+                  <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+                    {currentField?.description}
+                  </p>
                 </div>
-                <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <Field label={t("Full Name")} icon={<User className="h-3.5 w-3.5" />}>
-                    <Input
-                      data-tour="reg-fullname"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder=""
-                      className="h-9 pl-8 font-mono text-xs"
-                    />
-                  </Field>
-                  <Field label={t("Operator Email")} icon={<Mail className="h-3.5 w-3.5" />}>
-                    <Input
-                      data-tour="reg-email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder=""
-                      className="h-9 pl-8 font-mono text-xs"
-                    />
-                  </Field>
-                  <div>
-                    <Field
-                      label={t("Phone Number *")}
-                      icon={<Phone className="h-3.5 w-3.5" />}
-                      hint={t("Required for 2FA. Include country code, e.g. +55 11 99999-9999")}
-                    >
-                      <Input
-                        data-tour="reg-phone"
-                        type="tel"
-                        required
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder=""
-                        className={cn(
-                          "h-9 pl-8 font-mono text-xs",
-                          phone && !phoneValid && "border-destructive/60",
-                        )}
-                      />
-                    </Field>
-                    {phone && !phoneValid && (
-                      <p className="mt-1 font-mono text-[10px] text-destructive">
-                        {t("Include country code — e.g. +55 11 99999-9999")}
-                      </p>
-                    )}
-                  </div>
-                  <Field
-                    label={t("Password")}
-                    icon={<Lock className="h-3.5 w-3.5" />}
-                  >
-                    <Input
-                      data-tour="reg-password"
-                      type={showPw ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder=""
-                      className="h-9 pl-8 pr-9 font-mono text-xs tracking-widest"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPw((v) => !v)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPw ? (
-                        <EyeOff className="h-3.5 w-3.5" />
-                      ) : (
-                        <Eye className="h-3.5 w-3.5" />
+
+                {/* Slide field */}
+                <div className="pt-1">
+                  {currentField?.key === "fullName" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="fld-fullname" className="text-sm font-medium">{t("Full Name")}</Label>
+                      <div className="relative">
+                        <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          id="fld-fullname"
+                          autoFocus
+                          data-tour="reg-fullname"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          placeholder={t("e.g. João da Silva")}
+                          className="h-12 pl-10 text-base"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {currentField?.key === "email" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="fld-email" className="text-sm font-medium">{t("Operator Email")}</Label>
+                      <div className="relative">
+                        <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          id="fld-email"
+                          autoFocus
+                          data-tour="reg-email"
+                          type="email"
+                          autoComplete="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="name@company.com"
+                          className="h-12 pl-10 text-base"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {currentField?.key === "phone" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="fld-phone" className="text-sm font-medium">{t("Phone Number *")}</Label>
+                      <div className="relative">
+                        <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          id="fld-phone"
+                          autoFocus
+                          data-tour="reg-phone"
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="+55 11 99999-9999"
+                          className={cn(
+                            "h-12 pl-10 text-base",
+                            phone && !phoneValid && "border-destructive/60",
+                          )}
+                        />
+                      </div>
+                      {phone && !phoneValid && (
+                        <p className="text-xs text-destructive">
+                          {t("Include country code — e.g. +55 11 99999-9999")}
+                        </p>
                       )}
-                    </button>
-                  </Field>
-                </div>
-              </div>
-              )}
+                      <p className="text-xs text-muted-foreground">{t("Required for 2FA. Include country code, e.g. +55 11 99999-9999")}</p>
+                    </div>
+                  )}
 
-              {formStep === 1 && (<>
-              <div>
-                <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                  {t("§ 02 · Organization & Jurisdiction")}
-                </div>
-                <div className="mt-2 grid gap-3 md:grid-cols-3">
-                  <Field
-                    label={t("Organization")}
-                    icon={<Building2 className="h-3.5 w-3.5" />}
-                    className="md:col-span-3"
-                  >
-                    <Input
-                      data-tour="reg-org"
-                      value={organization}
-                      onChange={(e) => setOrganization(e.target.value)}
-                      placeholder=""
-                      className="h-9 pl-8 font-mono text-xs"
-                    />
-                  </Field>
+                  {currentField?.key === "password" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="fld-password" className="text-sm font-medium">{t("Password")}</Label>
+                      <div className="relative">
+                        <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          id="fld-password"
+                          autoFocus
+                          data-tour="reg-password"
+                          type={showPw ? "text" : "password"}
+                          autoComplete="new-password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="••••••••••••"
+                          className="h-12 pl-10 pr-12 text-base tracking-widest"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPw((v) => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          aria-label={showPw ? t("Hide password") : t("Show password")}
+                        >
+                          {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{t("Minimum 6 characters.")}</p>
+                    </div>
+                  )}
 
-                  {/* Location — country, state and city grouped so the guided
-                      tour spotlights all three fields together. */}
-                  <div data-tour="reg-location" className="grid gap-3 md:col-span-3 md:grid-cols-3">
-                  {/* Country */}
-                  <GeoSelectField label={t("Country")} icon={<Globe2 className="h-3.5 w-3.5" />}>
-                    <Select
-                      value={country}
-                      onValueChange={(v) => { setCountry(v); setState(""); setCity(""); }}
-                    >
-                      <SelectTrigger className="h-9 bg-input font-mono text-xs">
-                        <SelectValue placeholder={t("Select country…")} />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {COUNTRIES.map((c) => (
-                          <SelectItem key={c.code} value={c.code} className="font-mono text-xs">
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </GeoSelectField>
+                  {currentField?.key === "organization" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="fld-org" className="text-sm font-medium">{t("Organization")}</Label>
+                      <div className="relative">
+                        <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          id="fld-org"
+                          autoFocus
+                          data-tour="reg-org"
+                          value={organization}
+                          onChange={(e) => setOrganization(e.target.value)}
+                          placeholder={t("e.g. ACME Energy")}
+                          className="h-12 pl-10 text-base"
+                        />
+                      </div>
+                    </div>
+                  )}
 
-                  {/* State / Province — only shown when the selected country has states */}
-                  {stateRequired ? (
-                    <GeoSelectField label={t("State / Province")} icon={<MapPin className="h-3.5 w-3.5" />}>
+                  {currentField?.key === "country" && (
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-1.5 text-sm font-medium">
+                        <Globe2 className="h-4 w-4 text-muted-foreground" /> {t("Country")}
+                      </Label>
+                      <Select
+                        value={country}
+                        onValueChange={(v) => { setCountry(v); setState(""); setCity(""); }}
+                      >
+                        <SelectTrigger className="h-12 text-base">
+                          <SelectValue placeholder={t("Select country…")} />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {COUNTRIES.map((c) => (
+                            <SelectItem key={c.code} value={c.code} className="text-base">
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {currentField?.key === "state" && (
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-1.5 text-sm font-medium">
+                        <MapPin className="h-4 w-4 text-muted-foreground" /> {t("State / Province")}
+                      </Label>
                       <Select
                         value={state}
                         onValueChange={(v) => { setState(v); setCity(""); }}
                         disabled={!country}
                       >
-                        <SelectTrigger className="h-9 bg-input font-mono text-xs">
+                        <SelectTrigger className="h-12 text-base">
                           <SelectValue placeholder={t("Select state…")} />
                         </SelectTrigger>
                         <SelectContent className="max-h-60">
                           {availableStates.map((s) => (
-                            <SelectItem key={s.code} value={s.code} className="font-mono text-xs">
+                            <SelectItem key={s.code} value={s.code} className="text-base">
                               {s.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                    </GeoSelectField>
-                  ) : (
-                    /* Spacer so City stays in col 3 when State is absent */
-                    <div />
+                    </div>
                   )}
 
-                  {/* City */}
-                  <GeoSelectField label={t("City")} icon={<MapPin className="h-3.5 w-3.5" />}>
-                    {availableCities.length > 0 ? (
-                      <Select
-                        value={city}
-                        onValueChange={setCity}
-                        disabled={!country || (stateRequired && !state)}
-                      >
-                        <SelectTrigger className="h-9 bg-input font-mono text-xs">
-                          <SelectValue placeholder={
-                            !country ? t("Select country first…")
-                            : stateRequired && !state ? t("Select state first…")
-                            : t("Select city…")
-                          } />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-60">
-                          {availableCities.map((c) => (
-                            <SelectItem key={c} value={c} className="font-mono text-xs">
-                              {c}
+                  {currentField?.key === "city" && (
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-1.5 text-sm font-medium">
+                        <MapPin className="h-4 w-4 text-muted-foreground" /> {t("City")}
+                      </Label>
+                      {availableCities.length > 0 ? (
+                        <Select
+                          value={city}
+                          onValueChange={setCity}
+                          disabled={!country || (stateRequired && !state)}
+                        >
+                          <SelectTrigger className="h-12 text-base">
+                            <SelectValue placeholder={
+                              !country ? t("Select country first…")
+                              : stateRequired && !state ? t("Select state first…")
+                              : t("Select city…")
+                            } />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-60">
+                            {availableCities.map((c) => (
+                              <SelectItem key={c} value={c} className="text-base">
+                                {c}
+                              </SelectItem>
+                            ))}
+                            <SelectItem value="__other__" className="text-base text-muted-foreground">
+                              {t("Other…")}
                             </SelectItem>
-                          ))}
-                          <SelectItem value="__other__" className="font-mono text-xs text-muted-foreground">
-                            {t("Other…")}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        placeholder=""
-                        className="h-9 font-mono text-xs"
-                        disabled={!country}
-                      />
-                    )}
-                    {/* Free-text fallback when "Other…" is selected */}
-                    {city === "__other__" && (
-                      <Input
-                        autoFocus
-                        placeholder=""
-                        className="mt-1.5 h-9 font-mono text-xs"
-                        onChange={(e) => {
-                          if (e.target.value) setCity(e.target.value);
-                        }}
-                      />
-                    )}
-                  </GeoSelectField>
-                  </div>
-                </div>
-              </div>
-
-              <div data-tour="reg-identity">
-                <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                  {t("§ 02c · Identity Document")}
-                </div>
-                <div className="mt-2 grid gap-3 md:grid-cols-3">
-                  <Field label={t("Identity Type")} icon={<ShieldCheck className="h-3.5 w-3.5" />}>
-                    <Select
-                      value={documentType}
-                      onValueChange={(v) => setDocumentType(v as "INDIVIDUAL" | "COMPANY")}
-                    >
-                      <SelectTrigger className="h-9 bg-input pl-8 font-mono text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="INDIVIDUAL" className="font-mono text-xs">{t("Individual")}</SelectItem>
-                        <SelectItem value="COMPANY" className="font-mono text-xs">{t("Company")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </Field>
-
-                  <Field label={docLabel} icon={<ShieldCheck className="h-3.5 w-3.5" />} className="md:col-span-2">
-                    <Input
-                      value={documentNumber}
-                      onChange={(e) => setDocumentNumber(e.target.value)}
-                      placeholder=""
-                      className="h-9 pl-8 font-mono text-xs"
-                    />
-                  </Field>
-
-                  <div className="md:col-span-3">
-                    <input
-                      id="id-doc"
-                      type="file"
-                      accept="application/pdf,.pdf"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (!f) return;
-                        if (f.type !== "application/pdf") {
-                          toast.error(t("Only PDF files are accepted."));
-                          e.target.value = "";
-                          return;
-                        }
-                        if (f.size > 15 * 1024 * 1024) {
-                          toast.error(t("File too large — maximum 15 MB."));
-                          e.target.value = "";
-                          return;
-                        }
-                        setDocumentFile(f);
-                        e.target.value = "";
-                      }}
-                    />
-                    <label
-                      htmlFor="id-doc"
-                      className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border bg-background/20 px-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
-                    >
-                      {documentFile ? `${t("Attached")} · ${documentFile.name}` : t("Attach document · PDF · optional")}
-                    </label>
-                    {documentFile && (
-                      <button
-                        type="button"
-                        onClick={() => setDocumentFile(null)}
-                        className="mt-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-destructive"
-                      >
-                        {t("Remove document")}
-                      </button>
-                    )}
-                    {documentNumber.trim() && !docValid && (
-                      <p className="mt-1 font-mono text-[10px] text-destructive">{docHint}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between">
-                  <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                    {t("§ 02b · Operational Geolocation · Optional")}
-                  </div>
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                    {coords
-                      ? `${coords.source} · ${t("BOUND")}`
-                      : geoStatus === "denied"
-                        ? t("GPS DENIED")
-                        : t("UNBOUND")}
-                  </span>
-                </div>
-                <div className="mt-2 grid gap-2 md:grid-cols-[auto_1fr]">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={requestGeo}
-                    className="h-9 self-stretch font-mono text-[10px] uppercase tracking-widest md:w-56"
-                  >
-                    {geoStatus === "requesting" ? (
-                      <>
-                        <Loader2 className="h-3 w-3 animate-spin" /> {t("Requesting…")}
-                      </>
-                    ) : coords?.source === "GPS" ? (
-                      <>
-                        <Check className="h-3 w-3" /> {t("GPS Bound")}
-                      </>
-                    ) : (
-                      <>
-                        <MapPin className="h-3 w-3" /> {t("Capture GPS coordinates")}
-                      </>
-                    )}
-                  </Button>
-                  <div className="rounded-md border border-border bg-background/40 p-3">
-                    <div className="font-mono text-[11px] text-foreground">
-                      {t("Bind operational coordinates to your settlement identity")}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          placeholder={t("Your city")}
+                          className="h-12 text-base"
+                          disabled={!country}
+                        />
+                      )}
+                      {city === "__other__" && (
+                        <Input
+                          autoFocus
+                          placeholder={t("Type your city")}
+                          className="mt-2 h-12 text-base"
+                          onChange={(e) => {
+                            if (e.target.value) setCity(e.target.value);
+                          }}
+                        />
+                      )}
                     </div>
-                    <div className="mt-1 text-[10px] text-muted-foreground">
-                      {t("Used for grid map placement & regional liquidity attribution. Coordinates remain session-scoped and are never shared with counterparties.")}
-                    </div>
-                    {coords && (
-                      <div className="mt-2 font-mono text-[10px] text-success">
-                        LAT {coords.lat.toFixed(4)} · LNG {coords.lng.toFixed(4)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-2 grid gap-2 md:grid-cols-[1fr_1fr_auto]">
-                  <Input
-                    value={manualLat}
-                    onChange={(e) => setManualLat(e.target.value)}
-                    placeholder=""
-                    className="h-9 font-mono text-xs"
-                  />
-                  <Input
-                    value={manualLng}
-                    onChange={(e) => setManualLng(e.target.value)}
-                    placeholder=""
-                    className="h-9 font-mono text-xs"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={applyManual}
-                    className="h-9 font-mono text-[10px] uppercase tracking-widest"
-                  >
-                    {t("Apply Region")}
-                  </Button>
-                </div>
-              </div>
-              </>)}
+                  )}
 
-              {formStep === 2 && (<>
-              <div>
-                <div className="flex items-center justify-between">
-                  <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                    {t("§ 03 · Market Participant Roles")}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={selectAll}
-                    className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition hover:text-primary"
-                  >
-                    {t("Enable all capabilities →")}
-                  </button>
-                </div>
-                <div data-tour="reg-roles" className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {(Object.keys(ROLE_META) as ParticipantRole[])
-                    .filter((r) => r !== "REGULATORY_AUTHORITY" && r !== "ADMIN")
-                    .map((r) => {
-                      const Icon = ROLE_ICON[r];
-                      const active = roles.includes(r);
-                      return (
-                        <button
-                          key={r}
-                          type="button"
-                          onClick={() => toggleRole(r)}
-                          className={`group relative overflow-hidden rounded-md border p-3 text-left transition-all duration-200 ${
-                            active
-                              ? `${ROLE_COLORS[r].border} ${ROLE_COLORS[r].bg}`
-                              : "border-border bg-background/40 hover:border-border/80 hover:bg-background/60"
-                          }`}
-                        >
-                          <div className="flex items-start gap-2.5">
-                            <div
-                              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${
-                                active
-                                  ? `${ROLE_COLORS[r].border} ${ROLE_COLORS[r].bg} ${ROLE_COLORS[r].text}`
-                                  : "border-border bg-background/60 text-muted-foreground"
-                              }`}
-                            >
-                              <Icon className="h-3.5 w-3.5" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <div className={`font-mono text-[11px] uppercase tracking-widest ${active ? ROLE_COLORS[r].text : "text-foreground"}`}>
-                                  {ROLE_META[r].label}
-                                </div>
-                                <div
-                                  className={`flex h-4 w-4 items-center justify-center rounded-sm border transition ${
-                                    active
-                                      ? `${ROLE_COLORS[r].border} ${ROLE_COLORS[r].bg} ${ROLE_COLORS[r].text}`
-                                      : "border-border bg-background/60"
-                                  }`}
-                                >
-                                  {active && <Check className="h-3 w-3" />}
-                                </div>
-                              </div>
-                              <div className="mt-0.5 text-[10px] text-muted-foreground">
-                                {ROLE_META[r].tagline}
-                              </div>
-                              <div className="mt-1.5 flex flex-wrap gap-1">
-                                {ROLE_META[r].capabilities.map((c) => (
-                                  <span
-                                    key={c}
-                                    className="rounded-sm border border-border bg-background/60 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-muted-foreground"
-                                  >
-                                    {c}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                </div>
-                <div className="mt-1.5 font-mono text-[10px] text-muted-foreground">
-                  {roles.length === 0 && t("Select one or more market participant roles.")}
-                  {roles.length === 1 && `${roles.length} ${t("capability scoped to identity.")}`}
-                  {roles.length > 1 && `${roles.length} ${t("capabilities scoped to identity.")}`}
-                </div>
-              </div>
-
-              {/* § 03b · Generation Source — only visible when GENERATOR role is active */}
-              {roles.includes("GENERATOR") && (
-                <div>
-                  <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                    {t("§ 03b · Generation Source")}
-                  </div>
-                  <div className="mt-2 grid grid-cols-3 gap-2">
-                    {(
-                      [
-                        { type: "SOLAR",       label: "Solar PV",      Icon: Sun      },
-                        { type: "HYDRO",       label: "Hydroelectric", Icon: Droplets },
-                        { type: "SMALL_HYDRO", label: "Small Hydro",   Icon: Waves    },
-                        { type: "WIND",        label: "Wind",          Icon: Wind     },
-                        { type: "BIOMASS",     label: "Biomass",       Icon: Leaf     },
-                        { type: "NATURAL_GAS", label: "Natural Gas",   Icon: Flame    },
-                        { type: "NUCLEAR",     label: "Nuclear",       Icon: Atom     },
-                        { type: "THERMAL",     label: "Thermal",       Icon: Factory  },
-                        { type: "COGENERATION",label: "Cogeneration",  Icon: Recycle  },
-                      ] as const
-                    ).map(({ type, label, Icon }) => {
-                      const active = energyTypes.includes(type);
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() =>
-                            setEnergyTypes((prev) =>
-                              prev.includes(type)
-                                ? prev.filter((t) => t !== type)
-                                : [...prev, type],
-                            )
-                          }
-                          className={`group flex flex-col items-center gap-1.5 rounded-md border p-3 text-center transition-all duration-200 ${
-                            active
-                              ? "border-success/50 bg-success/10 text-success"
-                              : "border-border bg-background/40 text-muted-foreground hover:border-border/80 hover:bg-background/60"
-                          }`}
-                        >
-                          <Icon className="h-5 w-5" />
-                          <span className="font-mono text-[10px] uppercase tracking-widest leading-tight">
-                            {t(label)}
-                          </span>
-                          <Check className={`h-3 w-3 transition-opacity ${active ? "opacity-100" : "opacity-0"}`} />
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="mt-1.5 font-mono text-[10px] text-muted-foreground">
-                    {t("Select every generation source you operate — choose as many as apply.")}
-                  </div>
-                </div>
-              )}
-              </>)}
-
-              {formStep === 3 && (<>
-              <label data-tour="reg-fund" className="flex cursor-pointer items-start gap-2 rounded-md border border-border bg-background/40 p-3 text-xs">
-                <input
-                  type="checkbox"
-                  checked={fund}
-                  onChange={(e) => setFund(e.target.checked)}
-                  className="mt-0.5 h-3.5 w-3.5 accent-[var(--primary)]"
-                />
-                <span>
-                  <span className="block font-mono uppercase tracking-widest text-foreground">
-                    {t("Fund settlement account on")} {STELLAR_NETWORK_LABEL}
-                  </span>
-                  <span className="block text-[11px] text-muted-foreground">
-                    {t("Provisions a Stellar Mainnet account for institutional settlement operations.")}
-                  </span>
-                </span>
-              </label>
-
-              <ThemeSelector />
-
-              {/* § 04b · Settlement Wallet */}
-              <div>
-                <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                  {t("§ 04b · Settlement Wallet")}
-                </div>
-                <div data-tour="reg-wallet" className="mt-2 grid grid-cols-2 gap-2">
-                  {(
-                    [
-                      {
-                        id: "generate" as const,
-                        icon: Zap,
-                        label: "EnergyPay Managed Wallet",
-                        desc: "Platform generates and securely manages your keypair — secret never exposed in the frontend",
-                      },
-                      {
-                        id: "link" as const,
-                        icon: KeyRound,
-                        label: "Link Existing Wallet",
-                        desc: "Provide your public key — you sign each transaction locally, secret never stored",
-                      },
-                    ] as const
-                  ).map((opt) => {
-                    const active = walletMode === opt.id;
-                    const Icon = opt.icon;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setWalletMode(opt.id)}
-                        className={`group relative overflow-hidden rounded-md border p-3 text-left transition-all duration-200 ${
-                          active
-                            ? "border-primary/60 bg-primary/5 shadow-[var(--shadow-glow)]"
-                            : "border-border bg-background/40 hover:border-border/80 hover:bg-background/60"
-                        }`}
-                      >
-                        <div className="flex items-start gap-2.5">
-                          <div
-                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${
+                  {currentField?.key === "documentType" && (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {(["INDIVIDUAL", "COMPANY"] as const).map((opt) => {
+                        const active = documentType === opt;
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setDocumentType(opt)}
+                            className={cn(
+                              "rounded-lg border p-4 text-left transition-all",
                               active
-                                ? "border-primary/50 bg-primary/10 text-primary"
-                                : "border-border bg-background/60 text-muted-foreground"
-                            }`}
+                                ? "border-primary/60 bg-primary/5 shadow-[var(--shadow-glow)]"
+                                : "border-border bg-background/40 hover:border-border/80",
+                            )}
                           >
-                            <Icon className="h-3.5 w-3.5" />
-                          </div>
-                          <div className="flex-1">
                             <div className="flex items-center justify-between">
-                              <div className="font-mono text-[11px] uppercase tracking-widest text-foreground">
-                                {t(opt.label)}
-                              </div>
-                              <div
-                                className={`flex h-4 w-4 items-center justify-center rounded-full border transition ${
-                                  active
-                                    ? "border-primary bg-primary text-primary-foreground"
-                                    : "border-border bg-background/60"
-                                }`}
-                              >
+                              <span className="text-base font-medium">
+                                {opt === "INDIVIDUAL" ? t("Individual") : t("Company")}
+                              </span>
+                              <div className={cn(
+                                "flex h-5 w-5 items-center justify-center rounded-full border",
+                                active ? "border-primary bg-primary text-primary-foreground" : "border-border",
+                              )}>
                                 {active && <Check className="h-3 w-3" />}
                               </div>
                             </div>
-                            <div className="mt-0.5 text-[10px] text-muted-foreground">
-                              {t(opt.desc)}
-                            </div>
-                          </div>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {opt === "INDIVIDUAL" ? t("CPF (Brazil) or personal tax ID.") : t("CNPJ (Brazil) or company registration ID.")}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {currentField?.key === "documentNumber" && (
+                    <div className="space-y-4" data-tour="reg-identity">
+                      <div className="space-y-2">
+                        <Label htmlFor="fld-doc" className="text-sm font-medium">{docLabel}</Label>
+                        <div className="relative">
+                          <ShieldCheck className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            id="fld-doc"
+                            autoFocus
+                            value={documentNumber}
+                            onChange={(e) => setDocumentNumber(e.target.value)}
+                            placeholder={isBrazil ? (documentType === "COMPANY" ? "00.000.000/0000-00" : "000.000.000-00") : t("Tax / registration ID")}
+                            className="h-12 pl-10 text-base"
+                          />
                         </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                        {documentNumber.trim() && !docValid && (
+                          <p className="text-xs text-destructive">{docHint}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">{t("Leave blank to skip — you can add it later.")}</p>
+                      </div>
 
-                {walletMode === "generate" && (
-                  <div className="mt-2 rounded-md border border-border bg-background/40 p-2.5">
-                    <p className="font-mono text-[10px] text-muted-foreground">
-                      {t("A new ed25519 keypair will be generated server-side, encrypted with AES-256 and stored securely by EnergyPay. Your public key is always visible in your profile. The secret key is never transmitted to or stored in the frontend.")}
-                    </p>
-                  </div>
-                )}
-
-                {walletMode === "link" && (
-                  <div className="mt-3 space-y-3 rounded-md border border-border bg-background/40 p-3">
-                    <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                      {t("Existing Wallet — Public Key Only")}
+                      <div>
+                        <input
+                          id="id-doc"
+                          type="file"
+                          accept="application/pdf,.pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (!f) return;
+                            if (f.type !== "application/pdf") {
+                              toast.error(t("Only PDF files are accepted."));
+                              e.target.value = "";
+                              return;
+                            }
+                            if (f.size > 15 * 1024 * 1024) {
+                              toast.error(t("File too large — maximum 15 MB."));
+                              e.target.value = "";
+                              return;
+                            }
+                            setDocumentFile(f);
+                            e.target.value = "";
+                          }}
+                        />
+                        <label
+                          htmlFor="id-doc"
+                          className="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border bg-background/20 px-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                        >
+                          {documentFile ? `${t("Attached")} · ${documentFile.name}` : t("Attach document · PDF · optional")}
+                        </label>
+                        {documentFile && (
+                          <button
+                            type="button"
+                            onClick={() => setDocumentFile(null)}
+                            className="mt-1 text-xs text-muted-foreground hover:text-destructive"
+                          >
+                            {t("Remove document")}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <Field
-                      label={t("Stellar Public Key (G…)")}
-                      icon={<KeyRound className="h-3.5 w-3.5" />}
-                    >
-                      <Input
-                        value={existingPublicKey}
-                        onChange={(e) => setExistingPublicKey(e.target.value.trim())}
-                        placeholder=""
-                        className="h-9 pl-8 font-mono text-xs"
-                        maxLength={58}
-                        autoComplete="off"
-                        spellCheck={false}
-                      />
-                    </Field>
-                    {existingPublicKey &&
-                      (existingPublicKey.length !== 56 || !existingPublicKey.startsWith("G")) && (
-                        <p className="-mt-1 font-mono text-[10px] text-destructive">
-                          {t("Must be a 56-character Stellar public key starting with G")}
-                        </p>
+                  )}
+
+                  {currentField?.key === "roles" && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">{t("Select all that apply")}</Label>
+                        <button
+                          type="button"
+                          onClick={selectAll}
+                          className="font-mono text-xs uppercase tracking-widest text-muted-foreground transition hover:text-primary"
+                        >
+                          {t("Enable all capabilities →")}
+                        </button>
+                      </div>
+                      <div data-tour="reg-roles" className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {(Object.keys(ROLE_META) as ParticipantRole[])
+                          .filter((r) => r !== "REGULATORY_AUTHORITY" && r !== "ADMIN")
+                          .map((r) => {
+                            const Icon = ROLE_ICON[r];
+                            const active = roles.includes(r);
+                            return (
+                              <button
+                                key={r}
+                                type="button"
+                                onClick={() => toggleRole(r)}
+                                className={cn(
+                                  "group relative overflow-hidden rounded-lg border p-3 text-left transition-all duration-200",
+                                  active
+                                    ? `${ROLE_COLORS[r].border} ${ROLE_COLORS[r].bg}`
+                                    : "border-border bg-background/40 hover:border-border/80 hover:bg-background/60",
+                                )}
+                              >
+                                <div className="flex items-start gap-2.5">
+                                  <div className={cn(
+                                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border",
+                                    active
+                                      ? `${ROLE_COLORS[r].border} ${ROLE_COLORS[r].bg} ${ROLE_COLORS[r].text}`
+                                      : "border-border bg-background/60 text-muted-foreground",
+                                  )}>
+                                    <Icon className="h-4 w-4" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                      <span className={cn("text-sm font-medium", active && ROLE_COLORS[r].text)}>
+                                        {ROLE_META[r].label}
+                                      </span>
+                                      <div className={cn(
+                                        "flex h-4 w-4 items-center justify-center rounded-sm border transition",
+                                        active
+                                          ? `${ROLE_COLORS[r].border} ${ROLE_COLORS[r].bg} ${ROLE_COLORS[r].text}`
+                                          : "border-border bg-background/60",
+                                      )}>
+                                        {active && <Check className="h-3 w-3" />}
+                                      </div>
+                                    </div>
+                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                      {ROLE_META[r].tagline}
+                                    </p>
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {roles.length === 0
+                          ? t("Select one or more market participant roles.")
+                          : `${roles.length} ${roles.length === 1 ? t("capability scoped to identity.") : t("capabilities scoped to identity.")}`}
+                      </p>
+                    </div>
+                  )}
+
+                  {currentField?.key === "energyTypes" && (
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">{t("Select every generation source you operate — choose as many as apply.")}</Label>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {(
+                          [
+                            { type: "SOLAR",       label: "Solar PV",      Icon: Sun      },
+                            { type: "HYDRO",       label: "Hydroelectric", Icon: Droplets },
+                            { type: "SMALL_HYDRO", label: "Small Hydro",   Icon: Waves    },
+                            { type: "WIND",        label: "Wind",          Icon: Wind     },
+                            { type: "BIOMASS",     label: "Biomass",       Icon: Leaf     },
+                            { type: "NATURAL_GAS", label: "Natural Gas",   Icon: Flame    },
+                            { type: "NUCLEAR",     label: "Nuclear",       Icon: Atom     },
+                            { type: "THERMAL",     label: "Thermal",       Icon: Factory  },
+                            { type: "COGENERATION",label: "Cogeneration",  Icon: Recycle  },
+                          ] as const
+                        ).map(({ type, label, Icon }) => {
+                          const active = energyTypes.includes(type);
+                          return (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() =>
+                                setEnergyTypes((prev) =>
+                                  prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
+                                )
+                              }
+                              className={cn(
+                                "flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition-all",
+                                active
+                                  ? "border-success/50 bg-success/10 text-success"
+                                  : "border-border bg-background/40 text-muted-foreground hover:border-border/80",
+                              )}
+                            >
+                              <Icon className="h-5 w-5" />
+                              <span className="text-xs font-medium">{t(label)}</span>
+                              <Check className={cn("h-3 w-3 transition-opacity", active ? "opacity-100" : "opacity-0")} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {currentField?.key === "wallet" && (
+                    <div className="space-y-4">
+                      <label data-tour="reg-fund" className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border bg-background/40 p-3 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={fund}
+                          onChange={(e) => setFund(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 accent-[var(--primary)]"
+                        />
+                        <span>
+                          <span className="block text-sm font-medium">
+                            {t("Fund settlement account on")} {STELLAR_NETWORK_LABEL}
+                          </span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">
+                            {t("Provisions a Stellar Mainnet account for institutional settlement operations.")}
+                          </span>
+                        </span>
+                      </label>
+
+                      <div data-tour="reg-wallet" className="grid gap-2 sm:grid-cols-2">
+                        {(
+                          [
+                            { id: "generate" as const, icon: Zap,      label: "EnergyPay Managed Wallet", desc: "Platform generates and securely manages your keypair — secret never exposed in the frontend" },
+                            { id: "link"     as const, icon: KeyRound, label: "Link Existing Wallet",     desc: "Provide your public key — you sign each transaction locally, secret never stored" },
+                          ] as const
+                        ).map((opt) => {
+                          const active = walletMode === opt.id;
+                          const Icon = opt.icon;
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => setWalletMode(opt.id)}
+                              className={cn(
+                                "relative overflow-hidden rounded-lg border p-3 text-left transition-all",
+                                active
+                                  ? "border-primary/60 bg-primary/5 shadow-[var(--shadow-glow)]"
+                                  : "border-border bg-background/40 hover:border-border/80",
+                              )}
+                            >
+                              <div className="flex items-start gap-2.5">
+                                <div className={cn(
+                                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border",
+                                  active ? "border-primary/50 bg-primary/10 text-primary" : "border-border bg-background/60 text-muted-foreground",
+                                )}>
+                                  <Icon className="h-4 w-4" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium">{t(opt.label)}</span>
+                                    <div className={cn(
+                                      "flex h-4 w-4 items-center justify-center rounded-full border",
+                                      active ? "border-primary bg-primary text-primary-foreground" : "border-border",
+                                    )}>
+                                      {active && <Check className="h-3 w-3" />}
+                                    </div>
+                                  </div>
+                                  <p className="mt-0.5 text-xs text-muted-foreground">{t(opt.desc)}</p>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {walletMode === "link" && (
+                        <div className="space-y-2 rounded-lg border border-border bg-background/40 p-3">
+                          <Label htmlFor="fld-pubkey" className="text-sm font-medium">{t("Stellar Public Key (G…)")}</Label>
+                          <div className="relative">
+                            <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              id="fld-pubkey"
+                              value={existingPublicKey}
+                              onChange={(e) => setExistingPublicKey(e.target.value.trim())}
+                              placeholder="G…"
+                              className="h-12 pl-10 font-mono text-sm"
+                              maxLength={58}
+                              autoComplete="off"
+                              spellCheck={false}
+                            />
+                          </div>
+                          {existingPublicKey && (existingPublicKey.length !== 56 || !existingPublicKey.startsWith("G")) && (
+                            <p className="text-xs text-destructive">
+                              {t("Must be a 56-character Stellar public key starting with G")}
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            {t("EnergyPay never stores, requests or transmits your secret key. When a transaction requires your signature, an unsigned XDR will be presented in a local signing modal — you enter your secret key, it signs in memory, and the signed transaction is sent directly to Stellar. Your secret never leaves your device.")}
+                          </p>
+                        </div>
                       )}
-                    <div className="rounded-md border border-primary/20 bg-primary/5 p-2.5">
-                      <p className="font-mono text-[10px] uppercase tracking-widest text-primary">
-                        {t("Self-Custody · Zero Secret Storage")}
-                      </p>
-                      <p className="mt-1 text-[10px] text-muted-foreground">
-                        {t("EnergyPay never stores, requests or transmits your secret key. When a transaction requires your signature, an unsigned XDR will be presented in a local signing modal — you enter your secret key, it signs in memory, and the signed transaction is sent directly to Stellar. Your secret never leaves your device.")}
+                    </div>
+                  )}
+
+                  {currentField?.key === "review" && (
+                    <div className="space-y-3">
+                      <div className="rounded-lg border border-border bg-background/40 p-4">
+                        <div className="grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                          {[
+                            { label: t("Full Name"),     value: fullName },
+                            { label: t("Operator Email"),value: email },
+                            { label: t("Phone"),         value: phone },
+                            { label: t("Organization"), value: organization },
+                            { label: t("Country"),      value: country },
+                            stateRequired && { label: t("State / Province"), value: state },
+                            { label: t("City"),          value: city },
+                            { label: t("Identity Type"),value: documentType === "COMPANY" ? t("Company") : t("Individual") },
+                            documentNumber.trim() && { label: docLabel.replace(` ${t("(optional)")}`, ""), value: documentNumber },
+                            { label: t("Roles"),        value: roles.join(" · ") || "—" },
+                            roles.includes("GENERATOR") && { label: t("Generation"), value: energyTypes.join(" · ") || "—" },
+                            { label: t("Wallet"),       value: walletMode === "generate" ? t("EnergyPay managed wallet") : t("User-controlled wallet") },
+                          ].filter(Boolean).map((row) => (
+                            <div key={(row as { label: string }).label} className="flex justify-between gap-3 border-b border-border/40 py-1.5 last:border-0">
+                              <span className="text-xs uppercase tracking-widest text-muted-foreground">{(row as { label: string }).label}</span>
+                              <span className="truncate text-right text-sm font-medium text-foreground">{(row as { value: string }).value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {t("Confirming will mint your settlement identity, bind your ed25519 keypair and register your roles on Stellar Mainnet. After that we send a verification email.")}
                       </p>
                     </div>
-                  </div>
-                )}
-
-                <div className="mt-1.5 font-mono text-[10px] text-muted-foreground">
-                  {walletMode === "generate"
-                    ? t("EnergyPay managed · AES-256 encrypted at rest · ed25519 · Stellar Mainnet")
-                    : t("User-controlled · public key only · local signing modal for every transaction")}
+                  )}
                 </div>
               </div>
-              </>)}
 
               {/* Wizard navigation */}
               <div className="flex items-center gap-3 pt-1">
-                {formStep > 0 && (
+                {safeStep > 0 && (
                   <Button
                     type="button"
                     variant="outline"
@@ -1143,10 +1137,10 @@ useEffect(() => {
                 <Button
                   type="submit"
                   data-tour="reg-continue"
-                  disabled={formStep === FORM_STEPS.length - 1 ? !formValid : !stepValid[formStep]}
+                  disabled={safeStep === visibleFields.length - 1 ? !formValid : (!currentField?.valid && !currentField?.optional)}
                   className="h-10 flex-1 font-mono text-xs uppercase tracking-widest"
                 >
-                  {formStep === FORM_STEPS.length - 1 ? t("Provision Settlement Identity") : t("Continue")}
+                  {safeStep === visibleFields.length - 1 ? t("Provision Settlement Identity") : t("Continue")}
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </div>
