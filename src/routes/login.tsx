@@ -36,6 +36,7 @@ function LoginPage() {
   const isAuthenticated = useOperator((s) => s.isAuthenticated);
   const login = useOperator((s) => s.login);
   const t = useT();
+  const langChosen = useUiStore((s) => s.langChosen);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -55,12 +56,13 @@ function LoginPage() {
     }
   }, []);
 
-  // Auto-start the guided tour on first visit (shown once, then on demand).
+  // Auto-start the guided tour on first visit, once a language is chosen so the
+  // bubbles match the user's choice (shown once, then on demand).
   useEffect(() => {
-    if (isAuthenticated || hasSeenTour(LOGIN_TOUR_KEY)) return;
-    const t = window.setTimeout(() => startLoginTour(), 600);
-    return () => window.clearTimeout(t);
-  }, [isAuthenticated]);
+    if (isAuthenticated || !langChosen || hasSeenTour(LOGIN_TOUR_KEY)) return;
+    const timer = window.setTimeout(() => startLoginTour(), 600);
+    return () => window.clearTimeout(timer);
+  }, [isAuthenticated, langChosen]);
 
   const onAccess = async (e: React.FormEvent) => {
     e.preventDefault();

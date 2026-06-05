@@ -5,17 +5,35 @@
  * user must click or type — first on the login screen, then field by field
  * through the 4-step registration wizard.
  *
+ * The bubbles follow the language the user chose up front: the tour reads the
+ * current language from the UI store at start time and renders EN or PT text
+ * (proper nouns / technical terms — EnergyPay, Stellar, EPWR, ed25519,
+ * "Managed"/"Link" — are kept in English in both).
+ *
  * The register tour is a single continuous tour that advances the wizard
  * itself: when the bubble crosses from one wizard step to the next, it flips
  * `formStep` (via the injected setter) and then highlights the next step's
  * field once React has rendered it.
  */
-import { driver, type Driver, type DriveStep } from "driver.js";
+import { driver, type Driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import "./tour.css";
+import { useUiStore } from "@/store/ui";
 
 export const LOGIN_TOUR_KEY = "ep_tour_login_v1";
 export const REGISTER_TOUR_KEY = "ep_tour_register_v1";
+
+type Lang = "en" | "pt";
+type PopoverText = { title: string; description: string };
+
+/** Read the user's chosen language from the UI store (defaults to English). */
+function currentLang(): Lang {
+  try {
+    return useUiStore.getState().lang;
+  } catch {
+    return "en";
+  }
+}
 
 /** Only one tour may run at a time — destroy any previous instance first. */
 let active: Driver | null = null;
@@ -45,60 +63,83 @@ function markSeen(key: string) {
   }
 }
 
-const SHARED = {
-  showProgress: true,
-  allowClose: true,
-  overlayColor: "#04070e",
-  overlayOpacity: 0.9,
-  stagePadding: 8,
-  stageRadius: 10,
-  popoverClass: "ep-tour",
-  nextBtnText: "Próximo →",
-  prevBtnText: "← Voltar",
-  doneBtnText: "Concluir",
-  progressText: "{{current}} de {{total}}",
+const BTN = {
+  next: { en: "Next →", pt: "Próximo →" },
+  prev: { en: "← Back", pt: "← Voltar" },
+  done: { en: "Done", pt: "Concluir" },
+  gotIt: { en: "Got it", pt: "Entendi" },
+  progress: { en: "{{current}} of {{total}}", pt: "{{current}} de {{total}}" },
 } as const;
+
+function sharedConfig(lang: Lang, doneText: string) {
+  return {
+    showProgress: true,
+    allowClose: true,
+    overlayColor: "#04070e",
+    overlayOpacity: 0.9,
+    stagePadding: 8,
+    stageRadius: 10,
+    popoverClass: "ep-tour",
+    nextBtnText: BTN.next[lang],
+    prevBtnText: BTN.prev[lang],
+    doneBtnText: doneText,
+    progressText: BTN.progress[lang],
+  };
+}
 
 /* ─────────────────────────── Login tour ─────────────────────────── */
 
+const LOGIN_STEPS: { element: string; en: PopoverText; pt: PopoverText }[] = [
+  {
+    element: '[data-tour="login-email"]',
+    en: {
+      title: "1 · Your email",
+      description:
+        "Enter the email you registered with — this is how you sign in to the platform.",
+    },
+    pt: {
+      title: "1 · Seu e-mail",
+      description:
+        "Digite aqui o e-mail que você cadastrou. É com ele que você entra na plataforma.",
+    },
+  },
+  {
+    element: '[data-tour="login-password"]',
+    en: { title: "2 · Your password", description: "Enter the password you created during sign-up." },
+    pt: { title: "2 · Sua senha", description: "Digite a senha criada no cadastro." },
+  },
+  {
+    element: '[data-tour="login-access"]',
+    en: {
+      title: "3 · Sign in",
+      description: "Click here to access the environment. That's it — you're inside the platform.",
+    },
+    pt: {
+      title: "3 · Entrar",
+      description: "Clique aqui para acessar o ambiente. Pronto — você está dentro da plataforma.",
+    },
+  },
+  {
+    element: '[data-tour="login-provision"]',
+    en: {
+      title: "First time here?",
+      description:
+        "No account yet? Click here to create one — we'll guide you step by step through sign-up.",
+    },
+    pt: {
+      title: "Primeira vez aqui?",
+      description:
+        "Ainda não tem conta? Clique aqui para criar a sua — vamos te guiar passo a passo no cadastro.",
+    },
+  },
+];
+
 export function startLoginTour(): Driver {
   destroyActive();
+  const lang = currentLang();
   const d = driver({
-    ...SHARED,
-    doneBtnText: "Entendi",
-    steps: [
-      {
-        element: '[data-tour="login-email"]',
-        popover: {
-          title: "1 · Seu e-mail",
-          description:
-            "Digite aqui o e-mail que você cadastrou. É com ele que você entra na plataforma.",
-        },
-      },
-      {
-        element: '[data-tour="login-password"]',
-        popover: {
-          title: "2 · Sua senha",
-          description: "Digite a senha criada no cadastro.",
-        },
-      },
-      {
-        element: '[data-tour="login-access"]',
-        popover: {
-          title: "3 · Entrar",
-          description:
-            "Clique aqui para acessar o ambiente. Pronto — você está dentro da plataforma.",
-        },
-      },
-      {
-        element: '[data-tour="login-provision"]',
-        popover: {
-          title: "Primeira vez aqui?",
-          description:
-            "Ainda não tem conta? Clique aqui para criar a sua — vamos te guiar passo a passo no cadastro.",
-        },
-      },
-    ],
+    ...sharedConfig(lang, BTN.gotIt[lang]),
+    steps: LOGIN_STEPS.map((s) => ({ element: s.element, popover: s[lang] })),
     onDestroyed: () => {
       markSeen(LOGIN_TOUR_KEY);
       active = null;
@@ -111,40 +152,46 @@ export function startLoginTour(): Driver {
 
 /* ──────────────────────── Registration tour ─────────────────────── */
 
-type RegStep = DriveStep & { page: number };
-
-const REGISTER_STEPS: RegStep[] = [
+const REGISTER_STEPS: { page: number; element: string; en: PopoverText; pt: PopoverText }[] = [
   // ── Step 1 · Credentials ──
   {
     page: 0,
     element: '[data-tour="reg-fullname"]',
-    popover: {
+    en: {
+      title: "Step 1 · Credentials",
+      description: 'Start with your full name. Fill each field following the tips and move on with "Next".',
+    },
+    pt: {
       title: "Etapa 1 · Credenciais",
-      description:
-        "Comece pelo seu nome completo. Preencha cada campo seguindo as dicas e avance no “Próximo”.",
+      description: "Comece pelo seu nome completo. Preencha cada campo seguindo as dicas e avance no “Próximo”.",
     },
   },
   {
     page: 0,
     element: '[data-tour="reg-email"]',
-    popover: {
+    en: {
+      title: "Sign-in email",
+      description: "Use a valid email — you'll receive a confirmation link there at the end of sign-up.",
+    },
+    pt: {
       title: "E-mail de acesso",
-      description:
-        "Use um e-mail válido — você receberá um link de confirmação nele ao final do cadastro.",
+      description: "Use um e-mail válido — você receberá um link de confirmação nele ao final do cadastro.",
     },
   },
   {
     page: 0,
     element: '[data-tour="reg-phone"]',
-    popover: {
-      title: "Telefone",
-      description: "Inclua o código do país, ex.: +55 11 99999-9999.",
-    },
+    en: { title: "Phone", description: "Include the country code, e.g. +55 11 99999-9999." },
+    pt: { title: "Telefone", description: "Inclua o código do país, ex.: +55 11 99999-9999." },
   },
   {
     page: 0,
     element: '[data-tour="reg-password"]',
-    popover: {
+    en: {
+      title: "Password",
+      description: "Create a password with at least 6 characters. Use the eye icon to check it.",
+    },
+    pt: {
       title: "Senha",
       description: "Crie uma senha com no mínimo 6 caracteres. Use o ícone de olho para conferir.",
     },
@@ -153,34 +200,43 @@ const REGISTER_STEPS: RegStep[] = [
   {
     page: 1,
     element: '[data-tour="reg-org"]',
-    popover: {
-      title: "Etapa 2 · Organização",
-      description: "Informe o nome da sua empresa ou organização.",
-    },
+    en: { title: "Step 2 · Organization", description: "Enter your company or organization name." },
+    pt: { title: "Etapa 2 · Organização", description: "Informe o nome da sua empresa ou organização." },
   },
   {
     page: 1,
     element: '[data-tour="reg-country"]',
-    popover: {
+    en: {
+      title: "Location",
+      description: "Select country, state and city. The options appear based on the country you choose.",
+    },
+    pt: {
       title: "Localização",
-      description:
-        "Selecione país, estado e cidade. As opções aparecem conforme o país escolhido.",
+      description: "Selecione país, estado e cidade. As opções aparecem conforme o país escolhido.",
     },
   },
   {
     page: 1,
     element: '[data-tour="reg-identity"]',
-    popover: {
+    en: {
+      title: "Document (optional)",
+      description: "Tax ID (CPF/CNPJ) is optional. If you like, attach a PDF of the document — also optional.",
+    },
+    pt: {
       title: "Documento (opcional)",
-      description:
-        "CPF/CNPJ é opcional. Se quiser, anexe um PDF do documento — também opcional.",
+      description: "CPF/CNPJ é opcional. Se quiser, anexe um PDF do documento — também opcional.",
     },
   },
   // ── Step 3 · Market roles ──
   {
     page: 2,
     element: '[data-tour="reg-roles"]',
-    popover: {
+    en: {
+      title: "Step 3 · Market roles",
+      description:
+        "Pick one or more roles (e.g. Generator, Trader, Consumer). They define what you can do on the platform.",
+    },
+    pt: {
       title: "Etapa 3 · Papéis no mercado",
       description:
         "Escolha um ou mais papéis (ex.: Gerador, Trader, Consumidor). Eles definem o que você pode fazer na plataforma.",
@@ -190,28 +246,37 @@ const REGISTER_STEPS: RegStep[] = [
   {
     page: 3,
     element: '[data-tour="reg-wallet"]',
-    popover: {
+    en: {
+      title: "Step 4 · Settlement wallet",
+      description: '"Managed" = EnergyPay handles the wallet for you (recommended). "Link" = use your own Stellar wallet.',
+    },
+    pt: {
       title: "Etapa 4 · Carteira de liquidação",
-      description:
-        "“Managed” = a EnergyPay cuida da carteira para você (recomendado). “Link” = você usa sua própria carteira Stellar.",
+      description: "“Managed” = a EnergyPay cuida da carteira para você (recomendado). “Link” = você usa sua própria carteira Stellar.",
     },
   },
   {
     page: 3,
     element: '[data-tour="reg-fund"]',
-    popover: {
+    en: {
+      title: "Fund the account",
+      description: "Keep this checked to provision your account on the Stellar network — required to operate.",
+    },
+    pt: {
       title: "Financiar a conta",
-      description:
-        "Deixe marcado para provisionar sua conta na rede Stellar — necessário para operar.",
+      description: "Deixe marcado para provisionar sua conta na rede Stellar — necessário para operar.",
     },
   },
   {
     page: 3,
     element: '[data-tour="reg-continue"]',
-    popover: {
+    en: {
+      title: "Finish sign-up",
+      description: "Review the fields and click here to provision your identity. Then confirm your email and you're done!",
+    },
+    pt: {
       title: "Concluir cadastro",
-      description:
-        "Revise os campos e clique aqui para provisionar sua identidade. Depois, confirme seu e-mail e pronto!",
+      description: "Revise os campos e clique aqui para provisionar sua identidade. Depois, confirme seu e-mail e pronto!",
     },
   },
 ];
@@ -227,15 +292,13 @@ export function startRegisterTour({
   onClose?: () => void;
 }): Driver {
   destroyActive();
+  const lang = currentLang();
 
-  const cleanSteps: DriveStep[] = REGISTER_STEPS.map((s) => ({
-    element: s.element,
-    popover: s.popover,
-  }));
+  const cleanSteps = REGISTER_STEPS.map((s) => ({ element: s.element, popover: s[lang] }));
   const holder: { d: Driver | null } = { d: null };
 
   holder.d = driver({
-    ...SHARED,
+    ...sharedConfig(lang, BTN.done[lang]),
     steps: cleanSteps,
     onNextClick: () => {
       const d = holder.d;

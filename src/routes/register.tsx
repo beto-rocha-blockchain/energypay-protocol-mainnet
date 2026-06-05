@@ -137,13 +137,15 @@ useEffect(() => {
   // Intentionally empty.
 }, []);
 
-  // Always (re)start the guided onboarding tour on every visit to the form —
+  // Always (re)start the guided onboarding tour on every visit to the form,
+  // once a language is chosen so the bubbles match the user's choice — and
   // regardless of how many times the user has been through onboarding before.
+  const langChosen = useUiStore((s) => s.langChosen);
   useEffect(() => {
-    if (step !== "form") return;
-    const t = window.setTimeout(() => startRegisterTour({ setStep: setFormStep }), 700);
-    return () => window.clearTimeout(t);
-  }, [step]);
+    if (step !== "form" || !langChosen) return;
+    const timer = window.setTimeout(() => startRegisterTour({ setStep: setFormStep }), 700);
+    return () => window.clearTimeout(timer);
+  }, [step, langChosen]);
 
   const toggleRole = (r: ParticipantRole) => {
     if (roles.includes(r)) {
