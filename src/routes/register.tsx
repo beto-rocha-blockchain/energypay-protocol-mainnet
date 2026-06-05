@@ -216,6 +216,7 @@ useEffect(() => {
   // earlier answers (e.g. State only appears when the chosen country has one;
   // Generation sources only when GENERATOR is among the roles).
   type FieldKey =
+    | "welcome"
     | "fullName"
     | "email"
     | "phone"
@@ -241,6 +242,7 @@ useEffect(() => {
   };
 
   const FIELDS: FieldDef[] = [
+    { key: "welcome",        title: t("Welcome to EnergyPay"),                 description: t("In a few quick steps we'll provision your settlement identity on Stellar Mainnet. Below is everything you need to know before you start — the next slides each ask for one piece of information."), valid: true, optional: true, shouldShow: true },
     { key: "fullName",       title: t("What's your full name?"),               description: t("Your name is the human-readable identity for your operator account. Use the same name that appears on official documents — it's how the network will recognise you."), valid: Boolean(fullName.trim()), shouldShow: true },
     { key: "email",          title: t("Your operator email"),                  description: t("This is how you sign in to the platform and where we send the verification link at the end of sign-up. Use an email you check regularly."),                          valid: Boolean(email.trim()),    shouldShow: true },
     { key: "phone",          title: t("Your phone number"),                    description: t("Required for two-factor authentication. Include the country code — for example +55 11 99999-9999. We'll never share this number."),                                  valid: phoneValid,                shouldShow: true },
@@ -379,115 +381,6 @@ useEffect(() => {
   return (
     <div className="flex min-h-screen w-full flex-col items-center px-4 py-8">
       <div className="w-full max-w-6xl space-y-4">
-        {/* Top: info panel — horizontal, full width */}
-        <Card className="overflow-hidden border-border bg-card/60 p-5">
-          <div className="flex flex-wrap items-start gap-5 lg:flex-nowrap lg:gap-6">
-
-            {/* A · Brand + heading */}
-            <div className="flex w-full flex-col gap-3 lg:w-[14rem] lg:shrink-0">
-              <div className="flex items-center gap-2">
-                <BrandBadge size="md" />
-                <div className="leading-tight" style={{ gap: 3, display: "flex", flexDirection: "column" }}>
-                  <BrandName size="md" />
-                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                    {t("Clearing & Settlement Infrastructure")}
-                  </div>
-                </div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                  {t("Network Provisioning · Pilot Environment")}
-                </div>
-                <h1 className="font-display text-lg font-semibold leading-snug">
-                  {t("Provision a settlement participant identity.")}
-                </h1>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  {t("Mints an identity, binds an ed25519 keypair and registers your market roles on Stellar.")}
-                </p>
-              </div>
-            </div>
-
-            {/* vertical divider */}
-            <div className="hidden w-px self-stretch bg-border/60 lg:block" />
-
-            {/* B · Onboarding Steps */}
-            <div className="flex-1 min-w-[220px]">
-              <div className="mb-3 text-[10px] font-mono font-semibold uppercase tracking-widest text-foreground/60">
-                {t("Onboarding Steps")}
-              </div>
-              <div className="grid grid-cols-2 gap-x-5 gap-y-3">
-                {(
-                  [
-                    { n: "01", label: "Fill this form",         sub: "Credentials, roles & wallet" },
-                    { n: "02", label: "Verify your email",      sub: "Confirmation link sent to your inbox" },
-                    { n: "03", label: "Access the environment", sub: "Settlement identity is live" },
-                  ] as const
-                ).map(({ n, label, sub }) => (
-                  <div key={n} className="flex items-start gap-2">
-                    <span className="mt-0.5 shrink-0 font-mono text-xs font-bold text-primary">{n}</span>
-                    <span>
-                      <span className="block font-mono text-xs font-semibold text-foreground">{t(label)}</span>
-                      <span className="block text-[11px] leading-relaxed text-muted-foreground">{t(sub)}</span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* vertical divider */}
-            <div className="hidden w-px self-stretch bg-border/60 lg:block" />
-
-            {/* C · Network + Required */}
-            <div className="flex shrink-0 flex-wrap gap-3">
-              <div className="rounded-md border border-border bg-background/40 p-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                <div className="flex items-center justify-between gap-4">
-                  <span>{t("Network")}</span>
-                  <span className="flex items-center gap-1 text-success">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> {t("Nominal")}
-                  </span>
-                </div>
-                <div className="mt-2 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1.5 border-t border-border/40 pt-2">
-                  <span>{t("Chain")}</span>
-                  <span className="text-right text-foreground">{STELLAR_NETWORK_LABEL}</span>
-                  <span>Horizon</span>
-                  <span className="break-all text-right text-foreground">{HORIZON_URL.replace("https://", "")}</span>
-                </div>
-              </div>
-
-              <div className="rounded-md border border-border bg-background/40 p-3">
-                <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  {t("Required")}
-                </div>
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
-                    <Mail className="h-3 w-3 shrink-0" />
-                    <span>{t("Institutional email")}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
-                    <Phone className="h-3 w-3 shrink-0" />
-                    <span>{t("WhatsApp phone")}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
-                    <ShieldCheck className="h-3 w-3 shrink-0" />
-                    <span>{t("Participant role")}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
-                    <KeyRound className="h-3 w-3 shrink-0" />
-                    <span>{t("Backend key custody")}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-            <span>{t("EnergyPay Clearing · v0.4.2")}</span>
-            <Link to="/login" className="text-foreground hover:text-primary">
-              {t("Operator Access →")}
-            </Link>
-          </div>
-        </Card>
-
         {/* Form: provisioning terminal — full width */}
         <Card className="overflow-hidden border-border bg-card/70">
           <div className="flex items-center justify-between border-b border-border bg-background/40 px-4 py-2.5">
@@ -571,6 +464,94 @@ useEffect(() => {
 
                 {/* Slide field */}
                 <div className="pt-1">
+                  {currentField?.key === "welcome" && (
+                    <div className="space-y-4">
+                      {/* Brand line */}
+                      <div className="flex items-center gap-2.5">
+                        <BrandBadge size="md" />
+                        <div className="leading-tight" style={{ gap: 3, display: "flex", flexDirection: "column" }}>
+                          <BrandName size="md" />
+                          <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                            {t("Network Provisioning · Pilot Environment")}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 3 onboarding steps */}
+                      <div className="rounded-lg border border-border bg-background/40 p-4">
+                        <div className="mb-3 font-mono text-[10px] font-semibold uppercase tracking-widest text-foreground/60">
+                          {t("Onboarding Steps")}
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          {(
+                            [
+                              { n: "01", label: "Fill this form",         sub: "Credentials, roles & wallet" },
+                              { n: "02", label: "Verify your email",      sub: "Confirmation link sent to your inbox" },
+                              { n: "03", label: "Access the environment", sub: "Settlement identity is live" },
+                            ] as const
+                          ).map(({ n, label, sub }) => (
+                            <div key={n} className="flex items-start gap-2">
+                              <span className="mt-0.5 shrink-0 font-mono text-sm font-bold text-primary">{n}</span>
+                              <span>
+                                <span className="block text-sm font-semibold text-foreground">{t(label)}</span>
+                                <span className="block text-xs leading-relaxed text-muted-foreground">{t(sub)}</span>
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Network + Required side by side */}
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-lg border border-border bg-background/40 p-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                          <div className="flex items-center justify-between gap-4">
+                            <span>{t("Network")}</span>
+                            <span className="flex items-center gap-1 text-success">
+                              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> {t("Nominal")}
+                            </span>
+                          </div>
+                          <div className="mt-2 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5 border-t border-border/40 pt-2">
+                            <span>{t("Chain")}</span>
+                            <span className="text-right text-foreground">{STELLAR_NETWORK_LABEL}</span>
+                            <span>Horizon</span>
+                            <span className="break-all text-right text-foreground">{HORIZON_URL.replace("https://", "")}</span>
+                          </div>
+                        </div>
+
+                        <div className="rounded-lg border border-border bg-background/40 p-3">
+                          <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                            {t("Required")}
+                          </div>
+                          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Mail className="h-3 w-3 shrink-0" />
+                              <span>{t("Institutional email")}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Phone className="h-3 w-3 shrink-0" />
+                              <span>{t("WhatsApp phone")}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <ShieldCheck className="h-3 w-3 shrink-0" />
+                              <span>{t("Participant role")}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <KeyRound className="h-3 w-3 shrink-0" />
+                              <span>{t("Backend key custody")}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between border-t border-border pt-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                        <span>{t("EnergyPay Clearing · v0.4.2")}</span>
+                        <Link to="/login" className="text-foreground hover:text-primary">
+                          {t("Operator Access →")}
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+
                   {currentField?.key === "fullName" && (
                     <div className="space-y-2">
                       <Label htmlFor="fld-fullname" className="text-sm font-medium">{t("Full Name")}</Label>

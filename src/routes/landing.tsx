@@ -53,6 +53,8 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { Card } from "@/components/ui/card";
@@ -135,13 +137,14 @@ function FeatureCard({
 }
 
 /**
- * Wrapper that turns each section into a viewport-tall slide. The carousel
- * track has overflow hidden so vertical content inside the slide can scroll
- * naturally when the screen is small.
+ * Wrapper that turns each section into a viewport-sized slide centered both
+ * axes. We deliberately use overflow-hidden + h-full here so the page itself
+ * never scrolls; the carousel + header + footer together fit 100svh exactly,
+ * and per-slide content is laid out tight enough to fit a standard viewport.
  */
 function Slide({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-[calc(100svh-3.5rem)] w-full items-center justify-center overflow-y-auto py-6">
+    <div className="flex h-full w-full items-center justify-center overflow-hidden px-12 py-4 sm:px-16">
       <div className="w-full">{children}</div>
     </div>
   );
@@ -171,7 +174,7 @@ function LandingPage() {
   }, [api]);
 
   return (
-    <div className="flex min-h-screen w-full flex-col text-foreground">
+    <div className="flex h-svh w-full flex-col overflow-hidden text-foreground">
       {/* Fixed background image — stays behind the page while the content scrolls over it */}
       <div
         aria-hidden
@@ -210,9 +213,9 @@ function LandingPage() {
       <Carousel
         setApi={setApi}
         opts={{ loop: false, align: "start" }}
-        className="flex-1"
+        className="relative min-h-0 flex-1"
       >
-        <CarouselContent className="h-[calc(100svh-3.5rem)] -ml-0">
+        <CarouselContent className="-ml-0 h-full">
           {/* ── 1 · Hero ──────────────────────────────────────────────────── */}
           <CarouselItem className="pl-0">
             <Slide>
@@ -637,20 +640,19 @@ function LandingPage() {
           </CarouselItem>
         </CarouselContent>
 
-        {/* ── Carousel controls overlay (always visible above slides) ────── */}
-        <div className="pointer-events-none fixed inset-x-0 bottom-12 z-20 flex items-center justify-center gap-3 px-5 sm:bottom-16">
-          <Button
-            variant="outline"
-            size="icon"
-            className="pointer-events-auto h-10 w-10 rounded-full border-border/60 bg-background/70 backdrop-blur"
-            onClick={() => api?.scrollPrev()}
-            disabled={!api?.canScrollPrev()}
-            aria-label={t("Previous slide")}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+        {/* ── Side navigation arrows (on the carousel edges) ─────────────── */}
+        <CarouselPrevious
+          aria-label={t("Previous slide")}
+          className="left-3 top-1/2 z-20 h-10 w-10 -translate-y-1/2 border-border/60 bg-background/70 backdrop-blur sm:left-4"
+        />
+        <CarouselNext
+          aria-label={t("Next slide")}
+          className="right-3 top-1/2 z-20 h-10 w-10 -translate-y-1/2 border-border/60 bg-background/70 backdrop-blur sm:right-4"
+        />
 
-          <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-border/60 bg-background/70 px-3 py-2 backdrop-blur">
+        {/* ── Bottom dot indicator (compact, doesn't steal vertical space) ─ */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-2 z-20 flex items-center justify-center px-5">
+          <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 backdrop-blur">
             {Array.from({ length: count }).map((_, i) => (
               <button
                 key={i}
@@ -665,17 +667,6 @@ function LandingPage() {
               {String(current + 1).padStart(2, "0")} / {String(count).padStart(2, "0")}
             </span>
           </div>
-
-          <Button
-            variant="outline"
-            size="icon"
-            className="pointer-events-auto h-10 w-10 rounded-full border-border/60 bg-background/70 backdrop-blur"
-            onClick={() => api?.scrollNext()}
-            disabled={!api?.canScrollNext()}
-            aria-label={t("Next slide")}
-          >
-            <ArrowRight className="h-4 w-4" />
-          </Button>
         </div>
       </Carousel>
 
