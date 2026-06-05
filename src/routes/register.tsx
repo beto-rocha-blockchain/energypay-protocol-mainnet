@@ -59,7 +59,7 @@ import { safeErrorMessage } from "@/lib/safe-error";
 import { apiResendVerification, apiSendPhoneCode, apiVerifyPhoneCode, apiUploadIdentityDocument } from "@/lib/api";
 import { getSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
-import { startRegisterTour, REGISTER_TOUR_KEY, hasSeenTour } from "@/lib/tour";
+import { startRegisterTour } from "@/lib/tour";
 
 export const Route = createFileRoute("/register")({
   component: RegisterPage,
@@ -137,9 +137,10 @@ useEffect(() => {
   // Intentionally empty.
 }, []);
 
-  // Auto-start the guided onboarding tour on first visit (shown once, then on demand).
+  // Always (re)start the guided onboarding tour on every visit to the form —
+  // regardless of how many times the user has been through onboarding before.
   useEffect(() => {
-    if (step !== "form" || hasSeenTour(REGISTER_TOUR_KEY)) return;
+    if (step !== "form") return;
     const t = window.setTimeout(() => startRegisterTour({ setStep: setFormStep }), 700);
     return () => window.clearTimeout(t);
   }, [step]);
