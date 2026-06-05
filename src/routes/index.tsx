@@ -32,6 +32,7 @@ import { useNetworkStore } from "@/store/network";
 import { stellarExpertTx, STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import { useOperator, type ParticipantRole } from "@/store/operator";
 import { useT } from "@/lib/i18n";
+import { relativeTime } from "@/lib/relative-time";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -61,15 +62,7 @@ const fmtCompact = (n: number) => {
 const shortHash = (h: string) =>
   h && h.length > 12 ? `${h.slice(0, 6)}…${h.slice(-6)}` : h || "—";
 
-const timeAgo = (iso: string) => {
-  if (!iso) return "—";
-  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-};
+const timeAgo = (iso: string) => relativeTime(iso);
 
 function OperationsPage() {
   const t = useT();

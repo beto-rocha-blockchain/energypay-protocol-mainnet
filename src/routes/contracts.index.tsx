@@ -72,6 +72,7 @@ import { TransactionSigningModal } from "@/components/TransactionSigningModal";
 import { toast } from "sonner";
 import { useOperator } from "@/store/operator";
 import { useT } from "@/lib/i18n";
+import { relativeTime } from "@/lib/relative-time";
 
 export const Route = createFileRoute("/contracts/")({
   head: () => ({
@@ -376,12 +377,7 @@ function LifecycleActions({
     }
   };
 
-  const timeAgo = (iso: string) => {
-    const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000);
-    if (mins < 1) return t("now");
-    if (mins < 60) return `${mins}${t("m ago")}`;
-    return `${Math.floor(mins / 60)}${t("h ago")}`;
-  };
+  const timeAgo = (iso: string) => relativeTime(iso);
 
   return (
     <div className="space-y-4">
