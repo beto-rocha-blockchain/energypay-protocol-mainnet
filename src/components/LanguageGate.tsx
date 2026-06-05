@@ -1,25 +1,39 @@
 import { useEffect, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { useUiStore } from "@/store/ui";
 import { BrandBadge, BrandName } from "@/components/BrandLogo";
 
 /**
- * First-visit language chooser. On mount it hydrates the stored/detected language;
- * if the user has never explicitly chosen, it overlays a full-screen picker so the
- * visitor selects their experience up front. Renders nothing once a choice exists
- * (and nothing on the server / first paint, so there is no hydration flash).
+ * Language chooser. Two behaviours:
+ *
+ *  • On the public LANDING page (`/landing`) — the link used to promote the
+ *    platform — every fresh load must pick a language, so the chooser always
+ *    appears until the visitor selects one (then hides for that visit).
+ *  • Everywhere else it only appears until a language has ever been chosen
+ *    (persisted), so returning/authenticated users are not re-prompted.
+ *
+ * Renders nothing on the server / first paint, so there is no hydration flash.
  */
 export function LanguageGate() {
   const langChosen = useUiStore((s) => s.langChosen);
   const setLang = useUiStore((s) => s.setLang);
   const hydrateLang = useUiStore((s) => s.hydrateLang);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [ready, setReady] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     hydrateLang();
     setReady(true);
   }, [hydrateLang]);
 
-  if (!ready || langChosen) return null;
+  const isLanding = pathname === "/landing";
+  if (!ready || dismissed || (!isLanding && langChosen)) return null;
+
+  const choose = (l: "en" | "pt") => {
+    setLang(l);
+    setDismissed(true);
+  };
 
   return (
     <div className="fixed inset-0 z-[200] grid place-items-center bg-background/95 px-4 backdrop-blur-sm">
@@ -33,14 +47,14 @@ export function LanguageGate() {
         <div className="mt-6 grid gap-2.5">
           <button
             type="button"
-            onClick={() => setLang("pt")}
+            onClick={() => choose("pt")}
             className="w-full rounded-md border border-border bg-background/40 px-4 py-3 text-sm font-medium transition hover:border-primary/60 hover:bg-primary/10"
           >
             🇧🇷 Português
           </button>
           <button
             type="button"
-            onClick={() => setLang("en")}
+            onClick={() => choose("en")}
             className="w-full rounded-md border border-border bg-background/40 px-4 py-3 text-sm font-medium transition hover:border-primary/60 hover:bg-primary/10"
           >
             🇺🇸 English
