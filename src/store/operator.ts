@@ -397,9 +397,11 @@ export const ROLE_ORDER: ParticipantRole[] = [
 
 /**
  * Sort any array of role strings into canonical display order.
- * Unknown roles are pushed to the end.
+ * Unknown roles are pushed to the end. The function is generic so calling
+ * it with `ParticipantRole[]` preserves the narrow type at the call site
+ * (avoids needless string-widening when the input is already typed).
  */
-export function sortRoles(roles: string[]): string[] {
+export function sortRoles<T extends string>(roles: readonly T[]): T[] {
   return [...roles].sort((a, b) => {
     const ai = ROLE_ORDER.indexOf(a as ParticipantRole);
     const bi = ROLE_ORDER.indexOf(b as ParticipantRole);

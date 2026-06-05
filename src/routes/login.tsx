@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { safeErrorMessage } from "@/lib/safe-error";
 import { startLoginTour, LOGIN_TOUR_KEY, hasSeenTour } from "@/lib/tour";
 import { useT } from "@/lib/i18n";
+import { homeRouteFor } from "@/lib/home-route";
 import { LanguageToggle } from "@/components/LanguageToggle";
 
 export const Route = createFileRoute("/login")({
@@ -34,6 +35,7 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const navigate = useNavigate();
   const isAuthenticated = useOperator((s) => s.isAuthenticated);
+  const operator = useOperator((s) => s.operator);
   const login = useOperator((s) => s.login);
   const t = useT();
   const langChosen = useUiStore((s) => s.langChosen);
@@ -43,8 +45,10 @@ function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) navigate({ to: "/" });
-  }, [isAuthenticated, navigate]);
+    // Already-signed-in operators land on the smart home: Contract Registry
+    // when they can create contracts, Custody Wallet otherwise.
+    if (isAuthenticated) navigate({ to: homeRouteFor(operator) });
+  }, [isAuthenticated, operator, navigate]);
 
   // Show success toast when redirected after email verification
   useEffect(() => {
@@ -74,7 +78,7 @@ function LoginPage() {
     try {
       const id = await login({ email, password });
       toast.success(`${t("Operator connected:")} ${id.operatorId} · ${STELLAR_NETWORK_LABEL}`);
-      navigate({ to: "/" });
+      navigate({ to: homeRouteFor(id) });
     } catch (err) {
       const status = (err as { status?: number } | undefined)?.status;
       toast.error(

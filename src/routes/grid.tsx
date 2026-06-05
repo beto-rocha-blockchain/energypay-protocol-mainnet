@@ -338,14 +338,15 @@ function GridPage() {
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10px] uppercase tracking-widest">
                       {sortRoles(selected.roles).map((r) => {
-                        const RIcon = ROLE_ICON[r] ?? ShieldCheck;
-                        const roleColor = ROLE_COLORS[r]?.hex;
+                        const role = r as ParticipantRole;
+                        const RIcon = ROLE_ICON[role] ?? ShieldCheck;
+                        const roleColor = ROLE_COLORS[role]?.hex;
                         return (
                           <span key={r} className="flex items-center gap-1" style={{ color: roleColor }}>
                             <span style={{ color: roleColor }}>
                               <RIcon className="h-3 w-3" />
                             </span>
-                            {ROLE_META[r]?.label ?? r}
+                            {ROLE_META[role]?.label ?? r}
                           </span>
                         );
                       })}
@@ -481,15 +482,18 @@ function GridPage() {
                     <td className="px-3 py-2 font-mono text-foreground">{n.organization}</td>
                     <td className="px-3 py-2">
                       <div className="flex flex-wrap gap-x-2 gap-y-0.5">
-                        {sortRoles(n.roles).map((r) => (
-                          <span
-                            key={r}
-                            className="font-mono text-[10px] uppercase tracking-widest"
-                            style={{ color: ROLE_COLORS[r]?.hex }}
-                          >
-                            {ROLE_META[r]?.label ?? r}
-                          </span>
-                        ))}
+                        {sortRoles(n.roles).map((r) => {
+                          const role = r as ParticipantRole;
+                          return (
+                            <span
+                              key={r}
+                              className="font-mono text-[10px] uppercase tracking-widest"
+                              style={{ color: ROLE_COLORS[role]?.hex }}
+                            >
+                              {ROLE_META[role]?.label ?? r}
+                            </span>
+                          );
+                        })}
                       </div>
                     </td>
                     <td className="px-3 py-2 font-mono uppercase tracking-widest text-muted-foreground">

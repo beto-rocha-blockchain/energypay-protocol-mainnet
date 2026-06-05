@@ -421,11 +421,14 @@ export function AppSidebar() {
 
   // Accordion: only one nav section is expanded at a time. Opening one collapses
   // the others; the section of the current route stays open after navigation.
+  // Market Infrastructure is FIRST — the registry of bilateral contracts is
+  // the primary entry point for most real users (it's where they spend their
+  // time). Executive Layer / Risk / Settlement / Utility follow.
   const navGroups = [
+    { label: "Market Infrastructure",     items: terminals },
     { label: "Executive Layer",           items: marketOps },
     { label: "Risk & Clearing",           items: riskData },
     { label: "Settlement Infrastructure", items: settlement },
-    { label: "Market Infrastructure",     items: terminals },
     { label: "Utility Operations",        items: utilityOps },
   ];
   const groupForPath = (p: string) =>

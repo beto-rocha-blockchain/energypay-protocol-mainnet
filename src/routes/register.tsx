@@ -61,6 +61,7 @@ import { getSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { startRegisterTour } from "@/lib/tour";
 import { useT } from "@/lib/i18n";
+import { homeRouteFor } from "@/lib/home-route";
 
 export const Route = createFileRoute("/register")({
   component: RegisterPage,
@@ -1320,7 +1321,7 @@ useEffect(() => {
               </a>
 
               <Button
-                onClick={() => navigate({ to: "/" })}
+                onClick={() => navigate({ to: homeRouteFor(operator) })}
                 className="h-10 w-full font-mono text-xs uppercase tracking-widest"
               >
                 {t("Enter Settlement Control Room")}
