@@ -30,6 +30,7 @@ export const PT: Record<string, string> = {
   "Forgot password →": "Esqueceu a senha →",
   "Operator email and password are required.": "E-mail e senha do operador são obrigatórios.",
   "Authentication failed": "Falha na autenticação",
+  "Invalid email or password.": "E-mail ou senha incorretos.",
   "Email verified successfully! You can now log in.":
     "E-mail verificado com sucesso! Agora você pode entrar.",
   "Operator connected:": "Operador conectado:",

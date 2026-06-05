@@ -76,7 +76,12 @@ function LoginPage() {
       toast.success(`${t("Operator connected:")} ${id.operatorId} · ${STELLAR_NETWORK_LABEL}`);
       navigate({ to: "/" });
     } catch (err) {
-      toast.error(safeErrorMessage(err, t("Authentication failed")));
+      const status = (err as { status?: number } | undefined)?.status;
+      toast.error(
+        status === 401
+          ? t("Invalid email or password.")
+          : safeErrorMessage(err, t("Authentication failed")),
+      );
     } finally {
       setBusy(false);
     }
