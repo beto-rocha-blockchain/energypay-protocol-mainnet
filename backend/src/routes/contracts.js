@@ -424,6 +424,24 @@ router.post("/", requireAuth, async (req, res) => {
           actionLabel: "View Contract",
           actionUrl: "/contracts",
         });
+
+        // Master override (demo): also notify the platform owner(s) so they can
+        // approve any pending contract directly from their notification bell —
+        // a missing counterparty never stalls a demonstration.
+        const { data: _owners } = await supabase
+          .from("users")
+          .select("id")
+          .eq("platform_role", "PLATFORM_OWNER");
+        for (const _owner of _owners ?? []) {
+          await addNotification(_owner.id, {
+            contractId: contract.id,
+            type: "APPROVAL_REQUIRED",
+            title: "Contract approval (master)",
+            message: `Contract ${contractRef} · ${volLabel} is awaiting approval. As platform owner you can approve it directly.`,
+            actionLabel: "Approve Contract",
+            actionUrl: "/contracts",
+          });
+        }
       }
     }
     // ──────────────────────────────────────────────────────────────────
@@ -854,7 +872,7 @@ router.post("/:id/approve", requireAuth, async (req, res) => {
     // Get the user's stellar public key
     const { data: userRow } = await supabase
       .from("users")
-      .select("stellar_public_key, display_name, email")
+      .select("stellar_public_key, display_name, email, platform_role")
       .eq("id", userId)
       .single();
 
@@ -887,28 +905,44 @@ router.post("/:id/approve", requireAuth, async (req, res) => {
         (userRow?.stellar_public_key && a.party_public_key === userRow.stellar_public_key),
     );
 
-    if (!myApproval) {
+    // The platform owner ("Deus") may approve ANY contract, even without being a
+    // party — so a missing/absent counterparty never stalls a demonstration.
+    const isMaster = userRow?.platform_role === "PLATFORM_OWNER";
+
+    if (!myApproval && !isMaster) {
       return res.status(403).json({
         success: false,
         error: "You are not a party to this contract.",
       });
     }
 
-    if (myApproval.status === "APPROVED") {
-      return res.json({ success: true, message: "Already approved.", already: true });
+    const nowIso = new Date().toISOString();
+    if (isMaster) {
+      // Master override: force-approve every still-pending party at once.
+      const stillPending = (approvals ?? []).filter((a) => a.status !== "APPROVED");
+      if (stillPending.length === 0) {
+        return res.json({ success: true, message: "Already approved.", already: true });
+      }
+      await supabase
+        .from("contract_approvals")
+        .update({ status: "APPROVED", approved_at: nowIso })
+        .eq("contract_id", req.params.id)
+        .neq("status", "APPROVED");
+    } else {
+      if (myApproval.status === "APPROVED") {
+        return res.json({ success: true, message: "Already approved.", already: true });
+      }
+      await supabase
+        .from("contract_approvals")
+        .update({ status: "APPROVED", approved_at: nowIso })
+        .eq("id", myApproval.id);
     }
-
-    // Mark as APPROVED
-    await supabase
-      .from("contract_approvals")
-      .update({ status: "APPROVED", approved_at: new Date().toISOString() })
-      .eq("id", myApproval.id);
 
     const contractRef = contract.contract_number || contract.id.slice(0, 8).toUpperCase();
     const approverLabel = userRow?.display_name || userRow?.email || userId;
 
     // Notify all other parties
-    const otherApprovals = (approvals ?? []).filter((a) => a.id !== myApproval.id);
+    const otherApprovals = (approvals ?? []).filter((a) => a.id !== myApproval?.id);
     for (const other of otherApprovals) {
       if (other.party_user_id) {
         await addNotification(other.party_user_id, {
