@@ -21,6 +21,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { API_BASE_URL } from "@/lib/api";
 import { useOperator, type ParticipantRole } from "@/store/operator";
+import { useT } from "@/lib/i18n";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -171,6 +172,7 @@ function buildItems(
   snap:        MarketSnap,
   userSub:     string | null,
   roles:       ParticipantRole[],
+  t:           (s: string) => string,
 ): TickerItem[] {
   const { crypto, pld, health } = snap;
   const items: TickerItem[] = [];
@@ -216,8 +218,8 @@ function buildItems(
     value: health.online
       ? health.horizon_latency_ms != null
         ? `${health.horizon_latency_ms} ms`
-        : "ONLINE"
-      : "CHECKING…",
+        : t("ONLINE")
+      : t("CHECKING…"),
     dim: !health.online,
   });
 
@@ -226,7 +228,7 @@ function buildItems(
   if (role) {
     const label = ROLE_LABEL[role];
     if (label) {
-      items.push({ label: "ROLE", value: label, dim: true });
+      items.push({ label: t("ROLE"), value: t(label), dim: true });
     }
   }
 
@@ -240,6 +242,7 @@ const PLD_INTERVAL_MS     = 5 * 60_000;
 const HEALTH_INTERVAL_MS  = 30_000;
 
 export function StatusBar() {
+  const t           = useT();
   const operator    = useOperator((s) => s.operator);
   const userSub     = operator?.state ? (STATE_TO_SUB[operator.state.toUpperCase()] ?? "SE/CO") : null;
   const roles       = operator?.roles ?? [];
@@ -314,7 +317,7 @@ export function StatusBar() {
     return () => clearInterval(id);
   }, [refreshHealth]);
 
-  const items = buildItems(snap, userSub, roles);
+  const items = buildItems(snap, userSub, roles, t);
 
   return (
     <div className="flex h-8 shrink-0 items-center border-t border-border bg-sidebar/90 backdrop-blur">
@@ -329,7 +332,7 @@ export function StatusBar() {
           }`}
         />
         <span className="font-mono text-[8.5px] uppercase tracking-[0.2em] text-muted-foreground">
-          Live
+          {t("Live")}
         </span>
       </div>
 
@@ -337,7 +340,7 @@ export function StatusBar() {
       <div className="relative flex-1 overflow-hidden h-full flex items-center">
         {snap.loading ? (
           <span className="px-4 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50 animate-pulse">
-            Loading market data…
+            {t("Loading market data…")}
           </span>
         ) : (
           <div className="animate-ep-ticker flex items-center">

@@ -49,6 +49,7 @@ import { CryptoPaymentModal } from "@/components/CryptoPaymentModal";
 import { CardManager } from "@/components/CardManager";
 import { PaidInvoicesTab } from "@/components/PaidInvoicesTab";
 import { FiscalDocumentsTab } from "@/components/FiscalDocumentsTab";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/subscription")({
   head: () => ({
@@ -73,11 +74,11 @@ const PLAN_ICONS: Record<SubscriptionPlan, React.ComponentType<{ className?: str
 };
 
 const STATUS_LABEL: Record<string, { text: string; className: string }> = {
-  ACTIVE:    { text: "Ativo",              className: "border-success/40 bg-success/10 text-success" },
-  TRIALING:  { text: "Aguardando pgto.",   className: "border-warning/40 bg-warning/10 text-warning" },
-  PAST_DUE:  { text: "Pgto. Atrasado",    className: "border-destructive/40 bg-destructive/10 text-destructive" },
-  CANCELLED: { text: "Cancelado",         className: "border-muted/40 bg-muted/10 text-muted-foreground" },
-  EXPIRED:   { text: "Expirado",          className: "border-destructive/40 bg-destructive/10 text-destructive" },
+  ACTIVE:    { text: "Active",              className: "border-success/40 bg-success/10 text-success" },
+  TRIALING:  { text: "Awaiting payment",    className: "border-warning/40 bg-warning/10 text-warning" },
+  PAST_DUE:  { text: "Payment overdue",     className: "border-destructive/40 bg-destructive/10 text-destructive" },
+  CANCELLED: { text: "Cancelled",           className: "border-muted/40 bg-muted/10 text-muted-foreground" },
+  EXPIRED:   { text: "Expired",             className: "border-destructive/40 bg-destructive/10 text-destructive" },
 };
 
 type PaymentMethod = "PIX" | "CREDIT_CARD" | "CRYPTO";
@@ -85,6 +86,7 @@ type PaymentMethod = "PIX" | "CREDIT_CARD" | "CRYPTO";
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 function SubscriptionPage() {
+  const t = useT();
   const isAuthenticated  = useOperator((s) => s.isAuthenticated);
   const operator         = useOperator((s) => s.operator);
   const setSubscription  = useOperator((s) => s.setSubscription);
@@ -145,8 +147,8 @@ function SubscriptionPage() {
         setPixModalOpen(true);
       } else if (res.payment_method === "credit_card" && res.payment_url) {
         window.open(res.payment_url, "_blank", "noopener,noreferrer");
-        toast.info("Payment link opened in a new tab.", {
-          description: "Once paid, your plan is activated automatically.",
+        toast.info(t("Payment link opened in a new tab."), {
+          description: t("Once paid, your plan is activated automatically."),
         });
       }
       return true;
@@ -157,7 +159,7 @@ function SubscriptionPage() {
         setCpfPlan(plan);
         setCpfDialogOpen(true);
       } else {
-        toast.error((err as Error).message || "Failed to start checkout.");
+        toast.error((err as Error).message || t("Failed to start checkout."));
       }
       return false;
     } finally {
@@ -183,7 +185,7 @@ function SubscriptionPage() {
   const submitCpf = async () => {
     const digits = cpfValue.replace(/\D/g, "");
     if (digits.length !== 11 && digits.length !== 14) {
-      toast.error("Enter a valid CPF (11 digits) or CNPJ (14 digits).");
+      toast.error(t("Enter a valid CPF (11 digits) or CNPJ (14 digits)."));
       return;
     }
     if (!cpfPlan) return;
@@ -196,14 +198,14 @@ function SubscriptionPage() {
   };
 
   const handleCancel = async () => {
-    if (!confirm("Are you sure? Your plan stays active until the end of the current period.")) return;
+    if (!confirm(t("Are you sure? Your plan stays active until the end of the current period."))) return;
     setCancelLoading(true);
     try {
       const res = await apiSubscriptionCancel();
-      toast.success(res.message || "Subscription cancelled.");
+      toast.success(res.message || t("Subscription cancelled."));
       await refreshSubscription();
     } catch (err) {
-      toast.error((err as Error).message || "Failed to cancel.");
+      toast.error((err as Error).message || t("Failed to cancel."));
     } finally {
       setCancelLoading(false);
     }
@@ -213,14 +215,14 @@ function SubscriptionPage() {
     await refreshSubscription();
     setPixModalOpen(false);
     setPixData(null);
-    toast.success("Payment confirmed! Plan activated.");
+    toast.success(t("Payment confirmed! Plan activated."));
   };
 
   const handleCryptoConfirmed = async () => {
     await refreshSubscription();
     setCryptoModalOpen(false);
     setCryptoPlan(null);
-    toast.success("Crypto payment confirmed! Plan activated.");
+    toast.success(t("Crypto payment confirmed! Plan activated."));
   };
 
   return (
@@ -228,11 +230,11 @@ function SubscriptionPage() {
       {/* Header */}
       <div>
         <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          Platform · Subscription &amp; Billing
+          {t("Platform · Subscription & Billing")}
         </p>
-        <h1 className="font-display text-2xl font-semibold">Subscription</h1>
+        <h1 className="font-display text-2xl font-semibold">{t("Subscription")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage your EnergyPay platform access plan.
+          {t("Manage your EnergyPay platform access plan.")}
         </p>
       </div>
 
@@ -242,16 +244,16 @@ function SubscriptionPage() {
       <Tabs defaultValue="plan" className="space-y-6">
         <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4">
           <TabsTrigger value="plan" className="gap-1.5 py-2 font-mono text-[10px] uppercase tracking-widest">
-            <Zap className="h-3 w-3" /> Plan
+            <Zap className="h-3 w-3" /> {t("Plan")}
           </TabsTrigger>
           <TabsTrigger value="invoices" className="gap-1.5 py-2 font-mono text-[10px] uppercase tracking-widest">
-            <Receipt className="h-3 w-3" /> Invoices
+            <Receipt className="h-3 w-3" /> {t("Invoices")}
           </TabsTrigger>
           <TabsTrigger value="fiscal" className="gap-1.5 py-2 font-mono text-[10px] uppercase tracking-widest">
-            <FileText className="h-3 w-3" /> Receipts
+            <FileText className="h-3 w-3" /> {t("Receipts")}
           </TabsTrigger>
           <TabsTrigger value="cards" className="gap-1.5 py-2 font-mono text-[10px] uppercase tracking-widest">
-            <CreditCard className="h-3 w-3" /> Cards
+            <CreditCard className="h-3 w-3" /> {t("Cards")}
           </TabsTrigger>
         </TabsList>
 
@@ -260,7 +262,7 @@ function SubscriptionPage() {
           {/* Payment method selector */}
           <div className="space-y-3">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Payment method
+              {t("Payment method")}
             </p>
             <div className="flex flex-wrap gap-3">
               {(["PIX", "CREDIT_CARD", "CRYPTO"] as PaymentMethod[]).map((m) => (
@@ -280,23 +282,23 @@ function SubscriptionPage() {
                   ) : (
                     <Coins className="h-3.5 w-3.5" />
                   )}
-                  {m === "PIX" ? "PIX" : m === "CREDIT_CARD" ? "Credit Card" : "Crypto (XLM / USDC)"}
+                  {m === "PIX" ? "PIX" : m === "CREDIT_CARD" ? t("Credit Card") : t("Crypto (XLM / USDC)")}
                 </button>
               ))}
             </div>
             {paymentMethod === "PIX" && (
               <p className="font-mono text-[10px] text-success">
-                ✓ PIX · approved within 1 minute · no extra fees
+                {t("✓ PIX · approved within 1 minute · no extra fees")}
               </p>
             )}
             {paymentMethod === "CREDIT_CARD" && (
               <p className="font-mono text-[10px] text-muted-foreground">
-                Credit card · processed via Asaas (Bacen-certified)
+                {t("Credit card · processed via Asaas (Bacen-certified)")}
               </p>
             )}
             {paymentMethod === "CRYPTO" && (
               <p className="font-mono text-[10px] text-muted-foreground">
-                Pay with XLM or USDC from any Stellar wallet. · On-chain verification on Stellar Mainnet.
+                {t("Pay with XLM or USDC from any Stellar wallet. · On-chain verification on Stellar Mainnet.")}
               </p>
             )}
           </div>
@@ -304,7 +306,7 @@ function SubscriptionPage() {
           {/* Plan comparison cards */}
           <div className="space-y-3">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Available plans
+              {t("Available plans")}
             </p>
             <div className="grid gap-4 md:grid-cols-3">
               {(["FREE", "OPERATOR", "ENTERPRISE"] as SubscriptionPlan[]).map((plan) => (
@@ -326,15 +328,10 @@ function SubscriptionPage() {
               <Shield className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <div>
                 <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Security &amp; compliance
+                  {t("Security & compliance")}
                 </p>
                 <p className="mt-1 text-[11px] text-muted-foreground">
-                  Card and PIX payments are processed by <strong className="text-foreground">Asaas</strong> — a
-                  Brazilian fintech certified by the Central Bank of Brazil. Card data is tokenized by the gateway
-                  and never stored on EnergyPay servers. Crypto payments are verified on-chain on Stellar Mainnet,
-                  without exposing secret keys. Every paid charge generates a payment receipt — official
-                  NF-e/NFS-e issuance will be available once EnergyPay&apos;s tax profile and digital certificate
-                  are configured.
+                  {t("Card and PIX payments are processed by")} <strong className="text-foreground">Asaas</strong> — {t("a Brazilian fintech certified by the Central Bank of Brazil. Card data is tokenized by the gateway and never stored on EnergyPay servers. Crypto payments are verified on-chain on Stellar Mainnet, without exposing secret keys. Every paid charge generates a payment receipt — official NF-e/NFS-e issuance will be available once EnergyPay's tax profile and digital certificate are configured.")}
                 </p>
               </div>
             </div>
@@ -380,11 +377,10 @@ function SubscriptionPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-primary" />
-              CPF or CNPJ
+              {t("CPF or CNPJ")}
             </DialogTitle>
             <DialogDescription>
-              Asaas requires the holder&apos;s CPF or CNPJ to issue PIX or card charges.
-              Enter it once — it&apos;s saved to your account.
+              {t("Asaas requires the holder's CPF or CNPJ to issue PIX or card charges. Enter it once — it's saved to your account.")}
             </DialogDescription>
           </DialogHeader>
           <form
@@ -394,18 +390,18 @@ function SubscriptionPage() {
             <Input
               value={cpfValue}
               onChange={(e) => setCpfValue(e.target.value.replace(/[^\d./-]/g, ""))}
-              placeholder="000.000.000-00 or CNPJ"
+              placeholder={t("000.000.000-00 or CNPJ")}
               inputMode="numeric"
               autoFocus
               disabled={loading}
             />
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setCpfDialogOpen(false)} disabled={loading}>
-                Cancel
+                {t("Cancel")}
               </Button>
               <Button type="submit" size="sm" disabled={loading || !cpfValue}>
                 {loading && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
-                Continue
+                {t("Continue")}
               </Button>
             </div>
           </form>
@@ -424,6 +420,7 @@ function CurrentPlanCard({
   onCancel: () => void;
   cancelLoading: boolean;
 }) {
+  const t = useT();
   const operator = useOperator((s) => s.operator!);
   const s    = operator.subscription;
   const meta = SUBSCRIPTION_PLAN_META[s.plan];
@@ -449,13 +446,13 @@ function CurrentPlanCard({
             <Icon className={`h-5 w-5 ${meta.textColor}`} />
           </div>
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Current plan</p>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{t("Current plan")}</p>
             <p className={`font-display text-xl font-semibold ${meta.textColor}`}>{meta.label}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className={`font-mono text-[9px] uppercase tracking-widest ${statusInfo.className}`}>
-            {statusInfo.text}
+            {t(statusInfo.text)}
           </Badge>
           {s.plan !== "FREE" && !s.cancelAtPeriodEnd && (
             <button
@@ -463,12 +460,12 @@ function CurrentPlanCard({
               disabled={cancelLoading}
               className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60 hover:text-destructive disabled:opacity-50"
             >
-              {cancelLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Cancel plan"}
+              {cancelLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : t("Cancel plan")}
             </button>
           )}
           {s.cancelAtPeriodEnd && (
             <span className="font-mono text-[9px] uppercase tracking-widest text-warning">
-              Cancellation scheduled
+              {t("Cancellation scheduled")}
             </span>
           )}
         </div>
@@ -478,19 +475,19 @@ function CurrentPlanCard({
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
-          <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Annual fee</p>
+          <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">{t("Annual fee")}</p>
           <p className="mt-0.5 font-mono text-xl font-semibold">
             {meta.priceBrl === 0
-              ? "Free"
+              ? t("Free")
               : `US$ ${meta.priceBrl.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
-            {meta.priceBrl > 0 && <span className="ml-1 text-[10px] font-normal text-muted-foreground">/year</span>}
+            {meta.priceBrl > 0 && <span className="ml-1 text-[10px] font-normal text-muted-foreground">{t("/year")}</span>}
           </p>
         </div>
 
         {s.plan === "FREE" && s.settlementsLimit ? (
           <div>
             <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-              Settlements this month
+              {t("Settlements this month")}
             </p>
             <p className="mt-0.5 font-mono text-xl font-semibold">
               {s.settlementsUsed ?? 0}
@@ -506,7 +503,7 @@ function CurrentPlanCard({
         ) : (
           <div>
             <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-              {s.cancelAtPeriodEnd ? "Access until" : "Next renewal"}
+              {s.cancelAtPeriodEnd ? t("Access until") : t("Next renewal")}
             </p>
             <p className="mt-0.5 font-mono text-sm font-semibold">
               {periodEndLabel ?? "—"}
@@ -516,14 +513,14 @@ function CurrentPlanCard({
 
         <div>
           <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-            Settlements
+            {t("Settlements")}
           </p>
           <p className="mt-0.5 font-mono text-xl font-semibold">
             {meta.settlementsLimit === null
               ? <span className="text-2xl">∞</span>
               : meta.settlementsLimit}
             {meta.settlementsLimit === null && (
-              <span className="ml-1 text-[10px] font-normal text-muted-foreground">unlimited</span>
+              <span className="ml-1 text-[10px] font-normal text-muted-foreground">{t("unlimited")}</span>
             )}
           </p>
         </div>
@@ -547,6 +544,7 @@ function PlanCard({
   loading: boolean;
   onSelect: () => void;
 }) {
+  const t = useT();
   const meta = SUBSCRIPTION_PLAN_META[plan];
   const Icon = PLAN_ICONS[plan];
 
@@ -561,7 +559,7 @@ function PlanCard({
       {isCurrent && (
         <div className="absolute right-3 top-3">
           <Badge variant="outline" className={`font-mono text-[8px] uppercase tracking-widest ${meta.borderColor} ${meta.textColor}`}>
-            Current
+            {t("Current")}
           </Badge>
         </div>
       )}
@@ -575,20 +573,20 @@ function PlanCard({
 
       <div className="mb-4">
         {plan === "FREE" ? (
-          <p className="font-display text-2xl font-bold">Free</p>
+          <p className="font-display text-2xl font-bold">{t("Free")}</p>
         ) : (
           <p className="font-display text-2xl font-bold">
             US$ {meta.priceBrl.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-            <span className="ml-1 text-sm font-normal text-muted-foreground">/year</span>
+            <span className="ml-1 text-sm font-normal text-muted-foreground">{t("/year")}</span>
           </p>
         )}
         {plan !== "FREE" && (
           <p className={`mt-0.5 font-mono text-[9px] ${paymentMethod === "PIX" ? "text-success" : "text-muted-foreground"}`}>
             {paymentMethod === "PIX"
-              ? "via PIX · instant approval"
+              ? t("via PIX · instant approval")
               : paymentMethod === "CREDIT_CARD"
-                ? "via credit card"
-                : "via XLM or USDC · Stellar"}
+                ? t("via credit card")
+                : t("via XLM or USDC · Stellar")}
           </p>
         )}
       </div>
@@ -597,7 +595,7 @@ function PlanCard({
         {meta.features.map((f) => (
           <li key={f} className="flex items-start gap-1.5">
             <CheckCircle2 className={`mt-0.5 h-3 w-3 shrink-0 ${meta.textColor}`} />
-            <span className="text-[11px] text-muted-foreground">{f}</span>
+            <span className="text-[11px] text-muted-foreground">{t(f)}</span>
           </li>
         ))}
       </ul>
@@ -609,7 +607,7 @@ function PlanCard({
           className="h-8 w-full font-mono text-[10px] uppercase tracking-widest"
           disabled
         >
-          {isCurrent ? "Current plan" : "Downgrade"}
+          {isCurrent ? t("Current plan") : t("Downgrade")}
         </Button>
       ) : (
         <Button
@@ -625,11 +623,11 @@ function PlanCard({
           {loading ? (
             <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
           ) : isCurrent ? (
-            "Current plan"
+            t("Current plan")
           ) : plan === "ENTERPRISE" ? (
-            "Subscribe to Enterprise →"
+            t("Subscribe to Enterprise →")
           ) : (
-            "Upgrade →"
+            t("Upgrade →")
           )}
         </Button>
       )}
@@ -650,6 +648,7 @@ function PixPaymentModal({
   onClose: () => void;
   onConfirmed: () => void;
 }) {
+  const t = useT();
   const [copied, setCopied]         = useState(false);
   const [polling, setPolling]       = useState(false);
   const [pollCount, setPollCount]   = useState(0);
@@ -673,10 +672,10 @@ function PixPaymentModal({
         setTimeout(onConfirmed, 1500);
       } else {
         setPollCount((c) => c + 1);
-        toast.info("Payment not confirmed yet. Try again shortly.");
+        toast.info(t("Payment not confirmed yet. Try again shortly."));
       }
     } catch {
-      toast.error("Error checking payment.");
+      toast.error(t("Error checking payment."));
     } finally {
       setPolling(false);
     }
@@ -695,25 +694,24 @@ function PixPaymentModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <QrCode className="h-4 w-4 text-primary" />
-            PIX Payment
+            {t("PIX Payment")}
           </DialogTitle>
           <DialogDescription>
-            Scan the QR code or copy the code below to pay.
-            Your plan activates within 1 minute of confirmation.
+            {t("Scan the QR code or copy the code below to pay. Your plan activates within 1 minute of confirmation.")}
           </DialogDescription>
         </DialogHeader>
 
         {confirmed ? (
           <div className="flex flex-col items-center gap-3 py-8">
             <CheckCheck className="h-12 w-12 text-success" />
-            <p className="font-mono text-sm font-semibold text-success">Payment confirmed!</p>
-            <p className="text-[11px] text-muted-foreground">Activating your plan…</p>
+            <p className="font-mono text-sm font-semibold text-success">{t("Payment confirmed!")}</p>
+            <p className="text-[11px] text-muted-foreground">{t("Activating your plan…")}</p>
           </div>
         ) : data.pix_pending ? (
           <div className="flex flex-col items-center gap-3 py-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground">{data.message}</p>
-            <Button size="sm" variant="outline" onClick={onClose}>Close</Button>
+            <Button size="sm" variant="outline" onClick={onClose}>{t("Close")}</Button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -723,7 +721,7 @@ function PixPaymentModal({
                 <div className="rounded-md border border-border bg-white p-3">
                   <img
                     src={`data:image/png;base64,${data.pix_qr_code}`}
-                    alt="PIX QR Code"
+                    alt={t("PIX QR Code")}
                     className="h-48 w-48"
                   />
                 </div>
@@ -734,7 +732,7 @@ function PixPaymentModal({
             {data.pix_qr_code_text && (
               <div>
                 <p className="mb-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                  PIX Copy &amp; Paste
+                  {t("PIX Copy & Paste")}
                 </p>
                 <div className="flex gap-2">
                   <div className="min-w-0 flex-1 overflow-hidden rounded-md border border-border bg-muted/20 px-3 py-2">
@@ -757,7 +755,7 @@ function PixPaymentModal({
             {/* Expiry */}
             {data.pix_expires_at && (
               <p className="font-mono text-[9px] text-muted-foreground">
-                Valid until {new Date(data.pix_expires_at).toLocaleDateString("en-US", {
+                {t("Valid until")} {new Date(data.pix_expires_at).toLocaleDateString("en-US", {
                   day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
                 })}
               </p>
@@ -776,16 +774,16 @@ function PixPaymentModal({
                 {polling
                   ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
                   : <RefreshCw className="mr-1.5 h-3 w-3" />}
-                Check Payment
+                {t("Check Payment")}
               </Button>
               <Button variant="outline" size="sm" onClick={onClose}>
-                Pay later
+                {t("Pay later")}
               </Button>
             </div>
 
             {pollCount > 0 && !confirmed && (
               <p className="text-center font-mono text-[9px] text-muted-foreground">
-                Payment not detected yet. Check your bank app and try again.
+                {t("Payment not detected yet. Check your bank app and try again.")}
               </p>
             )}
           </div>

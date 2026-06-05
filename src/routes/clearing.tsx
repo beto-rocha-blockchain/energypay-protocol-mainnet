@@ -33,6 +33,7 @@ import { useOperator } from "@/store/operator";
 import { stellarExpertTx, STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import { API_BASE_URL } from "@/lib/api";
 import { getSession } from "@/lib/session";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/clearing")({
   head: () => ({
@@ -166,6 +167,7 @@ function useCounterpartyRisk() {
 }
 
 function ClearingPage() {
+  const t = useT();
   const market = useMarketContext();
   const { stats, settlements, horizon, loading, refresh } = useDashboard();
   const { health, telemetry } = useSettlementRail();
@@ -189,10 +191,10 @@ function ClearingPage() {
       <div className="flex items-end justify-between">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            {market.clearingHouse.name} Model · Risk & Collateral · Settlement Lifecycle
+            {market.clearingHouse.name} {t("Model · Risk & Collateral · Settlement Lifecycle")}
           </p>
           <h1 className="font-display text-2xl font-semibold tracking-tight">
-            Clearing House
+            {t("Clearing House")}
           </h1>
           <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
             {market.clearingHouse.fullName} · {market.settlementCycle} {market.settlementWindow}
@@ -205,7 +207,7 @@ function ClearingPage() {
           </Badge>
           <Button size="sm" variant="outline" onClick={() => { refresh(); refreshRisk(); }} disabled={loading}>
             <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            Refresh
+            {t("Refresh")}
           </Button>
         </div>
       </div>
@@ -213,29 +215,29 @@ function ClearingPage() {
       {/* KPI Strip — row 1: settlement counts */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <KpiCard
-          label="Total Processed"
+          label={t("Total Processed")}
           value={String(totalSettlements)}
-          sub="lifecycle entries"
+          sub={t("lifecycle entries")}
           loading={loading && !stats}
         />
         <KpiCard
-          label="Settled"
+          label={t("Settled")}
           value={String(settledCount)}
-          sub="confirmed on-chain"
+          sub={t("confirmed on-chain")}
           loading={loading && !stats}
           tone="ok"
         />
         <KpiCard
-          label="Failed / Rejected"
+          label={t("Failed / Rejected")}
           value={String(failedCount)}
-          sub="reverted or rejected"
+          sub={t("reverted or rejected")}
           loading={loading && !stats}
           tone={failedCount > 0 ? "warn" : "ok"}
         />
         <KpiCard
-          label="Cleared Volume"
+          label={t("Cleared Volume")}
           value={fmtBRL(stats?.total_value_brl ?? 0)}
-          sub="total BRL netted"
+          sub={t("total BRL netted")}
           loading={loading && !stats}
         />
       </div>
@@ -243,32 +245,32 @@ function ClearingPage() {
       {/* KPI Strip — row 2: risk & rail health */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <KpiCard
-          label="Success Rate"
+          label={t("Success Rate")}
           value={totalSettlements > 0 ? `${successRate.toFixed(1)}%` : "—"}
-          sub={`${settledCount} confirmed`}
+          sub={`${settledCount} ${t("confirmed")}`}
           loading={loading && !stats}
           tone={successRate >= 95 ? "ok" : "warn"}
           led={successRate >= 95}
         />
         <KpiCard
-          label="Failure Rate"
+          label={t("Failure Rate")}
           value={totalSettlements > 0 ? `${failureRate.toFixed(1)}%` : "—"}
-          sub={`${failedCount} failed`}
+          sub={`${failedCount} ${t("failed")}`}
           loading={loading && !stats}
           tone={failedCount > 0 ? "warn" : "ok"}
           led={failedCount > 0}
         />
         <KpiCard
-          label="Avg. Finality"
+          label={t("Avg. Finality")}
           value={finalityMs ? `${(finalityMs / 1000).toFixed(2)}s` : "—"}
-          sub={finalityMs && finalityMs < 6000 ? "within SLA" : "above SLA"}
+          sub={finalityMs && finalityMs < 6000 ? t("within SLA") : t("above SLA")}
           loading={loading && !stats}
           tone={finalityMs && finalityMs < 6000 ? "ok" : "warn"}
         />
         <KpiCard
-          label="Rail Status"
-          value={health?.status === "ok" ? "CONNECTED" : "DEGRADED"}
-          sub={`Horizon ${horizonLatency} ms · backend ${health?.backend?.latency_ms ?? 0} ms`}
+          label={t("Rail Status")}
+          value={health?.status === "ok" ? t("CONNECTED") : t("DEGRADED")}
+          sub={`Horizon ${horizonLatency} ms · ${t("backend")} ${health?.backend?.latency_ms ?? 0} ms`}
           loading={loading && !health}
           tone={health?.status === "ok" ? "ok" : "warn"}
           led
@@ -279,24 +281,24 @@ function ClearingPage() {
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <Card className="border-border bg-card p-4 lg:col-span-2">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Settlement State Machine · Throughput
+            {t("Settlement State Machine · Throughput")}
           </p>
           <div className="mt-3 grid grid-cols-3 gap-3">
-            <StateMini label="Pending" value={String(totalSettlements - settledCount - failedCount)} tone="muted" />
-            <StateMini label="Settled" value={String(settledCount)} tone="ok" />
-            <StateMini label="Failed" value={String(failedCount)} tone={failedCount > 0 ? "warn" : "ok"} />
+            <StateMini label={t("Pending")} value={String(totalSettlements - settledCount - failedCount)} tone="muted" />
+            <StateMini label={t("Settled")} value={String(settledCount)} tone="ok" />
+            <StateMini label={t("Failed")} value={String(failedCount)} tone={failedCount > 0 ? "warn" : "ok"} />
           </div>
         </Card>
 
         <Card className="border-border bg-card p-4">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Clearing Telemetry
+            {t("Clearing Telemetry")}
           </p>
           <div className="mt-3 space-y-2">
-            <TelRow label="Horizon latency" value={`${horizonLatency} ms`} tone={horizonLatency < 1000 ? "ok" : "warn"} />
-            <TelRow label="Backend status" value={health?.status === "ok" ? "ONLINE" : "OFFLINE"} tone={health?.status === "ok" ? "ok" : "warn"} />
-            <TelRow label="Avg finality" value={finalityMs ? `${(finalityMs / 1000).toFixed(2)}s` : "—"} tone={finalityMs && finalityMs < 6000 ? "ok" : "warn"} />
-            <TelRow label="Pending confirms" value={String(telemetry?.pending_confirmations ?? 0)} tone="ok" />
+            <TelRow label={t("Horizon latency")} value={`${horizonLatency} ms`} tone={horizonLatency < 1000 ? "ok" : "warn"} />
+            <TelRow label={t("Backend status")} value={health?.status === "ok" ? t("ONLINE") : t("OFFLINE")} tone={health?.status === "ok" ? "ok" : "warn"} />
+            <TelRow label={t("Avg finality")} value={finalityMs ? `${(finalityMs / 1000).toFixed(2)}s` : "—"} tone={finalityMs && finalityMs < 6000 ? "ok" : "warn"} />
+            <TelRow label={t("Pending confirms")} value={String(telemetry?.pending_confirmations ?? 0)} tone="ok" />
           </div>
         </Card>
       </div>
@@ -305,26 +307,26 @@ function ClearingPage() {
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <Card className="border-border bg-card p-4 lg:col-span-2">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Settlement Health Indicators
+            {t("Settlement Health Indicators")}
           </p>
           <div className="mt-3 space-y-3">
-            <HealthBar label="Settlement Success" value={successRate} />
-            <HealthBar label="Horizon Availability" value={horizon?.horizon_online ? 100 : 0} />
-            <HealthBar label="Backend Availability" value={health?.status === "ok" ? 100 : health?.status === "degraded" ? 50 : 0} />
-            <HealthBar label="Finality SLA (< 6s)" value={finalityMs > 0 ? Math.min(100, (6000 / finalityMs) * 100) : 0} noData={finalityMs <= 0} />
+            <HealthBar label={t("Settlement Success")} value={successRate} />
+            <HealthBar label={t("Horizon Availability")} value={horizon?.horizon_online ? 100 : 0} />
+            <HealthBar label={t("Backend Availability")} value={health?.status === "ok" ? 100 : health?.status === "degraded" ? 50 : 0} />
+            <HealthBar label={t("Finality SLA (< 6s)")} value={finalityMs > 0 ? Math.min(100, (6000 / finalityMs) * 100) : 0} noData={finalityMs <= 0} />
           </div>
         </Card>
 
         <Card className="border-border bg-card p-4">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Risk Telemetry
+            {t("Risk Telemetry")}
           </p>
           <div className="mt-3 space-y-2">
-            <TelRowIcon icon={<ShieldCheck className="h-3.5 w-3.5" />} label="Success rate" value={totalSettlements > 0 ? `${successRate.toFixed(1)}%` : "—"} tone={successRate >= 95 ? "ok" : "warn"} />
-            <TelRowIcon icon={<CheckCircle2 className="h-3.5 w-3.5" />} label="Settled" value={String(settledCount)} tone="ok" />
-            <TelRowIcon icon={<XCircle className="h-3.5 w-3.5" />} label="Failed" value={String(failedCount)} tone={failedCount > 0 ? "warn" : "ok"} />
-            <TelRowIcon icon={<Activity className="h-3.5 w-3.5" />} label="Horizon latency" value={`${horizonLatency} ms`} tone={horizonLatency < 1000 ? "ok" : "warn"} />
-            <TelRowIcon icon={<Activity className="h-3.5 w-3.5" />} label="Counterparties" value={String(stats?.total_users ?? 0)} tone="muted" />
+            <TelRowIcon icon={<ShieldCheck className="h-3.5 w-3.5" />} label={t("Success rate")} value={totalSettlements > 0 ? `${successRate.toFixed(1)}%` : "—"} tone={successRate >= 95 ? "ok" : "warn"} />
+            <TelRowIcon icon={<CheckCircle2 className="h-3.5 w-3.5" />} label={t("Settled")} value={String(settledCount)} tone="ok" />
+            <TelRowIcon icon={<XCircle className="h-3.5 w-3.5" />} label={t("Failed")} value={String(failedCount)} tone={failedCount > 0 ? "warn" : "ok"} />
+            <TelRowIcon icon={<Activity className="h-3.5 w-3.5" />} label={t("Horizon latency")} value={`${horizonLatency} ms`} tone={horizonLatency < 1000 ? "ok" : "warn"} />
+            <TelRowIcon icon={<Activity className="h-3.5 w-3.5" />} label={t("Counterparties")} value={String(stats?.total_users ?? 0)} tone="muted" />
           </div>
         </Card>
       </div>
@@ -336,11 +338,11 @@ function ClearingPage() {
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-primary" />
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Participant Risk Snapshot
+                {t("Participant Risk Snapshot")}
               </p>
             </div>
             <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60">
-              Verified participants only
+              {t("Verified participants only")}
             </span>
           </div>
 
@@ -353,28 +355,28 @@ function ClearingPage() {
               <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-5">
                 {/* Real metrics from Supabase */}
                 <RiskMetric
-                  label="Verified Participants"
+                  label={t("Verified Participants")}
                   value={`${risk.verified_participants} / ${risk.total_registered}`}
-                  badge={risk.verified_participants > 0 ? "VERIFIED" : "NONE"}
+                  badge={risk.verified_participants > 0 ? t("VERIFIED") : t("NONE")}
                   tone={risk.verified_participants > 0 ? "ok" : "muted"}
                 />
                 <RiskMetric
-                  label="Pending Verification"
+                  label={t("Pending Verification")}
                   value={String(risk.partially_verified + risk.unverified)}
-                  badge={risk.partially_verified + risk.unverified > 0 ? "REVIEW" : "CLEAR"}
+                  badge={risk.partially_verified + risk.unverified > 0 ? t("REVIEW") : t("CLEAR")}
                   tone={risk.partially_verified + risk.unverified > 0 ? "warn" : "ok"}
                 />
                 <RiskMetric
-                  label="Settlement Reliability"
+                  label={t("Settlement Reliability")}
                   value={risk.settlement_reliability_pct !== null ? `${risk.settlement_reliability_pct}%` : "—"}
                   badge={
                     risk.settlement_reliability_pct === null
-                      ? "NO DATA"
+                      ? t("NO DATA")
                       : risk.settlement_reliability_pct >= 95
-                        ? "HIGH"
+                        ? t("HIGH")
                         : risk.settlement_reliability_pct >= 70
-                          ? "MODERATE"
-                          : "LOW"
+                          ? t("MODERATE")
+                          : t("LOW")
                   }
                   tone={
                     risk.settlement_reliability_pct === null
@@ -387,22 +389,22 @@ function ClearingPage() {
                   }
                 />
                 <RiskMetric
-                  label="Netting Eligibility"
-                  value={risk.netting_eligible_participants !== null ? `${risk.netting_eligible_participants} participants` : "—"}
+                  label={t("Netting Eligibility")}
+                  value={risk.netting_eligible_participants !== null ? `${risk.netting_eligible_participants} ${t("participants")}` : "—"}
                   badge={
                     risk.netting_eligible_participants === null
-                      ? "NO DATA"
+                      ? t("NO DATA")
                       : risk.netting_eligible_participants > 0
-                        ? "ELIGIBLE"
-                        : "NONE"
+                        ? t("ELIGIBLE")
+                        : t("NONE")
                   }
                   tone={risk.netting_eligible_participants !== null && risk.netting_eligible_participants > 0 ? "ok" : "muted"}
                 />
                 {/* Collateral — no real source yet */}
                 <RiskMetric
-                  label="Collateral Coverage"
+                  label={t("Collateral Coverage")}
                   value="—"
-                  badge="PENDING DATA SOURCE"
+                  badge={t("PENDING DATA SOURCE")}
                   tone="muted"
                 />
               </div>
@@ -410,44 +412,44 @@ function ClearingPage() {
               {/* Second row: metrics that require a risk engine */}
               <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-5">
                 <RiskMetric
-                  label="Active Contracts"
+                  label={t("Active Contracts")}
                   value={String(risk.active_contracts)}
-                  badge={risk.active_contracts > 0 ? "ACTIVE" : "NONE"}
+                  badge={risk.active_contracts > 0 ? t("ACTIVE") : t("NONE")}
                   tone={risk.active_contracts > 0 ? "ok" : "muted"}
                 />
                 <RiskMetric
-                  label="Avg Settlement Score"
+                  label={t("Avg Settlement Score")}
                   value="—"
-                  badge="REQUIRES RISK ENGINE"
+                  badge={t("REQUIRES RISK ENGINE")}
                   tone="muted"
                 />
                 <RiskMetric
-                  label="Watchlist"
+                  label={t("Watchlist")}
                   value="—"
-                  badge="NOT AVAILABLE"
+                  badge={t("NOT AVAILABLE")}
                   tone="muted"
                 />
                 <RiskMetric
-                  label="Blocked"
+                  label={t("Blocked")}
                   value="—"
-                  badge="NOT AVAILABLE"
+                  badge={t("NOT AVAILABLE")}
                   tone="muted"
                 />
                 <RiskMetric
-                  label="Risk Tiers"
+                  label={t("Risk Tiers")}
                   value="—"
-                  badge="REQUIRES RISK ENGINE"
+                  badge={t("REQUIRES RISK ENGINE")}
                   tone="muted"
                 />
               </div>
 
               <p className="mt-3 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50">
-                Risk data is restricted to authenticated and verified clearing participants.
+                {t("Risk data is restricted to authenticated and verified clearing participants.")}
               </p>
             </>
           ) : (
             <div className="mt-3 py-4 text-center">
-              <p className="font-mono text-xs text-muted-foreground">No risk snapshot data available.</p>
+              <p className="font-mono text-xs text-muted-foreground">{t("No risk snapshot data available.")}</p>
             </div>
           )}
         </Card>
@@ -468,9 +470,9 @@ function ClearingPage() {
       <Card className="border-border bg-card p-5">
         <div className="mb-4">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Settlement Feed · Cleared Transactions
+            {t("Settlement Feed · Cleared Transactions")}
           </p>
-          <p className="font-display text-lg font-semibold">Recent Settlements</p>
+          <p className="font-display text-lg font-semibold">{t("Recent Settlements")}</p>
         </div>
 
         {loading && settlements.length === 0 ? (
@@ -482,18 +484,18 @@ function ClearingPage() {
         ) : settlements.length === 0 ? (
           <div className="py-10 text-center">
             <Activity className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
-            <p className="font-mono text-sm text-muted-foreground">No cleared settlements yet.</p>
+            <p className="font-mono text-sm text-muted-foreground">{t("No cleared settlements yet.")}</p>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-[11px] uppercase tracking-wider">ID</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Seller</TableHead>
-                <TableHead className="text-right text-[11px] uppercase tracking-wider">Amount</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Tx Hash</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Status</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">When</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("ID")}</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("Seller")}</TableHead>
+                <TableHead className="text-right text-[11px] uppercase tracking-wider">{t("Amount")}</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("Tx Hash")}</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("Status")}</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("When")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -706,6 +708,7 @@ function CounterpartyRiskPanel({
   fetched: boolean;
   onLoad: () => void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -741,7 +744,7 @@ function CounterpartyRiskPanel({
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-primary" />
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Counterparty Risk Assessment
+            {t("Counterparty Risk Assessment")}
           </p>
         </div>
         {!open ? (
@@ -751,12 +754,12 @@ function CounterpartyRiskPanel({
             ) : (
               <ChevronDown className="mr-1.5 h-3.5 w-3.5" />
             )}
-            View Participants
+            {t("View Participants")}
           </Button>
         ) : (
           <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
             <ChevronUp className="mr-1.5 h-3.5 w-3.5" />
-            Collapse
+            {t("Collapse")}
           </Button>
         )}
       </div>
@@ -767,7 +770,7 @@ function CounterpartyRiskPanel({
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search by name, organization, city, role or public key…"
+              placeholder={t("Search by name, organization, city, role or public key…")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8 font-mono text-xs"
@@ -777,7 +780,7 @@ function CounterpartyRiskPanel({
           {error ? (
             <div className="py-6 text-center">
               <XCircle className="mx-auto mb-2 h-6 w-6 text-destructive/60" />
-              <p className="font-mono text-xs text-muted-foreground">{error}</p>
+              <p className="font-mono text-xs text-muted-foreground">{t(error)}</p>
             </div>
           ) : loading ? (
             <div className="space-y-2">
@@ -786,7 +789,7 @@ function CounterpartyRiskPanel({
           ) : filtered.length === 0 ? (
             <div className="py-6 text-center">
               <p className="font-mono text-xs text-muted-foreground">
-                {search ? "No participants match your search." : "No verified participants found."}
+                {search ? t("No participants match your search.") : t("No verified participants found.")}
               </p>
             </div>
           ) : (
@@ -817,11 +820,11 @@ function CounterpartyRiskPanel({
                             {primaryRole}
                           </Badge>
                           <Badge variant="outline" className="font-mono text-[8px] border-success/40 bg-success/10 text-success">
-                            VERIFIED
+                            {t("VERIFIED")}
                           </Badge>
                           {p.clearing_eligible && (
                             <Badge variant="outline" className="font-mono text-[8px] border-primary/40 bg-primary/10 text-primary">
-                              ELIGIBLE
+                              {t("ELIGIBLE")}
                             </Badge>
                           )}
                         </div>
@@ -838,7 +841,7 @@ function CounterpartyRiskPanel({
                       {/* Quick indicators */}
                       <div className="hidden sm:flex items-center gap-3 shrink-0">
                         <div className="text-right">
-                          <p className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">Reliability</p>
+                          <p className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">{t("Reliability")}</p>
                           <p className={`font-mono text-xs font-semibold ${
                             reliabilityTone === "ok" ? "text-success"
                               : reliabilityTone === "warn" ? "text-warning"
@@ -849,11 +852,11 @@ function CounterpartyRiskPanel({
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">Settlements</p>
+                          <p className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">{t("Settlements")}</p>
                           <p className="font-mono text-xs font-semibold">{p.settlements_total}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">Contracts</p>
+                          <p className="font-mono text-[8px] uppercase tracking-widest text-muted-foreground">{t("Contracts")}</p>
                           <p className="font-mono text-xs font-semibold">{p.active_contracts}</p>
                         </div>
                       </div>
@@ -870,76 +873,76 @@ function CounterpartyRiskPanel({
                       <div className="border-t border-border px-3 py-3">
                         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
                           <CpMetric
-                            label="Settlement Reliability"
+                            label={t("Settlement Reliability")}
                             value={p.settlement_reliability_pct !== null ? `${p.settlement_reliability_pct}%` : "—"}
                             badge={
-                              p.settlement_reliability_pct === null ? "NO DATA"
-                                : p.settlement_reliability_pct >= 95 ? "HIGH"
-                                  : p.settlement_reliability_pct >= 70 ? "MODERATE" : "LOW"
+                              p.settlement_reliability_pct === null ? t("NO DATA")
+                                : p.settlement_reliability_pct >= 95 ? t("HIGH")
+                                  : p.settlement_reliability_pct >= 70 ? t("MODERATE") : t("LOW")
                             }
                             tone={reliabilityTone as "ok" | "warn" | "bad" | "muted"}
                           />
                           <CpMetric
-                            label="Settled / Total"
+                            label={t("Settled / Total")}
                             value={`${p.settlements_settled} / ${p.settlements_total}`}
-                            badge={p.settlements_failed > 0 ? `${p.settlements_failed} FAILED` : "CLEAN"}
+                            badge={p.settlements_failed > 0 ? `${p.settlements_failed} ${t("FAILED")}` : t("CLEAN")}
                             tone={p.settlements_failed > 0 ? "warn" : p.settlements_total > 0 ? "ok" : "muted"}
                           />
                           <CpMetric
-                            label="Cleared Volume"
+                            label={t("Cleared Volume")}
                             value={p.cleared_volume_brl > 0 ? fmtBrl(p.cleared_volume_brl) : "—"}
-                            badge={p.cleared_volume_brl > 0 ? "ACTIVE" : "NO VOLUME"}
+                            badge={p.cleared_volume_brl > 0 ? t("ACTIVE") : t("NO VOLUME")}
                             tone={p.cleared_volume_brl > 0 ? "ok" : "muted"}
                           />
                           <CpMetric
-                            label="Active Contracts"
+                            label={t("Active Contracts")}
                             value={String(p.active_contracts)}
-                            badge={p.active_contracts > 0 ? "ACTIVE" : "NONE"}
+                            badge={p.active_contracts > 0 ? t("ACTIVE") : t("NONE")}
                             tone={p.active_contracts > 0 ? "ok" : "muted"}
                           />
                           <CpMetric
-                            label="Clearing Eligibility"
-                            value={p.clearing_eligible ? "Eligible" : "Not Eligible"}
+                            label={t("Clearing Eligibility")}
+                            value={p.clearing_eligible ? t("Eligible") : t("Not Eligible")}
                             badge={
-                              !p.wallet_funded ? "WALLET NOT FUNDED"
-                                : !p.has_trustline ? "NO TRUSTLINE"
-                                  : "ELIGIBLE"
+                              !p.wallet_funded ? t("WALLET NOT FUNDED")
+                                : !p.has_trustline ? t("NO TRUSTLINE")
+                                  : t("ELIGIBLE")
                             }
                             tone={p.clearing_eligible ? "ok" : "warn"}
                           />
                           <CpMetric
-                            label="Wallet Status"
-                            value={p.wallet_funded ? "Funded" : "Not Funded"}
-                            badge={p.has_trustline ? "EPWR TRUSTLINE" : "NO TRUSTLINE"}
+                            label={t("Wallet Status")}
+                            value={p.wallet_funded ? t("Funded") : t("Not Funded")}
+                            badge={p.has_trustline ? t("EPWR TRUSTLINE") : t("NO TRUSTLINE")}
                             tone={p.wallet_funded ? "ok" : "warn"}
                           />
                           <CpMetric
-                            label="Member Since"
-                            value={`${memberDays(p.member_since)} days`}
-                            badge="VERIFIED"
+                            label={t("Member Since")}
+                            value={`${memberDays(p.member_since)} ${t("days")}`}
+                            badge={t("VERIFIED")}
                             tone="ok"
                           />
                           <CpMetric
-                            label="Collateral Coverage"
+                            label={t("Collateral Coverage")}
                             value="—"
-                            badge="PENDING DATA SOURCE"
+                            badge={t("PENDING DATA SOURCE")}
                             tone="muted"
                           />
                           <CpMetric
-                            label="Risk Tier"
+                            label={t("Risk Tier")}
                             value="—"
-                            badge="REQUIRES RISK ENGINE"
+                            badge={t("REQUIRES RISK ENGINE")}
                             tone="muted"
                           />
                           <CpMetric
-                            label="Credit Score"
+                            label={t("Credit Score")}
                             value="—"
-                            badge="NOT AVAILABLE"
+                            badge={t("NOT AVAILABLE")}
                             tone="muted"
                           />
                         </div>
                         <p className="mt-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50">
-                          Risk data is restricted to authenticated and verified clearing participants.
+                          {t("Risk data is restricted to authenticated and verified clearing participants.")}
                         </p>
                       </div>
                     )}
@@ -950,7 +953,7 @@ function CounterpartyRiskPanel({
           )}
 
           <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50">
-            {filtered.length} verified participant{filtered.length !== 1 ? "s" : ""} · Data derived from real settlement and wallet records.
+            {filtered.length} verified participant{filtered.length !== 1 ? "s" : ""} · {t("Data derived from real settlement and wallet records.")}
           </p>
         </div>
       )}

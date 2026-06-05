@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { apiGetUtilityConnections } from "@/lib/api";
 import { RequireRole } from "@/components/RequireRole";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/utility/connections")({
   component: () => (
@@ -33,6 +34,7 @@ function StatusChip({ status }: { status: string }) {
 }
 
 function UtilityConnectionsPage() {
+  const t = useT();
   const [contracts, setContracts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +44,7 @@ function UtilityConnectionsPage() {
         const res = await apiGetUtilityConnections();
         setContracts(res.contracts ?? []);
       } catch (err) {
-        toast.error(`Failed to load grid connections: ${(err as Error).message}`);
+        toast.error(`${t("Failed to load grid connections")}: ${(err as Error).message}`);
       } finally {
         setLoading(false);
       }
@@ -58,22 +60,22 @@ function UtilityConnectionsPage() {
       <div className="flex items-center gap-3">
         <Network className="h-5 w-5 text-orange-400" />
         <h1 className="font-mono text-sm uppercase tracking-widest text-orange-400">
-          Grid Connections — UTL-02
+          {t("Grid Connections")} — UTL-02
         </h1>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4">
         <Card className="border-orange-400/20 bg-orange-400/5 p-4">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Total</p>
+          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Total")}</p>
           <p className="mt-1 font-mono text-2xl text-orange-400">{loading ? "—" : contracts.length}</p>
         </Card>
         <Card className="border-sky-400/20 bg-sky-400/5 p-4">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Active</p>
+          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Active")}</p>
           <p className="mt-1 font-mono text-2xl text-sky-400">{loading ? "—" : active}</p>
         </Card>
         <Card className="border-green-400/20 bg-green-400/5 p-4">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Settled</p>
+          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Settled")}</p>
           <p className="mt-1 font-mono text-2xl text-green-400">{loading ? "—" : settled}</p>
         </Card>
       </div>
@@ -83,25 +85,25 @@ function UtilityConnectionsPage() {
         {loading ? (
           <div className="flex items-center justify-center gap-2 p-12 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="font-mono text-xs uppercase tracking-widest">Loading…</span>
+            <span className="font-mono text-xs uppercase tracking-widest">{t("Loading…")}</span>
           </div>
         ) : contracts.length === 0 ? (
           <div className="flex items-center justify-center p-12">
             <p className="font-mono text-xs text-muted-foreground">
-              No grid connections found. Energy delivery contracts involving UTILITY operators will appear here.
+              {t("No grid connections found. Energy delivery contracts involving UTILITY operators will appear here.")}
             </p>
           </div>
         ) : (
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">Contract ID</th>
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">Buyer</th>
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">Seller</th>
-                <th className="px-4 py-3 text-right font-mono text-xs uppercase tracking-widest text-muted-foreground">Volume (MWh)</th>
-                <th className="px-4 py-3 text-right font-mono text-xs uppercase tracking-widest text-muted-foreground">Price (R$/MWh)</th>
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">Status</th>
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">Period</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Contract ID")}</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Buyer")}</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Seller")}</th>
+                <th className="px-4 py-3 text-right font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Volume (MWh)")}</th>
+                <th className="px-4 py-3 text-right font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Price (R$/MWh)")}</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Status")}</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Period")}</th>
               </tr>
             </thead>
             <tbody>

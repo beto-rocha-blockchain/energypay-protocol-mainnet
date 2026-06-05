@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { apiGetUtilityTusd } from "@/lib/api";
 import { RequireRole } from "@/components/RequireRole";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/utility/tusd")({
   component: () => (
@@ -20,6 +21,7 @@ function maskTxHash(hash: string) {
 }
 
 function UtilityTusdPage() {
+  const t = useT();
   const [settlements, setSettlements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,7 +31,7 @@ function UtilityTusdPage() {
         const res = await apiGetUtilityTusd();
         setSettlements(res.settlements ?? []);
       } catch (err) {
-        toast.error(`Failed to load TUSD settlements: ${(err as Error).message}`);
+        toast.error(`${t("Failed to load TUSD settlements")}: ${(err as Error).message}`);
       } finally {
         setLoading(false);
       }
@@ -44,28 +46,27 @@ function UtilityTusdPage() {
       <div className="flex items-center gap-3">
         <Banknote className="h-5 w-5 text-orange-400" />
         <h1 className="font-mono text-sm uppercase tracking-widest text-orange-400">
-          TUSD Settlement — UTL-03
+          {t("TUSD Settlement — UTL-03")}
         </h1>
       </div>
 
       {/* Description */}
       <Card className="border-orange-400/20 bg-orange-400/5 p-4">
         <p className="font-mono text-xs text-muted-foreground">
-          <span className="text-orange-400">TUSD</span> — Tarifa de Uso do Sistema de Distribuição — distribution grid access tariff settled on-chain.
-          Each settlement represents a UTILITY operator receiving payment for physical grid usage by an energy consumer.
+          <span className="text-orange-400">TUSD</span> {t("— Tarifa de Uso do Sistema de Distribuição — distribution grid access tariff settled on-chain. Each settlement represents a UTILITY operator receiving payment for physical grid usage by an energy consumer.")}
         </p>
       </Card>
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-4">
         <Card className="border-orange-400/20 bg-orange-400/5 p-4">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Total Settled Volume</p>
+          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Total Settled Volume")}</p>
           <p className="mt-1 font-mono text-2xl text-orange-400">
             {loading ? "—" : `R$ ${totalBrl.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
           </p>
         </Card>
         <Card className="border-green-400/20 bg-green-400/5 p-4">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Settlement Count</p>
+          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Settlement Count")}</p>
           <p className="mt-1 font-mono text-2xl text-green-400">{loading ? "—" : settlements.length}</p>
         </Card>
       </div>
@@ -75,22 +76,22 @@ function UtilityTusdPage() {
         {loading ? (
           <div className="flex items-center justify-center gap-2 p-12 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="font-mono text-xs uppercase tracking-widest">Loading…</span>
+            <span className="font-mono text-xs uppercase tracking-widest">{t("Loading…")}</span>
           </div>
         ) : settlements.length === 0 ? (
           <div className="flex items-center justify-center p-12">
             <p className="font-mono text-xs text-muted-foreground text-center max-w-md">
-              No TUSD settlements recorded. Distribution tariff flows will appear here as UTILITY operators execute contracts.
+              {t("No TUSD settlements recorded. Distribution tariff flows will appear here as UTILITY operators execute contracts.")}
             </p>
           </div>
         ) : (
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">Settlement ID</th>
-                <th className="px-4 py-3 text-right font-mono text-xs uppercase tracking-widest text-muted-foreground">Amount (R$)</th>
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">Tx Hash</th>
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">Date</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Settlement ID")}</th>
+                <th className="px-4 py-3 text-right font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Amount (R$)")}</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Tx Hash")}</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Date")}</th>
               </tr>
             </thead>
             <tbody>

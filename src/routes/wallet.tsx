@@ -7,6 +7,7 @@ import { WalletBalancesPanel } from "@/components/WalletBalancesPanel";
 import { useOperator } from "@/store/operator";
 import { useWalletActivity } from "@/hooks/useWalletActivity";
 import { stellarExpertTx } from "@/lib/stellar";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/wallet")({
   head: () => ({
@@ -26,6 +27,7 @@ const shortHash = (h: string) =>
   h && h.length > 12 ? `${h.slice(0, 6)}…${h.slice(-6)}` : h || "—";
 
 function WalletPage() {
+  const t = useT();
   const operator = useOperator((s) => s.operator);
   const isAuthenticated = useOperator((s) => s.isAuthenticated);
 
@@ -44,12 +46,12 @@ function WalletPage() {
       <div className="mx-auto max-w-3xl space-y-4 p-6">
         <div className={`rounded-md border p-4 ${isAdmin ? "border-violet-500/30 bg-violet-500/5" : "border-yellow-500/30 bg-yellow-500/5"}`}>
           <p className={`font-mono text-[11px] uppercase tracking-widest ${isAdmin ? "text-violet-400" : "text-yellow-400"}`}>
-            {isAdmin ? "Admin Account — No Settlement Wallet" : "Wallet Unavailable"}
+            {isAdmin ? t("Admin Account — No Settlement Wallet") : t("Wallet Unavailable")}
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             {isAdmin
-              ? "Platform admin accounts do not have an on-chain settlement wallet. This is by design — admin access is purely off-chain. Use the Platform Admin panel to manage user accounts."
-              : "This operator session does not include a valid Stellar settlement address. Please sign out and provision a new settlement identity."}
+              ? t("Platform admin accounts do not have an on-chain settlement wallet. This is by design — admin access is purely off-chain. Use the Platform Admin panel to manage user accounts.")
+              : t("This operator session does not include a valid Stellar settlement address. Please sign out and provision a new settlement identity.")}
           </p>
         </div>
       </div>
@@ -71,6 +73,7 @@ function WalletPage() {
 /* ── Ledger Activity Panel ── */
 
 function LedgerActivityPanel({ publicKey }: { publicKey: string }) {
+  const t = useT();
   const activity = useWalletActivity(publicKey);
 
   return (
@@ -78,20 +81,20 @@ function LedgerActivityPanel({ publicKey }: { publicKey: string }) {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Stellar Horizon · Your On-chain Operations
+            Stellar Horizon · {t("Your On-chain Operations")}
           </p>
-          <p className="font-display text-lg font-semibold">Recent Ledger Operations</p>
+          <p className="font-display text-lg font-semibold">{t("Recent Ledger Operations")}</p>
         </div>
         <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest">
           {activity.fetchedAt && (
             <Badge variant="outline" className="border-success/40 text-success">
               <Activity className="mr-1.5 h-3 w-3 animate-pulse" />
-              STREAMING
+              {t("STREAMING")}
             </Badge>
           )}
           {activity.fetchedAt && (
             <span className="text-muted-foreground">
-              sync {new Date(activity.fetchedAt).toUTCString().slice(17, 25)}
+              {t("sync")} {new Date(activity.fetchedAt).toUTCString().slice(17, 25)}
             </span>
           )}
         </div>
@@ -105,7 +108,7 @@ function LedgerActivityPanel({ publicKey }: { publicKey: string }) {
         <div className="py-10 text-center">
           <Activity className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
           <p className="font-mono text-sm text-muted-foreground">
-            No ledger activity in current window.
+            {t("No ledger activity in current window.")}
           </p>
         </div>
       ) : (
@@ -113,11 +116,11 @@ function LedgerActivityPanel({ publicKey }: { publicKey: string }) {
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-border">
-                <th className="px-2 py-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Tx Hash</th>
-                <th className="px-2 py-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Kind</th>
-                <th className="px-2 py-2 text-right font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Amount</th>
-                <th className="px-2 py-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Asset</th>
-                <th className="px-2 py-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Result</th>
+                <th className="px-2 py-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">{t("Tx Hash")}</th>
+                <th className="px-2 py-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">{t("Kind")}</th>
+                <th className="px-2 py-2 text-right font-mono text-[9px] uppercase tracking-widest text-muted-foreground">{t("Amount")}</th>
+                <th className="px-2 py-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">{t("Asset")}</th>
+                <th className="px-2 py-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">{t("Result")}</th>
                 <th className="px-2 py-2" />
               </tr>
             </thead>
@@ -143,7 +146,7 @@ function LedgerActivityPanel({ publicKey }: { publicKey: string }) {
                           : "border-destructive/40 bg-destructive/10 text-destructive"
                       }`}
                     >
-                      {ev.successful ? "FINALIZED" : "FAILED"}
+                      {ev.successful ? t("FINALIZED") : t("FAILED")}
                     </Badge>
                   </td>
                   <td className="px-2 py-2 text-right">

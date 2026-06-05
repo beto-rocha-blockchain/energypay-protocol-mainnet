@@ -32,6 +32,7 @@ import { useOperator } from "@/store/operator";
 import { apiCreateContract, apiUploadContractDocument, API_BASE_URL } from "@/lib/api";
 import { getSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/contracts/new")({
   head: () => ({
@@ -116,6 +117,7 @@ type ContractParty = PlatformUser & {
 
 
 function NewContract() {
+  const t = useT();
   const navigate = useNavigate();
   const operator = useOperator((s) => s.operator);
   const myPublicKey = operator?.wallet?.publicKey || "";
@@ -274,23 +276,23 @@ function NewContract() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!datesValid) {
-      toast.error("Invalid contract period — end date must be on or after start date.");
+      toast.error(t("Invalid contract period — end date must be on or after start date."));
       return;
     }
     if (!form.buyerKey) {
-      toast.error("Buyer public key is required.");
+      toast.error(t("Buyer public key is required."));
       return;
     }
     if (parties.length === 0) {
-      toast.error("Add at least one contract party.");
+      toast.error(t("Add at least one contract party."));
       return;
     }
     if (contractType === "BUY" && !primarySeller) {
-      toast.error("At least one party with the SELLER role is required.");
+      toast.error(t("At least one party with the SELLER role is required."));
       return;
     }
     if (contractType === "SELL" && !primaryBuyer) {
-      toast.error("At least one party with the BUYER role is required.");
+      toast.error(t("At least one party with the BUYER role is required."));
       return;
     }
 
@@ -332,24 +334,24 @@ function NewContract() {
       if (documentFile && newContractId) {
         try {
           await apiUploadContractDocument(newContractId, documentFile);
-          toast.success("Contract submitted — awaiting approvals", {
-            description: `${parties.length} counterpart${parties.length > 1 ? "ies" : "y"} notified. Document attached for review.`,
+          toast.success(t("Contract submitted — awaiting approvals"), {
+            description: `${parties.length} ${parties.length > 1 ? t("counterparties notified. Document attached for review.") : t("counterparty notified. Document attached for review.")}`,
           });
         } catch (uploadErr) {
-          toast.success("Contract submitted — awaiting approvals", {
-            description: `${parties.length} counterpart${parties.length > 1 ? "ies" : "y"} notified.`,
+          toast.success(t("Contract submitted — awaiting approvals"), {
+            description: `${parties.length} ${parties.length > 1 ? t("counterparties notified.") : t("counterparty notified.")}`,
           });
-          toast.warning("Document upload failed — retry from Contract Registry", {
+          toast.warning(t("Document upload failed — retry from Contract Registry"), {
             description: (uploadErr as Error).message,
           });
         }
       } else {
-        toast.success("Contract submitted — awaiting approvals", {
-          description: `${parties.length} counterpart${parties.length > 1 ? "ies" : "y"} notified. Stellar execution is automatic upon approval.`,
+        toast.success(t("Contract submitted — awaiting approvals"), {
+          description: `${parties.length} ${parties.length > 1 ? t("counterparties notified. Stellar execution is automatic upon approval.") : t("counterparty notified. Stellar execution is automatic upon approval.")}`,
         });
       }
     } catch (err) {
-      toast.error("Registration failed", { description: (err as Error).message });
+      toast.error(t("Registration failed"), { description: (err as Error).message });
     } finally {
       setSubmitting(false);
     }
@@ -371,12 +373,12 @@ function NewContract() {
         <ShieldCheck className="h-10 w-10 text-muted-foreground/40" />
         <div>
           <p className="font-mono text-sm font-semibold uppercase tracking-widest text-foreground">
-            Access Restricted
+            {t("Access Restricted")}
           </p>
           <p className="mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground">
             {_isRegAuth
-              ? "Regulatory Authority access is read-only. Contract registration is not permitted for oversight roles."
-              : "Your current role does not permit contract creation. Contact your settlement administrator."}
+              ? t("Regulatory Authority access is read-only. Contract registration is not permitted for oversight roles.")
+              : t("Your current role does not permit contract creation. Contact your settlement administrator.")}
           </p>
         </div>
         <Button
@@ -385,7 +387,7 @@ function NewContract() {
           className="font-mono text-xs uppercase tracking-widest"
           onClick={() => navigate({ to: "/contracts" })}
         >
-          Back to Registry
+          {t("Back to Registry")}
         </Button>
       </div>
     );
@@ -395,13 +397,13 @@ function NewContract() {
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
         <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          Contract Registry / New Entry
+          {t("Contract Registry / New Entry")}
         </p>
         <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">
-          Register Bilateral Contract
+          {t("Register Bilateral Contract")}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Tokenize a physical energy contract as a programmable settlement schedule on Stellar.
+          {t("Tokenize a physical energy contract as a programmable settlement schedule on Stellar.")}
         </p>
       </div>
 
@@ -409,24 +411,24 @@ function NewContract() {
       <div className="flex items-center gap-2">
         <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          Contract Type
+          {t("Contract Type")}
         </span>
         <div className="ml-2 flex overflow-hidden rounded-md border border-border">
-          {(["BUY", "SELL"] as const).map((t) => (
+          {(["BUY", "SELL"] as const).map((ct) => (
             <button
-              key={t}
+              key={ct}
               type="button"
-              onClick={() => setContractType(t)}
+              onClick={() => setContractType(ct)}
               className={cn(
                 "px-4 py-1.5 font-mono text-[10px] uppercase tracking-widest transition-colors",
-                contractType === t
-                  ? t === "BUY"
+                contractType === ct
+                  ? ct === "BUY"
                     ? "bg-primary text-primary-foreground"
                     : "bg-destructive/80 text-white"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {t === "BUY" ? "Buy Contract" : "Sell Contract"}
+              {ct === "BUY" ? t("Buy Contract") : t("Sell Contract")}
             </button>
           ))}
         </div>
@@ -437,12 +439,12 @@ function NewContract() {
           <Card className="border-border bg-card p-6 lg:col-span-2">
             <div className="mb-5 flex items-center gap-2">
               <FileSignature className="h-4 w-4 text-primary" />
-              <p className="font-display text-base font-semibold">Contract Terms</p>
+              <p className="font-display text-base font-semibold">{t("Contract Terms")}</p>
             </div>
 
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               {/* Operator wallet — auto-filled; role label flips with contract type */}
-              <Field label={contractType === "BUY" ? "Buyer (Your Wallet)" : "Seller (Your Wallet)"} id="buyerKey" className="md:col-span-2">
+              <Field label={contractType === "BUY" ? t("Buyer (Your Wallet)") : t("Seller (Your Wallet)")} id="buyerKey" className="md:col-span-2">
                 <div className="relative">
                   <Wallet className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -450,14 +452,14 @@ function NewContract() {
                     required
                     value={form.buyerKey}
                     onChange={(e) => set("buyerKey", e.target.value)}
-                    placeholder="G… (56-char Stellar ed25519 public key)"
+                    placeholder={t("G… (56-char Stellar ed25519 public key)")}
                     className="bg-input pl-8 font-mono text-xs"
                   />
                 </div>
                 {myPublicKey && form.buyerKey === myPublicKey && (
                   <div className="mt-1.5 flex items-center gap-3">
                     <p className="font-mono text-[10px] text-success">
-                      Connected wallet · {operator?.fullName || operator?.organization}
+                      {t("Connected wallet")} · {operator?.fullName || operator?.organization}
                     </p>
                     <VerifiedBadges emailVerified phoneVerified />
                   </div>
@@ -465,7 +467,7 @@ function NewContract() {
               </Field>
 
               {/* ── Contract Parties ── */}
-              <Field label="Contract Parties" id="parties" className="md:col-span-2">
+              <Field label={t("Contract Parties")} id="parties" className="md:col-span-2">
                 <div className="space-y-2">
                   {/* Added parties list */}
                   {parties.map((p) => (
@@ -492,14 +494,14 @@ function NewContract() {
                                       : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground",
                                   )}
                                 >
-                                  {CONTRACT_ROLE_LABELS[role]}
+                                  {t(CONTRACT_ROLE_LABELS[role])}
                                 </button>
                               ))}
                               <button
                                 type="button"
                                 onClick={() => setEditingRoleFor(null)}
                                 className="rounded px-1 py-0.5 font-mono text-[9px] text-muted-foreground hover:text-foreground"
-                                aria-label="Cancel role change"
+                                aria-label={t("Cancel role change")}
                               >
                                 ✕
                               </button>
@@ -508,13 +510,13 @@ function NewContract() {
                             <button
                               type="button"
                               onClick={() => setEditingRoleFor(p.stellar_public_key)}
-                              title="Click to change contract role"
+                              title={t("Click to change contract role")}
                               className={cn(
                                 "rounded border px-1.5 py-0.5 font-mono text-[9px] uppercase transition-opacity hover:opacity-60",
                                 CONTRACT_ROLE_COLORS[p.contractRole],
                               )}
                             >
-                              {CONTRACT_ROLE_LABELS[p.contractRole]}
+                              {t(CONTRACT_ROLE_LABELS[p.contractRole])}
                             </button>
                           )}
 
@@ -543,7 +545,7 @@ function NewContract() {
                         type="button"
                         onClick={() => removeParty(p.stellar_public_key)}
                         className="mt-0.5 rounded p-0.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                        aria-label="Remove party"
+                        aria-label={t("Remove party")}
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -561,7 +563,7 @@ function NewContract() {
                       )}
                     >
                       <UserPlus className="h-3.5 w-3.5" />
-                      Add contract party
+                      {t("Add contract party")}
                     </button>
 
                     {pickerOpen && (
@@ -580,7 +582,7 @@ function NewContract() {
                                   : "text-muted-foreground hover:text-foreground",
                               )}
                             >
-                              {CONTRACT_ROLE_LABELS[role]}
+                              {t(CONTRACT_ROLE_LABELS[role])}
                             </button>
                           ))}
                         </div>
@@ -593,7 +595,7 @@ function NewContract() {
                               type="text"
                               value={pickerSearch}
                               onChange={(e) => setPickerSearch(e.target.value)}
-                              placeholder="Search by name, org or address…"
+                              placeholder={t("Search by name, org or address…")}
                               className="h-8 w-full bg-transparent pl-7 font-mono text-xs text-foreground outline-none placeholder:text-muted-foreground"
                               autoFocus
                             />
@@ -608,7 +610,7 @@ function NewContract() {
                             </div>
                           ) : eligible.length === 0 ? (
                             <div className="p-4 text-center font-mono text-[11px] text-muted-foreground">
-                              {pickerSearch ? "No users match." : "No eligible users available."}
+                              {pickerSearch ? t("No users match.") : t("No eligible users available.")}
                             </div>
                           ) : (
                             eligible.map((u) => (
@@ -652,7 +654,7 @@ function NewContract() {
                         <div className="flex items-center gap-1.5 border-t border-border px-3 py-2">
                           <ShieldCheck className="h-3 w-3 text-success" />
                           <p className="font-mono text-[9px] text-muted-foreground">
-                            Only users with verified e-mail and phone are shown
+                            {t("Only users with verified e-mail and phone are shown")}
                           </p>
                         </div>
                       </div>
@@ -662,26 +664,26 @@ function NewContract() {
                   {parties.length === 0 && (
                     <p className="font-mono text-[10px] text-muted-foreground">
                       {contractType === "BUY"
-                        ? "Add at least one Seller. Guarantors and Brokers are optional."
-                        : "Add at least one Buyer. Guarantors and Brokers are optional."}
+                        ? t("Add at least one Seller. Guarantors and Brokers are optional.")
+                        : t("Add at least one Buyer. Guarantors and Brokers are optional.")}
                     </p>
                   )}
                 </div>
               </Field>
 
               {/* Contract Number */}
-              <Field label="Contract Number (Optional)" id="contractNumber">
+              <Field label={t("Contract Number (Optional)")} id="contractNumber">
                 <Input
                   id="contractNumber"
                   value={form.contractNumber}
                   onChange={(e) => set("contractNumber", e.target.value)}
-                  placeholder="e.g. CTR-2026-0042"
+                  placeholder={t("e.g. CTR-2026-0042")}
                   className="bg-input font-mono"
                 />
               </Field>
 
               {/* Volume + Price */}
-              <Field label="Energy Volume (MWh)" id="vol">
+              <Field label={t("Energy Volume (MWh)")} id="vol">
                 <Input
                   id="vol"
                   type="number"
@@ -693,7 +695,7 @@ function NewContract() {
                   className="bg-input font-mono"
                 />
               </Field>
-              <Field label="Contract Price (R$ / MWh)" id="price">
+              <Field label={t("Contract Price (R$ / MWh)")} id="price">
                 <Input
                   id="price"
                   type="number"
@@ -708,32 +710,32 @@ function NewContract() {
               </Field>
 
               {/* Dates */}
-              <Field label="Start Date (Contract)" id="startDate">
+              <Field label={t("Start Date (Contract)")} id="startDate">
                 <DatePickerField
                   id="startDate"
                   value={form.startDate}
                   onChange={(d) => set("startDate", d)}
-                  placeholder="Select start"
+                  placeholder={t("Select start")}
                 />
               </Field>
-              <Field label="End Date (Contract)" id="endDate">
+              <Field label={t("End Date (Contract)")} id="endDate">
                 <DatePickerField
                   id="endDate"
                   value={form.endDate}
                   onChange={(d) => set("endDate", d)}
-                  placeholder="Select end"
+                  placeholder={t("Select end")}
                   disabled={(d) => (form.startDate ? d < form.startDate : false)}
                   invalid={!!form.startDate && !!form.endDate && form.endDate < form.startDate}
                 />
               </Field>
 
-              <Field label="Contract Period" id="periodStatus">
+              <Field label={t("Contract Period")} id="periodStatus">
                 <div className="flex h-9 items-center rounded-md border border-border bg-input px-3">
                   {periodStatus ? (
                     <PeriodBadge status={periodStatus} />
                   ) : (
                     <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                      Awaiting dates
+                      {t("Awaiting dates")}
                     </span>
                   )}
                   {durationDays > 0 && (
@@ -741,7 +743,7 @@ function NewContract() {
                   )}
                 </div>
               </Field>
-              <Field label="Settlement Date (D+1)" id="settlementDate">
+              <Field label={t("Settlement Date (D+1)")} id="settlementDate">
                 <div className="flex h-9 items-center rounded-md border border-border bg-input px-3">
                   {settlementDate ? (
                     <span className="font-mono text-xs text-foreground">
@@ -749,19 +751,19 @@ function NewContract() {
                     </span>
                   ) : (
                     <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                      Auto (end date + 1)
+                      {t("Auto (end date + 1)")}
                     </span>
                   )}
                 </div>
                 <p className="mt-1 font-mono text-[10px] text-muted-foreground">
-                  D+1 17:00 BRT clearing window — auto-derived from contract end date
+                  {t("D+1 17:00 BRT clearing window — auto-derived from contract end date")}
                 </p>
               </Field>
             </div>
 
             {/* ── Physical Contract Document ── */}
             <div className="mt-5">
-              <Field label="Physical Contract Document (Optional)" id="doc-upload" className="md:col-span-2">
+              <Field label={t("Physical Contract Document (Optional)")} id="doc-upload" className="md:col-span-2">
                 <div className="space-y-2">
                   {documentFile ? (
                     <div className="flex items-center gap-3 rounded-md border border-border bg-background/40 px-3 py-2.5">
@@ -779,7 +781,7 @@ function NewContract() {
                         type="button"
                         onClick={() => setDocumentFile(null)}
                         className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                        aria-label="Remove document"
+                        aria-label={t("Remove document")}
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -791,7 +793,7 @@ function NewContract() {
                     >
                       <Paperclip className="h-4 w-4" />
                       <span className="font-mono text-[10px] uppercase tracking-widest">
-                        Click to attach document
+                        {t("Click to attach document")}
                       </span>
                       <input
                         id="doc-upload"
@@ -802,12 +804,12 @@ function NewContract() {
                           const f = e.target.files?.[0];
                           if (!f) return;
                           if (f.type !== "application/pdf") {
-                            toast.error("Only PDF files are accepted.");
+                            toast.error(t("Only PDF files are accepted."));
                             e.target.value = "";
                             return;
                           }
                           if (f.size > 15 * 1024 * 1024) {
-                            toast.error("File too large — maximum 15 MB.");
+                            toast.error(t("File too large — maximum 15 MB."));
                             e.target.value = "";
                             return;
                           }
@@ -818,7 +820,7 @@ function NewContract() {
                     </label>
                   )}
                   <p className="font-mono text-[10px] text-muted-foreground">
-                    Counterparties can review this document before approving. PDF only · max 15 MB.
+                    {t("Counterparties can review this document before approving. PDF only · max 15 MB.")}
                   </p>
                 </div>
               </Field>
@@ -829,13 +831,11 @@ function NewContract() {
               <div className="mb-3 flex items-center gap-2">
                 <Zap className="h-4 w-4 text-primary" />
                 <p className="font-mono text-[11px] uppercase tracking-widest text-primary">
-                  Bilateral Approval → Atomic Settlement
+                  {t("Bilateral Approval → Atomic Settlement")}
                 </p>
               </div>
               <p className="mb-4 text-[12px] text-muted-foreground">
-                Either the buyer or seller may register a contract. All counterparties receive an
-                approval notification. Once every party confirms, the Stellar atomic transaction
-                executes automatically — no manual step required.
+                {t("Either the buyer or seller may register a contract. All counterparties receive an approval notification. Once every party confirms, the Stellar atomic transaction executes automatically — no manual step required.")}
               </p>
 
               {/* Stellar ops info */}
@@ -850,11 +850,11 @@ function NewContract() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="font-mono text-[11px] uppercase tracking-widest text-foreground">
-                        {op.label}
+                        {t(op.label)}
                       </p>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">{op.description}</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">{t(op.description)}</p>
                       <p className="mt-1 font-mono text-[10px] text-muted-foreground/70">
-                        Stellar op: <span className="text-foreground/60">{op.stellarOp}</span>
+                        {t("Stellar op:")} <span className="text-foreground/60">{op.stellarOp}</span>
                       </p>
                     </div>
                   </div>
@@ -867,13 +867,14 @@ function NewContract() {
                   <div className="mb-2 flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-warning" />
                     <p className="font-mono text-[11px] uppercase tracking-widest text-warning">
-                      Contract Submitted — Awaiting Approval
+                      {t("Contract Submitted — Awaiting Approval")}
                     </p>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    {parties.length} counterpart{parties.length > 1 ? "ies have" : "y has"} received
-                    an approval notification. The Stellar transaction will execute automatically
-                    once all parties confirm.
+                    {parties.length}{" "}
+                    {parties.length > 1
+                      ? t("counterparties have received an approval notification. The Stellar transaction will execute automatically once all parties confirm.")
+                      : t("counterparty has received an approval notification. The Stellar transaction will execute automatically once all parties confirm.")}
                   </p>
                   <div className="mt-3 flex gap-2">
                     <Button
@@ -883,7 +884,7 @@ function NewContract() {
                       className="ml-auto h-7 font-mono text-[10px] uppercase"
                       onClick={() => navigate({ to: "/contracts" })}
                     >
-                      Go to Contracts
+                      {t("Go to Contracts")}
                     </Button>
                   </div>
                 </div>
@@ -893,11 +894,11 @@ function NewContract() {
 
           {/* Summary card */}
           <Card className="border-border bg-[image:var(--gradient-card)] p-6">
-            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Summary</p>
-            <p className="mt-1 font-display text-base font-semibold">Notional Exposure</p>
+            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{t("Summary")}</p>
+            <p className="mt-1 font-display text-base font-semibold">{t("Notional Exposure")}</p>
             <div className="mt-6 space-y-4 text-sm">
               <div>
-                <span className="text-muted-foreground">Buyer</span>
+                <span className="text-muted-foreground">{t("Buyer")}</span>
                 <p className="mt-0.5 break-words font-mono">
                   {form.buyerLabel || (form.buyerKey ? `${form.buyerKey.slice(0, 8)}…` : "—")}
                 </p>
@@ -908,7 +909,7 @@ function NewContract() {
                 <div className="space-y-1.5">
                   {parties.map((p) => (
                     <div key={p.stellar_public_key} className="flex items-start justify-between gap-2">
-                      <span className="text-muted-foreground">{CONTRACT_ROLE_LABELS[p.contractRole]}</span>
+                      <span className="text-muted-foreground">{t(CONTRACT_ROLE_LABELS[p.contractRole])}</span>
                       <span className="font-mono text-right text-xs">
                         {p.full_name}
                         <span className="ml-1 text-muted-foreground">
@@ -919,19 +920,19 @@ function NewContract() {
                   ))}
                 </div>
               ) : (
-                <Row k="Parties" v="—" />
+                <Row k={t("Parties")} v="—" />
               )}
 
-              <Row k="Volume" v={`${form.volume || "—"} MWh`} />
-              <Row k="Settles as" v={form.volume ? `${form.volume} EPWR` : "—"} />
-              <Row k="Price" v={`R$ ${form.price || "—"}`} />
-              <Row k="Start" v={form.startDate ? format(form.startDate, "yyyy-MM-dd") : "—"} />
-              <Row k="End" v={form.endDate ? format(form.endDate, "yyyy-MM-dd") : "—"} />
-              <Row k="Settlement" v={settlementDate ? format(settlementDate, "yyyy-MM-dd") : "—"} />
-              <Row k="Duration" v={durationDays ? `${durationDays} d` : "—"} />
-              <Row k="Approval" v="REQUIRED" />
+              <Row k={t("Volume")} v={`${form.volume || "—"} MWh`} />
+              <Row k={t("Settles as")} v={form.volume ? `${form.volume} EPWR` : "—"} />
+              <Row k={t("Price")} v={`R$ ${form.price || "—"}`} />
+              <Row k={t("Start")} v={form.startDate ? format(form.startDate, "yyyy-MM-dd") : "—"} />
+              <Row k={t("End")} v={form.endDate ? format(form.endDate, "yyyy-MM-dd") : "—"} />
+              <Row k={t("Settlement")} v={settlementDate ? format(settlementDate, "yyyy-MM-dd") : "—"} />
+              <Row k={t("Duration")} v={durationDays ? `${durationDays} d` : "—"} />
+              <Row k={t("Approval")} v={t("REQUIRED")} />
               <div className="border-t border-border pt-4">
-                <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Notional</p>
+                <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{t("Notional")}</p>
                 <p className="mt-1 font-mono text-2xl font-semibold text-primary">
                   {notional
                     ? notional.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
@@ -939,7 +940,7 @@ function NewContract() {
                 </p>
               </div>
               <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground/70">
-                On settlement, EPWR is minted to the buyer · 1 EPWR = 1 MWh.
+                {t("On settlement, EPWR is minted to the buyer · 1 EPWR = 1 MWh.")}
               </p>
             </div>
 
@@ -958,16 +959,16 @@ function NewContract() {
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting to Stellar…
+                  {t("Submitting to Stellar…")}
                 </>
               ) : (
                 <>
-                  Register Contract <ArrowRight className="ml-2 h-4 w-4" />
+                  {t("Register Contract")} <ArrowRight className="ml-2 h-4 w-4" />
                 </>
               )}
             </Button>
             <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Anchored to {STELLAR_NETWORK_LABEL} · Settlement Network
+              {t("Anchored to")} {STELLAR_NETWORK_LABEL} · {t("Settlement Network")}
             </p>
           </Card>
         </div>

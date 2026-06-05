@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { StepUpModal } from "@/components/StepUpModal";
+import { useT } from "@/lib/i18n";
 import {
   apiListCards,
   apiAddCard,
@@ -50,6 +51,7 @@ const BLANK_FORM: AddCardPayload = {
 };
 
 export function CardManager() {
+  const t = useT();
   const [cards, setCards] = useState<PaymentCard[]>([]);
   const [max, setMax] = useState(5);
   const [loading, setLoading] = useState(true);
@@ -79,7 +81,7 @@ export function CardManager() {
       setCards(res.cards);
       setMax(res.max ?? 5);
     } catch (err) {
-      toast.error((err as Error).message || "Failed to load cards.");
+      toast.error((err as Error).message || t("Failed to load cards."));
     } finally {
       setLoading(false);
     }
@@ -92,19 +94,19 @@ export function CardManager() {
   // ── Add card (step-up gated) ──────────────────────────────────────────────
   const handleAdd = () => {
     if (!form.holder_name || !form.number || !form.expiry_month || !form.expiry_year || !form.ccv) {
-      toast.error("Fill in all required card fields.");
+      toast.error(t("Fill in all required card fields."));
       return;
     }
     requireStepUp(async (token) => {
       setSubmitting(true);
       try {
         await apiAddCard(form, token);
-        toast.success("Card added securely.");
+        toast.success(t("Card added securely."));
         setForm(BLANK_FORM);
         setShowForm(false);
         await load();
       } catch (err) {
-        toast.error((err as Error).message || "Could not add the card.");
+        toast.error((err as Error).message || t("Could not add the card."));
       } finally {
         setSubmitting(false);
       }
@@ -114,15 +116,15 @@ export function CardManager() {
   // ── Delete card (step-up gated) ───────────────────────────────────────────
   const handleDelete = (card: PaymentCard) => {
     const masked = `${card.brand ?? "card"} •••• ${card.last4 ?? "????"}`;
-    if (!confirm(`Delete ${masked}? All data for this card will be removed from the platform.`)) return;
+    if (!confirm(`${t("Delete")} ${masked}? ${t("All data for this card will be removed from the platform.")}`)) return;
     requireStepUp(async (token) => {
       setBusyId(card.id);
       try {
         const res = await apiDeleteCard(card.id, token);
-        toast.success(res.message || "Card removed.");
+        toast.success(res.message || t("Card removed."));
         await load();
       } catch (err) {
-        toast.error((err as Error).message || "Could not delete the card.");
+        toast.error((err as Error).message || t("Could not delete the card."));
       } finally {
         setBusyId(null);
       }
@@ -136,10 +138,10 @@ export function CardManager() {
       setBusyId(card.id);
       try {
         await apiSetDefaultCard(card.id, token);
-        toast.success("Default card updated.");
+        toast.success(t("Default card updated."));
         await load();
       } catch (err) {
-        toast.error((err as Error).message || "Could not set the default card.");
+        toast.error((err as Error).message || t("Could not set the default card."));
       } finally {
         setBusyId(null);
       }
@@ -153,23 +155,23 @@ export function CardManager() {
       <div className="flex items-center justify-between">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Saved cards
+            {t("Saved cards")}
           </p>
           <p className="text-[11px] text-muted-foreground">
-            {cards.length} of {max} cards · max {max}
+            {cards.length} {t("of")} {max} {t("cards · max")} {max}
           </p>
         </div>
         {!showForm && (
           <Button size="sm" variant="outline" onClick={() => setShowForm(true)} disabled={atLimit}>
             <Plus className="mr-1.5 h-3 w-3" />
-            Add card
+            {t("Add card")}
           </Button>
         )}
       </div>
 
       {atLimit && !showForm && (
         <p className="font-mono text-[10px] text-warning">
-          Card limit of {max} reached. Delete a card to add another.
+          {t("Card limit of")} {max} {t("reached. Delete a card to add another.")}
         </p>
       )}
 
@@ -181,9 +183,9 @@ export function CardManager() {
       ) : cards.length === 0 && !showForm ? (
         <Card className="border-dashed border-border bg-card/40 p-8 text-center">
           <CreditCard className="mx-auto mb-3 h-6 w-6 text-muted-foreground/30" />
-          <p className="font-mono text-[11px] text-muted-foreground">No cards saved.</p>
+          <p className="font-mono text-[11px] text-muted-foreground">{t("No cards saved.")}</p>
           <p className="mt-1 text-[10px] text-muted-foreground/60">
-            Add a card to pay your subscriptions faster.
+            {t("Add a card to pay your subscriptions faster.")}
           </p>
         </Card>
       ) : (
@@ -201,7 +203,7 @@ export function CardManager() {
                     </p>
                     {card.is_default && (
                       <Badge variant="outline" className="border-primary/40 bg-primary/10 font-mono text-[8px] uppercase tracking-widest text-primary">
-                        Default
+                        {t("Default")}
                       </Badge>
                     )}
                   </div>
@@ -219,7 +221,7 @@ export function CardManager() {
                     className="h-8 px-2 text-muted-foreground hover:text-primary"
                     onClick={() => handleSetDefault(card)}
                     disabled={busyId === card.id}
-                    title="Set as default"
+                    title={t("Set as default")}
                   >
                     {busyId === card.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Star className="h-3.5 w-3.5" />}
                   </Button>
@@ -230,7 +232,7 @@ export function CardManager() {
                   className="h-8 px-2 text-muted-foreground hover:text-destructive"
                   onClick={() => handleDelete(card)}
                   disabled={busyId === card.id}
-                  title="Delete card"
+                  title={t("Delete card")}
                 >
                   {busyId === card.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                 </Button>
@@ -245,12 +247,12 @@ export function CardManager() {
         <Card className="border-primary/30 bg-card p-4">
           <div className="mb-3 flex items-center justify-between">
             <p className="flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-widest text-foreground">
-              <Lock className="h-3 w-3 text-primary" /> New card
+              <Lock className="h-3 w-3 text-primary" /> {t("New card")}
             </p>
             <button
               onClick={() => { setShowForm(false); setForm(BLANK_FORM); }}
               className="text-muted-foreground hover:text-foreground"
-              aria-label="Close"
+              aria-label={t("Close")}
             >
               <X className="h-4 w-4" />
             </button>
@@ -259,13 +261,13 @@ export function CardManager() {
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="cc-holder" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Cardholder name
+                {t("Cardholder name")}
               </Label>
               <Input
                 id="cc-holder"
                 value={form.holder_name}
                 onChange={(e) => setField("holder_name", e.target.value)}
-                placeholder="FULL NAME"
+                placeholder={t("FULL NAME")}
                 autoComplete="cc-name"
                 disabled={submitting}
               />
@@ -273,7 +275,7 @@ export function CardManager() {
 
             <div className="space-y-1.5">
               <Label htmlFor="cc-number" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Card number
+                {t("Card number")}
               </Label>
               <Input
                 id="cc-number"
@@ -288,7 +290,7 @@ export function CardManager() {
 
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="cc-mm" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Month</Label>
+                <Label htmlFor="cc-mm" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{t("Month")}</Label>
                 <Input
                   id="cc-mm"
                   value={form.expiry_month}
@@ -300,7 +302,7 @@ export function CardManager() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="cc-yy" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Year</Label>
+                <Label htmlFor="cc-yy" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{t("Year")}</Label>
                 <Input
                   id="cc-yy"
                   value={form.expiry_year}
@@ -328,7 +330,7 @@ export function CardManager() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="cc-cep" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Postal code</Label>
+                <Label htmlFor="cc-cep" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{t("Postal code")}</Label>
                 <Input
                   id="cc-cep"
                   value={form.postal_code}
@@ -340,7 +342,7 @@ export function CardManager() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="cc-num" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Address number</Label>
+                <Label htmlFor="cc-num" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{t("Address number")}</Label>
                 <Input
                   id="cc-num"
                   value={form.address_number}
@@ -354,18 +356,18 @@ export function CardManager() {
             <div className="flex items-start gap-2 rounded-md border border-border bg-muted/20 p-2.5">
               <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
               <p className="font-mono text-[9px] leading-relaxed text-muted-foreground">
-                The card number and CVV are tokenized by the gateway and <span className="text-foreground">never</span>
-                stored by EnergyPay. We keep only the brand, the last 4 digits and the expiry.
+                {t("The card number and CVV are tokenized by the gateway and")} <span className="text-foreground">{t("never")}</span>{" "}
+                {t("stored by EnergyPay. We keep only the brand, the last 4 digits and the expiry.")}
               </p>
             </div>
 
             <div className="flex gap-2">
               <Button className="flex-1" size="sm" onClick={handleAdd} disabled={submitting}>
                 {submitting ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Check className="mr-1.5 h-3 w-3" />}
-                Save card securely
+                {t("Save card securely")}
               </Button>
               <Button variant="outline" size="sm" onClick={() => { setShowForm(false); setForm(BLANK_FORM); }} disabled={submitting}>
-                Cancel
+                {t("Cancel")}
               </Button>
             </div>
           </div>
@@ -376,8 +378,7 @@ export function CardManager() {
       <div className="flex items-start gap-2 rounded-md border border-border bg-card/40 p-3">
         <Trash2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <p className="font-mono text-[9px] leading-relaxed text-muted-foreground">
-          When you delete a card, we permanently remove the token and associated metadata — no information
-          about it remains on the platform. The full number and CVV were never stored.
+          {t("When you delete a card, we permanently remove the token and associated metadata — no information about it remains on the platform. The full number and CVV were never stored.")}
         </p>
       </div>
 

@@ -6,6 +6,7 @@
 
 import { Activity, Radio, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useSettlementRail, type RailState } from "@/hooks/useSettlementRail";
+import { useT } from "@/lib/i18n";
 
 const STATE_COPY: Record<RailState, { label: string; tone: "ok" | "warn" | "err" | "muted" }> = {
   CONNECTED: { label: "Settlement Rail Connected", tone: "ok" },
@@ -26,6 +27,7 @@ const toneClass = (tone: "ok" | "warn" | "err" | "muted") =>
 const fmtMs = (n: number | null | undefined) => (typeof n === "number" && n > 0 ? `${n}ms` : "—");
 
 export function SettlementRailBanner({ compact = false }: { compact?: boolean }) {
+  const t = useT();
   const { railState, health, telemetry } = useSettlementRail();
   const copy = STATE_COPY[railState];
   const Icon =
@@ -43,13 +45,13 @@ export function SettlementRailBanner({ compact = false }: { compact?: boolean })
     >
       <span className="flex items-center gap-1.5 uppercase tracking-widest">
         <Icon className={`h-3.5 w-3.5 ${railState === "CONNECTED" ? "" : "animate-pulse"}`} />
-        {copy.label}
+        {t(copy.label)}
       </span>
 
       <span className="hidden h-3 w-px bg-current/30 md:inline-block" />
 
       <span className="flex items-center gap-1 text-muted-foreground">
-        <span className="uppercase tracking-widest">Backend</span>
+        <span className="uppercase tracking-widest">{t("Backend")}</span>
         <span
           className={
             health?.backend?.status === "ok"
@@ -64,7 +66,7 @@ export function SettlementRailBanner({ compact = false }: { compact?: boolean })
       </span>
 
       <span className="flex items-center gap-1 text-muted-foreground">
-        <span className="uppercase tracking-widest">Horizon</span>
+        <span className="uppercase tracking-widest">{t("Horizon")}</span>
         <span
           className={
             health?.horizon?.status === "ok"
@@ -82,11 +84,11 @@ export function SettlementRailBanner({ compact = false }: { compact?: boolean })
         <>
           <span className="flex items-center gap-1 text-muted-foreground">
             <Activity className="h-3 w-3" />
-            <span className="uppercase tracking-widest">Finalized</span>
+            <span className="uppercase tracking-widest">{t("Finalized")}</span>
             <span className="text-foreground">{telemetry?.counters?.finalized_count ?? 0}</span>
           </span>
           <span className="flex items-center gap-1 text-muted-foreground">
-            <span className="uppercase tracking-widest">Failed</span>
+            <span className="uppercase tracking-widest">{t("Failed")}</span>
             <span
               className={`${(telemetry?.counters?.failed_count ?? 0) > 0 ? "text-destructive" : "text-foreground"}`}
             >
@@ -94,7 +96,7 @@ export function SettlementRailBanner({ compact = false }: { compact?: boolean })
             </span>
           </span>
           <span className="flex items-center gap-1 text-muted-foreground">
-            <span className="uppercase tracking-widest">Pending</span>
+            <span className="uppercase tracking-widest">{t("Pending")}</span>
             <span
               className={`${(telemetry?.pending_confirmations ?? 0) > 0 ? "text-warning" : "text-foreground"}`}
             >
@@ -102,7 +104,7 @@ export function SettlementRailBanner({ compact = false }: { compact?: boolean })
             </span>
           </span>
           <span className="flex items-center gap-1 text-muted-foreground">
-            <span className="uppercase tracking-widest">Avg finality</span>
+            <span className="uppercase tracking-widest">{t("Avg finality")}</span>
             <span className="text-foreground">{fmtMs(telemetry?.counters?.avg_finality_ms)}</span>
           </span>
         </>

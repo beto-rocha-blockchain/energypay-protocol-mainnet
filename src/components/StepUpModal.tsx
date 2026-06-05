@@ -27,13 +27,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiStepUp } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 export function StepUpModal({
   open,
   onOpenChange,
   onConfirmed,
-  title = "Confirm your identity",
-  description = "This is a maximum-security area. Enter your account password to continue.",
+  title,
+  description,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -42,6 +43,11 @@ export function StepUpModal({
   title?: string;
   description?: string;
 }) {
+  const t = useT();
+  const resolvedTitle = title ?? t("Confirm your identity");
+  const resolvedDescription =
+    description ??
+    t("This is a maximum-security area. Enter your account password to continue.");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +68,7 @@ export function StepUpModal({
 
   const submit = async () => {
     if (!password) {
-      setError("Enter your password.");
+      setError(t("Enter your password."));
       return;
     }
     setLoading(true);
@@ -74,9 +80,9 @@ export function StepUpModal({
       onConfirmed(res.step_up_token);
     } catch (err) {
       const status = (err as { status?: number }).status;
-      setError(status === 401 ? "Incorrect password." : (err as Error).message || "Confirmation failed.");
+      setError(status === 401 ? t("Incorrect password.") : (err as Error).message || t("Confirmation failed."));
       setPassword("");
-      toast.error("Could not confirm your identity.");
+      toast.error(t("Could not confirm your identity."));
     } finally {
       setLoading(false);
     }
@@ -88,9 +94,9 @@ export function StepUpModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-primary" />
-            {title}
+            {resolvedTitle}
           </DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogDescription>{resolvedDescription}</DialogDescription>
         </DialogHeader>
 
         <form
@@ -102,7 +108,7 @@ export function StepUpModal({
         >
           <div className="space-y-1.5">
             <Label htmlFor="step-up-password" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Account password
+              {t("Account password")}
             </Label>
             <div className="relative">
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -123,17 +129,17 @@ export function StepUpModal({
 
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={loading}>
-              Cancel
+              {t("Cancel")}
             </Button>
             <Button type="submit" size="sm" disabled={loading || !password}>
               {loading ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <ShieldCheck className="mr-1.5 h-3 w-3" />}
-              Confirm
+              {t("Confirm")}
             </Button>
           </DialogFooter>
         </form>
 
         <p className="font-mono text-[9px] leading-relaxed text-muted-foreground/60">
-          Your password is used only for this confirmation and is not stored. Authorization expires in 5 minutes.
+          {t("Your password is used only for this confirmation and is not stored. Authorization expires in 5 minutes.")}
         </p>
       </DialogContent>
     </Dialog>

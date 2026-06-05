@@ -28,6 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useNotifications } from "@/hooks/useNotifications";
 import { type Notification, apiGetContractDocumentUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/notifications")({
@@ -66,6 +67,7 @@ function NIcon({ type }: { type: Notification["type"] }) {
 }
 
 function TypeBadge({ type }: { type: Notification["type"] }) {
+  const t = useT();
   const map: Record<Notification["type"], { label: string; cls: string }> = {
     APPROVAL_REQUIRED: { label: "Approval Required", cls: "border-warning/40 text-warning" },
     APPROVED:          { label: "Approved",           cls: "border-success/40 text-success" },
@@ -77,7 +79,7 @@ function TypeBadge({ type }: { type: Notification["type"] }) {
   const { label, cls } = map[type];
   return (
     <span className={`rounded-sm border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest ${cls}`}>
-      {label}
+      {t(label)}
     </span>
   );
 }
@@ -105,6 +107,7 @@ function fmtDate(iso: string) {
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 function EmptyState({ filter }: { filter: FilterKey }) {
+  const t = useT();
   const messages: Record<FilterKey, string> = {
     all:     "No notifications yet.",
     unread:  "All caught up — no unread notifications.",
@@ -114,7 +117,7 @@ function EmptyState({ filter }: { filter: FilterKey }) {
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <Bell className="mb-4 h-10 w-10 text-muted-foreground/20" />
       <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-        {messages[filter]}
+        {t(messages[filter])}
       </p>
     </div>
   );
@@ -157,6 +160,7 @@ function NotificationRow({
   onViewDocument: (contractId: string) => void;
 }) {
   const navigate = useNavigate();
+  const t = useT();
 
   const handleClick = () => {
     onRead(n);
@@ -205,7 +209,7 @@ function NotificationRow({
           <div className="mt-1.5 flex flex-wrap items-center gap-3">
             {n.contract_id && (
               <span className="font-mono text-[10px] text-muted-foreground/60">
-                Contract · {n.contract_id.slice(0, 8)}…
+                {t("Contract")} · {n.contract_id.slice(0, 8)}…
               </span>
             )}
             <span className="font-mono text-[10px] text-muted-foreground/50">
@@ -232,7 +236,7 @@ function NotificationRow({
             {approving === n.contract_id
               ? <Loader2 className="h-3 w-3 animate-spin" />
               : <Check className="h-3 w-3" />}
-            Approve Contract
+            {t("Approve Contract")}
           </Button>
           <Button
             size="sm"
@@ -244,7 +248,7 @@ function NotificationRow({
             {rejecting === n.contract_id
               ? <Loader2 className="h-3 w-3 animate-spin" />
               : <X className="h-3 w-3" />}
-            Reject
+            {t("Reject")}
           </Button>
           <Button
             size="sm"
@@ -256,14 +260,14 @@ function NotificationRow({
             {fetchingDoc === n.contract_id
               ? <Loader2 className="h-3 w-3 animate-spin" />
               : <FileText className="h-3 w-3" />}
-            View Document
+            {t("View Document")}
           </Button>
           {n.action_url && (
             <button
               onClick={(e) => { e.stopPropagation(); navigate({ to: n.action_url as "/" }); }}
               className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary"
             >
-              {n.action_label || "View contract →"}
+              {n.action_label || t("View contract →")}
             </button>
           )}
         </div>
@@ -276,6 +280,7 @@ function NotificationRow({
 
 function NotificationsPage() {
   const navigate = useNavigate();
+  const t = useT();
   const [filter, setFilter]       = useState<FilterKey>("all");
   const [approving, setApproving] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
@@ -306,10 +311,10 @@ function NotificationsPage() {
     try {
       await markRead(n.id);
       const { activated } = await approve(n.contract_id);
-      toast.success(activated ? "Contract approved and activated." : "Approval recorded.");
+      toast.success(activated ? t("Contract approved and activated.") : t("Approval recorded."));
       if (activated) navigate({ to: "/contracts" });
     } catch (err) {
-      const msg = (err as Error).message || "Approval failed.";
+      const msg = (err as Error).message || t("Approval failed.");
       toast.error(msg);
       if (/draft|not found|already/i.test(msg)) softDismiss(n.id);
     } finally {
@@ -323,9 +328,9 @@ function NotificationsPage() {
     try {
       await markRead(n.id);
       await reject(n.contract_id);
-      toast.success("Contract rejected.");
+      toast.success(t("Contract rejected."));
     } catch (err) {
-      const msg = (err as Error).message || "Rejection failed.";
+      const msg = (err as Error).message || t("Rejection failed.");
       toast.error(msg);
       if (/draft|not found|already/i.test(msg)) softDismiss(n.id);
     } finally {
@@ -339,7 +344,7 @@ function NotificationsPage() {
       const res = await apiGetContractDocumentUrl(contractId);
       window.open(res.signed_url, "_blank", "noopener,noreferrer");
     } catch {
-      toast.error("No document is attached to this contract.");
+      toast.error(t("No document is attached to this contract."));
     } finally {
       setFetchingDoc(null);
     }
@@ -354,10 +359,10 @@ function NotificationsPage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            System Events · Settlement Alerts
+            {t("System Events · Settlement Alerts")}
           </p>
           <h1 className="font-display text-2xl font-semibold tracking-tight">
-            Notification Centre
+            {t("Notification Centre")}
           </h1>
         </div>
 
@@ -370,7 +375,7 @@ function NotificationsPage() {
               className="font-mono text-[10px] uppercase tracking-widest"
             >
               <CheckCheck className="mr-1.5 h-3.5 w-3.5" />
-              Mark all read
+              {t("Mark all read")}
             </Button>
           )}
           <Button
@@ -381,16 +386,16 @@ function NotificationsPage() {
             className="font-mono text-[10px] uppercase tracking-widest"
           >
             <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", loading && "animate-spin")} />
-            Refresh
+            {t("Refresh")}
           </Button>
         </div>
       </div>
 
       {/* ── KPI strip ── */}
       <div className="grid grid-cols-3 gap-3 sm:max-w-lg">
-        <KpiCard label="Total"   value={notifications.length} />
-        <KpiCard label="Unread"  value={unreadCount}  tone={unreadCount  > 0 ? "warn" : undefined} />
-        <KpiCard label="Pending" value={pendingCount} tone={pendingCount > 0 ? "warn" : undefined} />
+        <KpiCard label={t("Total")}   value={notifications.length} />
+        <KpiCard label={t("Unread")}  value={unreadCount}  tone={unreadCount  > 0 ? "warn" : undefined} />
+        <KpiCard label={t("Pending")} value={pendingCount} tone={pendingCount > 0 ? "warn" : undefined} />
       </div>
 
       {/* ── Filter tabs ── */}
@@ -413,7 +418,7 @@ function NotificationsPage() {
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {f.label}
+              {t(f.label)}
               {count > 0 && (
                 <span className={cn(
                   "flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 font-mono text-[8px] font-bold",

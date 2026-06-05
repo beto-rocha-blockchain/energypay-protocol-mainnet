@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { apiGetUtilityUC } from "@/lib/api";
 import { maskAddress, ROLE_COLORS, sortRoles, type ParticipantRole } from "@/store/operator";
 import { RequireRole } from "@/components/RequireRole";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/utility/uc")({
   component: () => (
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/utility/uc")({
 });
 
 function UtilityUCPage() {
+  const t = useT();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,7 +29,7 @@ function UtilityUCPage() {
         const res = await apiGetUtilityUC();
         setUsers(res.users ?? []);
       } catch (err) {
-        toast.error(`Failed to load UC registry: ${(err as Error).message}`);
+        toast.error(`${t("Failed to load UC registry")}: ${(err as Error).message}`);
       } finally {
         setLoading(false);
       }
@@ -44,22 +46,22 @@ function UtilityUCPage() {
       <div className="flex items-center gap-3">
         <MapPinned className="h-5 w-5 text-orange-400" />
         <h1 className="font-mono text-sm uppercase tracking-widest text-orange-400">
-          Consumer Registry — UTL-01
+          {t("Consumer Registry")} — UTL-01
         </h1>
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
         <Card className="border-orange-400/20 bg-orange-400/5 p-4">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Total UCs</p>
+          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Total UCs")}</p>
           <p className="mt-1 font-mono text-2xl text-orange-400">{loading ? "—" : users.length}</p>
         </Card>
         <Card className="border-green-400/20 bg-green-400/5 p-4">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Verified</p>
+          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Verified")}</p>
           <p className="mt-1 font-mono text-2xl text-green-400">{loading ? "—" : verified}</p>
         </Card>
         <Card className="border-yellow-400/20 bg-yellow-400/5 p-4">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Pending</p>
+          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Pending")}</p>
           <p className="mt-1 font-mono text-2xl text-yellow-400">{loading ? "—" : pending}</p>
         </Card>
       </div>
@@ -69,24 +71,24 @@ function UtilityUCPage() {
         {loading ? (
           <div className="flex items-center justify-center gap-2 p-12 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="font-mono text-xs uppercase tracking-widest">Loading…</span>
+            <span className="font-mono text-xs uppercase tracking-widest">{t("Loading…")}</span>
           </div>
         ) : users.length === 0 ? (
           <div className="flex items-center justify-center p-12">
             <p className="font-mono text-xs text-muted-foreground">
-              No UCs registered. Consumer and Utility operators will appear here.
+              {t("No UCs registered. Consumer and Utility operators will appear here.")}
             </p>
           </div>
         ) : (
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">Organization</th>
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">City</th>
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">Country</th>
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">Roles</th>
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">Status</th>
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">Wallet</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Organization")}</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("City")}</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Country")}</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Roles")}</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Status")}</th>
+                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Wallet")}</th>
               </tr>
             </thead>
             <tbody>
@@ -120,11 +122,11 @@ function UtilityUCPage() {
                     <td className="px-4 py-3">
                       {isVerified ? (
                         <span className="inline-flex items-center gap-1 font-mono text-xs text-green-400">
-                          <CheckCircle className="h-3 w-3" /> Verified
+                          <CheckCircle className="h-3 w-3" /> {t("Verified")}
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 font-mono text-xs text-yellow-400">
-                          <Clock className="h-3 w-3" /> Pending
+                          <Clock className="h-3 w-3" /> {t("Pending")}
                         </span>
                       )}
                     </td>

@@ -17,6 +17,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { type Notification } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 
 /* ── Icon per notification type ── */
 function NIcon({ type }: { type: Notification["type"] }) {
@@ -49,6 +50,7 @@ export function NotificationBell() {
   const navigate = useNavigate();
   const { notifications, unreadCount, loading, markRead, markAllRead, approve, reject } =
     useNotifications();
+  const t = useT();
 
   // Close on outside click
   useEffect(() => {
@@ -70,15 +72,15 @@ export function NotificationBell() {
       const { activated } = await approve(n.contract_id);
       toast.success(
         activated
-          ? "Contract approved and activated — ready for settlement."
-          : "Approval recorded.",
+          ? t("Contract approved and activated — ready for settlement.")
+          : t("Approval recorded."),
       );
       if (activated) {
         setOpen(false);
         navigate({ to: "/contracts" });
       }
     } catch (err) {
-      toast.error((err as Error).message || "Approval failed.");
+      toast.error((err as Error).message || t("Approval failed."));
     } finally {
       setApproving(null);
     }
@@ -90,9 +92,9 @@ export function NotificationBell() {
     try {
       await markRead(n.id);
       await reject(n.contract_id);
-      toast.success("Contract rejected.");
+      toast.success(t("Contract rejected."));
     } catch (err) {
-      toast.error((err as Error).message || "Rejection failed.");
+      toast.error((err as Error).message || t("Rejection failed."));
     } finally {
       setRejecting(null);
     }
@@ -116,7 +118,7 @@ export function NotificationBell() {
           "hover:bg-muted text-muted-foreground hover:text-foreground",
           open && "bg-muted text-foreground",
         )}
-        aria-label="Notifications"
+        aria-label={t("Notifications")}
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
@@ -133,14 +135,14 @@ export function NotificationBell() {
           <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
             <div className="flex items-center gap-2">
               <span className="font-mono text-[11px] uppercase tracking-widest text-foreground">
-                Notifications
+                {t("Notifications")}
               </span>
               {unreadCount > 0 && (
                 <Badge
                   variant="outline"
                   className="h-4 border-destructive/40 px-1.5 font-mono text-[9px] text-destructive"
                 >
-                  {unreadCount} new
+                  {unreadCount} {t("new")}
                 </Badge>
               )}
             </div>
@@ -150,7 +152,7 @@ export function NotificationBell() {
                 className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground hover:text-foreground"
               >
                 <CheckCheck className="h-3 w-3" />
-                Mark all read
+                {t("Mark all read")}
               </button>
             )}
           </div>
@@ -160,7 +162,7 @@ export function NotificationBell() {
             {notifications.length === 0 ? (
               <div className="py-10 text-center">
                 <Bell className="mx-auto mb-2 h-6 w-6 text-muted-foreground/30" />
-                <p className="font-mono text-[11px] text-muted-foreground">No notifications</p>
+                <p className="font-mono text-[11px] text-muted-foreground">{t("No notifications")}</p>
               </div>
             ) : (
               notifications.map((n) => (
@@ -216,7 +218,7 @@ export function NotificationBell() {
                         ) : (
                           <Check className="h-3 w-3" />
                         )}
-                        Approve
+                        {t("Approve")}
                       </Button>
                       <Button
                         size="sm"
@@ -233,7 +235,7 @@ export function NotificationBell() {
                         ) : (
                           <X className="h-3 w-3" />
                         )}
-                        Reject
+                        {t("Reject")}
                       </Button>
                     </div>
                   )}

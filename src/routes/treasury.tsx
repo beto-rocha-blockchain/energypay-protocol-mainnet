@@ -22,6 +22,7 @@ import { useDashboard } from "@/hooks/useDashboard";
 import { useSettlementRail } from "@/hooks/useSettlementRail";
 import { StellarRailMonitor } from "@/components/generator/StellarRailMonitor";
 import { stellarExpertTx, STELLAR_NETWORK_LABEL } from "@/lib/stellar";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/treasury")({
   head: () => ({
@@ -73,6 +74,7 @@ const timeAgo = (iso: string) => {
 function TreasuryPage() {
   const { stats, settlements, horizon, loading, refresh } = useDashboard();
   const { health } = useSettlementRail();
+  const t = useT();
 
   // Platform treasury accounts — sourced from Horizon via the dashboard endpoint.
   // These are the PLATFORM's operator and distributor Stellar accounts,
@@ -92,10 +94,10 @@ function TreasuryPage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Treasury · Settlement Rail Operations
+            {t("Treasury · Settlement Rail Operations")}
           </p>
           <h1 className="font-display text-2xl font-semibold tracking-tight">
-            Treasury & Rails
+            {t("Treasury & Rails")}
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -105,7 +107,7 @@ function TreasuryPage() {
           </Badge>
           <Button size="sm" variant="outline" onClick={refresh} disabled={loading}>
             <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            Refresh
+            {t("Refresh")}
           </Button>
         </div>
       </div>
@@ -113,40 +115,40 @@ function TreasuryPage() {
       {/* KPI Strip — platform accounts only */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <KpiCard
-          label="Operator XLM"
+          label={t("Operator XLM")}
           value={operatorXlm ? Number(operatorXlm).toFixed(4) : "—"}
-          sub="platform operator account"
+          sub={t("platform operator account")}
           loading={loading && !horizon}
         />
         <KpiCard
-          label="EPWR Supply"
+          label={t("EPWR Supply")}
           value={epwrSupply ? fmtCompact(epwrSupply) : "—"}
           title={epwrSupply ? `${fmtNum(epwrSupply)} EPWR` : undefined}
-          sub="distributor account"
+          sub={t("distributor account")}
           loading={loading && !horizon}
         />
         <KpiCard
-          label="Distributor XLM"
+          label={t("Distributor XLM")}
           value={distributorXlm ? Number(distributorXlm).toFixed(4) : "—"}
-          sub="distribution reserve"
+          sub={t("distribution reserve")}
           loading={loading && !horizon}
         />
         <KpiCard
-          label="Settled Volume"
+          label={t("Settled Volume")}
           value={fmtBRL(totalBrl)}
-          sub={`${settled} confirmed`}
+          sub={`${settled} ${t("confirmed")}`}
           loading={loading && !stats}
           tone="ok"
         />
         <KpiCard
-          label="Users"
+          label={t("Users")}
           value={String(stats?.total_users ?? 0)}
-          sub="counterparties"
+          sub={t("counterparties")}
           loading={loading && !stats}
         />
         <KpiCard
-          label="Rail Status"
-          value={health?.status === "ok" ? "CONNECTED" : "OFFLINE"}
+          label={t("Rail Status")}
+          value={health?.status === "ok" ? t("CONNECTED") : t("OFFLINE")}
           sub={`Horizon ${horizonLatency} ms`}
           loading={loading && !health}
           tone={health?.status === "ok" ? "ok" : "warn"}
@@ -162,9 +164,9 @@ function TreasuryPage() {
           {/* Payment Routing Pipeline */}
           <Card className="border-border bg-card p-4">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Generator → Clearing → Counterparty · Programmable Leg
+              {t("Generator → Clearing → Counterparty · Programmable Leg")}
             </p>
-            <p className="mt-0.5 font-display text-base font-semibold">Payment Routing</p>
+            <p className="mt-0.5 font-display text-base font-semibold">{t("Payment Routing")}</p>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-sm border border-border bg-background/40 p-4">
               {[
                 { l: "Generator", s: "EPWR issued" },
@@ -178,9 +180,9 @@ function TreasuryPage() {
                     <div className="flex h-9 w-9 items-center justify-center rounded-sm border border-primary/40 bg-primary/10">
                       <span className="inline-block h-2 w-2 rounded-full bg-primary" />
                     </div>
-                    <p className="mt-1 font-display text-[11px] font-medium">{n.l}</p>
+                    <p className="mt-1 font-display text-[11px] font-medium">{t(n.l)}</p>
                     <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                      {n.s}
+                      {t(n.s)}
                     </p>
                   </div>
                   {i < arr.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
@@ -193,18 +195,18 @@ function TreasuryPage() {
         {/* Treasury Telemetry — platform accounts */}
         <Card className="border-border bg-card p-4">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Treasury Telemetry
+            {t("Treasury Telemetry")}
           </p>
           <div className="mt-3 space-y-2">
-            <TelRow label="Operator XLM"     value={operatorXlm    ? `${Number(operatorXlm).toFixed(4)} XLM`    : "—"} tone="ok" />
-            <TelRow label="Distributor XLM"  value={distributorXlm ? `${Number(distributorXlm).toFixed(4)} XLM` : "—"} tone="ok" />
-            <TelRow label="EPWR Supply"       value={epwrSupply     ? `${fmtCompact(epwrSupply)} EPWR`           : "—"} title={epwrSupply ? `${fmtNum(epwrSupply)} EPWR` : undefined} tone="ok" />
-            <TelRow label="Horizon latency"  value={`${horizonLatency} ms`}                  tone={horizonLatency < 1000 ? "ok" : "warn"} />
-            <TelRow label="Backend latency"  value={`${health?.backend?.latency_ms ?? 0} ms`} tone="ok" />
-            <TelRow label="Settled count"    value={String(settled)}    tone="ok" />
-            <TelRow label="Failed count"     value={String(failed)}     tone={failed > 0 ? "warn" : "ok"} />
-            <TelRow label="Total BRL"        value={fmtBRL(totalBrl)}   tone="muted" />
-            <TelRow label="Counterparties"   value={String(stats?.total_users ?? 0)} tone="muted" />
+            <TelRow label={t("Operator XLM")}     value={operatorXlm    ? `${Number(operatorXlm).toFixed(4)} XLM`    : "—"} tone="ok" />
+            <TelRow label={t("Distributor XLM")}  value={distributorXlm ? `${Number(distributorXlm).toFixed(4)} XLM` : "—"} tone="ok" />
+            <TelRow label={t("EPWR Supply")}       value={epwrSupply     ? `${fmtCompact(epwrSupply)} EPWR`           : "—"} title={epwrSupply ? `${fmtNum(epwrSupply)} EPWR` : undefined} tone="ok" />
+            <TelRow label={t("Horizon latency")}  value={`${horizonLatency} ms`}                  tone={horizonLatency < 1000 ? "ok" : "warn"} />
+            <TelRow label={t("Backend latency")}  value={`${health?.backend?.latency_ms ?? 0} ms`} tone="ok" />
+            <TelRow label={t("Settled count")}    value={String(settled)}    tone="ok" />
+            <TelRow label={t("Failed count")}     value={String(failed)}     tone={failed > 0 ? "warn" : "ok"} />
+            <TelRow label={t("Total BRL")}        value={fmtBRL(totalBrl)}   tone="muted" />
+            <TelRow label={t("Counterparties")}   value={String(stats?.total_users ?? 0)} tone="muted" />
           </div>
         </Card>
       </div>
@@ -214,13 +216,13 @@ function TreasuryPage() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Settlement Rail · Platform-wide Activity
+              {t("Settlement Rail · Platform-wide Activity")}
             </p>
-            <p className="font-display text-lg font-semibold">Recent Settlements</p>
+            <p className="font-display text-lg font-semibold">{t("Recent Settlements")}</p>
           </div>
           <Button size="sm" variant="outline" onClick={refresh} disabled={loading}>
             <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            Refresh
+            {t("Refresh")}
           </Button>
         </div>
 
@@ -231,18 +233,18 @@ function TreasuryPage() {
         ) : settlements.length === 0 ? (
           <div className="py-10 text-center">
             <Activity className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
-            <p className="font-mono text-sm text-muted-foreground">No settlement activity yet.</p>
+            <p className="font-mono text-sm text-muted-foreground">{t("No settlement activity yet.")}</p>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-[11px] uppercase tracking-wider">ID</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Seller</TableHead>
-                <TableHead className="text-right text-[11px] uppercase tracking-wider">Amount</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Tx Hash</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Status</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">When</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("ID")}</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("Seller")}</TableHead>
+                <TableHead className="text-right text-[11px] uppercase tracking-wider">{t("Amount")}</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("Tx Hash")}</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("Status")}</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("When")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

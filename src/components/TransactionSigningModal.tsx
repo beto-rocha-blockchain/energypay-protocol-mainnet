@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, KeyRound, Lock, Loader2, ShieldCheck, X } from "lucide-react";
 import { toast } from "sonner";
+import { useT } from "@/lib/i18n";
 
 export type TransactionSigningModalProps = {
   open: boolean;
@@ -41,6 +42,7 @@ export function TransactionSigningModal({
   onSigned,
   onCancel,
 }: TransactionSigningModalProps) {
+  const t = useT();
   const [secretInput, setSecretInput] = useState("");
   const [showSecret, setShowSecret] = useState(false);
   const [signing, setSigning] = useState(false);
@@ -58,7 +60,7 @@ export function TransactionSigningModal({
 
   const handleSign = async () => {
     if (!secretValid) {
-      setError("Enter a valid 56-character Stellar secret key (starts with S).");
+      setError(t("Enter a valid 56-character Stellar secret key (starts with S)."));
       return;
     }
     setSigning(true);
@@ -83,9 +85,9 @@ export function TransactionSigningModal({
       const msg =
         err instanceof Error
           ? err.message
-          : "Failed to sign transaction. Check your secret key.";
+          : t("Failed to sign transaction. Check your secret key.");
       setError(msg);
-      toast.error("Signing failed — secret key cleared.");
+      toast.error(t("Signing failed — secret key cleared."));
     } finally {
       setSigning(false);
     }
@@ -100,12 +102,11 @@ export function TransactionSigningModal({
               <KeyRound className="h-3.5 w-3.5" />
             </div>
             <DialogTitle className="font-mono text-sm uppercase tracking-widest">
-              Sign Transaction
+              {t("Sign Transaction")}
             </DialogTitle>
           </div>
           <DialogDescription className="text-[11px] text-muted-foreground">
-            This wallet requires local signing. Enter your Stellar secret key to sign and broadcast
-            the transaction. Your secret is never transmitted or stored.
+            {t("This wallet requires local signing. Enter your Stellar secret key to sign and broadcast the transaction. Your secret is never transmitted or stored.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -113,7 +114,7 @@ export function TransactionSigningModal({
           {/* Settlement ID reference */}
           <div className="rounded-md border border-border bg-background/40 px-3 py-2">
             <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Settlement Reference
+              {t("Settlement Reference")}
             </div>
             <div className="mt-0.5 font-mono text-[11px] text-foreground">{settlementId}</div>
           </div>
@@ -122,15 +123,14 @@ export function TransactionSigningModal({
           <div className="flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 p-2.5">
             <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
             <p className="font-mono text-[10px] text-muted-foreground">
-              Your secret key is used only to sign the transaction in memory. It is cleared
-              immediately after signing and is never sent to the EnergyPay backend or stored anywhere.
+              {t("Your secret key is used only to sign the transaction in memory. It is cleared immediately after signing and is never sent to the EnergyPay backend or stored anywhere.")}
             </p>
           </div>
 
           {/* Secret key input */}
           <div className="space-y-1.5">
             <Label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Secret Key (S…)
+              {t("Secret Key (S…)")}
             </Label>
             <div className="relative">
               <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -143,7 +143,7 @@ export function TransactionSigningModal({
                   setSecretInput(e.target.value.trim());
                   setError(null);
                 }}
-                placeholder="SABC… · 56 characters"
+                placeholder={t("SABC… · 56 characters")}
                 className="h-9 pl-8 pr-9 font-mono text-xs tracking-widest"
                 maxLength={58}
                 autoComplete="off"
@@ -166,7 +166,7 @@ export function TransactionSigningModal({
             </div>
             {secretInput && !secretValid && (
               <p className="font-mono text-[10px] text-destructive">
-                Must be a 56-character Stellar secret key starting with S
+                {t("Must be a 56-character Stellar secret key starting with S")}
               </p>
             )}
           </div>
@@ -188,7 +188,7 @@ export function TransactionSigningModal({
               className="flex-1 font-mono text-[10px] uppercase tracking-widest"
             >
               <X className="h-3 w-3" />
-              Cancel
+              {t("Cancel")}
             </Button>
             <Button
               type="button"
@@ -199,12 +199,12 @@ export function TransactionSigningModal({
               {signing ? (
                 <>
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  Signing…
+                  {t("Signing…")}
                 </>
               ) : (
                 <>
                   <KeyRound className="h-3 w-3" />
-                  Sign &amp; Broadcast
+                  {t("Sign & Broadcast")}
                 </>
               )}
             </Button>

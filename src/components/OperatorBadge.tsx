@@ -33,6 +33,7 @@ import {
 import { toast } from "sonner";
 import { useUiStore, type Theme } from "@/store/ui";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 
 // ─── Notification helpers ─────────────────────────────────────────────────────
 
@@ -64,6 +65,7 @@ export function OperatorBadge() {
   const operator = useOperator((s) => s.operator);
   const logout   = useOperator((s) => s.logout);
   const navigate = useNavigate();
+  const t = useT();
   const [copied, setCopied]     = useState(false);
   const [approving, setApproving]   = useState<string | null>(null);
   const [rejecting, setRejecting]   = useState<string | null>(null);
@@ -80,10 +82,10 @@ export function OperatorBadge() {
     try {
       await navigator.clipboard.writeText(operator.settlementAddress);
       setCopied(true);
-      toast.success("Settlement address copied");
+      toast.success(t("Settlement address copied"));
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error("Clipboard unavailable");
+      toast.error(t("Clipboard unavailable"));
     }
   };
 
@@ -103,10 +105,10 @@ export function OperatorBadge() {
     try {
       await markRead(n.id);
       const { activated } = await approve(n.contract_id);
-      toast.success(activated ? "Contract approved and activated." : "Approval recorded.");
+      toast.success(activated ? t("Contract approved and activated.") : t("Approval recorded."));
       if (activated) navigate({ to: "/contracts" });
     } catch (err) {
-      const msg = (err as Error).message || "Approval failed.";
+      const msg = (err as Error).message || t("Approval failed.");
       toast.error(msg);
       // Contract is no longer in DRAFT — dismiss the stuck notification
       if (/draft|not found|already/i.test(msg)) softDismiss(n.id);
@@ -121,9 +123,9 @@ export function OperatorBadge() {
     try {
       await markRead(n.id);
       await reject(n.contract_id);
-      toast.success("Contract rejected.");
+      toast.success(t("Contract rejected."));
     } catch (err) {
-      const msg = (err as Error).message || "Rejection failed.";
+      const msg = (err as Error).message || t("Rejection failed.");
       toast.error(msg);
       if (/draft|not found|already/i.test(msg)) softDismiss(n.id);
     } finally {
@@ -137,7 +139,7 @@ export function OperatorBadge() {
       const res = await apiGetContractDocumentUrl(contractId);
       window.open(res.signed_url, "_blank", "noopener,noreferrer");
     } catch {
-      toast.error("No document is attached to this contract.");
+      toast.error(t("No document is attached to this contract."));
     } finally {
       setFetchingDoc(null);
     }
@@ -154,7 +156,7 @@ export function OperatorBadge() {
           className="relative flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1 font-mono text-[9.5px] uppercase tracking-widest text-foreground transition hover:bg-accent/10"
         >
           <span className="flex items-center gap-1.5 leading-none text-success">
-            Profile Settings
+            {t("Profile Settings")}
           </span>
           {unreadCount > 0 && (
             <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive px-1 font-mono text-[8px] font-bold text-destructive-foreground">
@@ -173,7 +175,7 @@ export function OperatorBadge() {
         {/* Header row */}
         <div className="flex items-center justify-between border-b border-border bg-background/40 px-3 py-2">
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Operator Profile
+            {t("Operator Profile")}
           </span>
           <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-success">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
@@ -183,10 +185,10 @@ export function OperatorBadge() {
 
         <div className="space-y-3 p-3.5">
           {/* Identity */}
-          <Row icon={<Hash className="h-3 w-3" />} label="Operator ID" value={operator.operatorId} mono />
-          <Row icon={<Hash className="h-3 w-3" />} label="Full Name"   value={operator.fullName} />
-          <Row icon={<Building2 className="h-3 w-3" />} label="Organization" value={operator.organization} />
-          <Row icon={<Mail className="h-3 w-3" />} label="Operator Email" value={operator.email} mono />
+          <Row icon={<Hash className="h-3 w-3" />} label={t("Operator ID")} value={operator.operatorId} mono />
+          <Row icon={<Hash className="h-3 w-3" />} label={t("Full Name")}   value={operator.fullName} />
+          <Row icon={<Building2 className="h-3 w-3" />} label={t("Organization")} value={operator.organization} />
+          <Row icon={<Mail className="h-3 w-3" />} label={t("Operator Email")} value={operator.email} mono />
 
           <EmailVerificationBanner verified={operator.emailVerified} />
           <PhoneVerificationBanner
@@ -195,7 +197,7 @@ export function OperatorBadge() {
             emailVerified={operator.emailVerified}
           />
 
-          <Row icon={<MapPin className="h-3 w-3" />} label="Jurisdiction" value={`${operator.city} · ${operator.country}`} />
+          <Row icon={<MapPin className="h-3 w-3" />} label={t("Jurisdiction")} value={`${operator.city} · ${operator.country}`} />
 
           <ProfileEditor />
 
@@ -203,7 +205,7 @@ export function OperatorBadge() {
           <div>
             <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               <ShieldCheck className="h-3 w-3" />
-              Signer Address · Active Settlement Authority
+              {t("Signer Address · Active Settlement Authority")}
             </div>
             <div className="mt-1 flex items-center gap-1.5">
               <code className="flex-1 truncate rounded-md border border-border bg-background/60 px-2 py-1 font-mono text-[11px] text-foreground">
@@ -222,14 +224,13 @@ export function OperatorBadge() {
           <div>
             <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               <KeyRound className="h-3 w-3" />
-              Signer custody
+              {t("Signer custody")}
             </div>
             <div className="mt-1 rounded-md border border-border bg-background/60 px-2 py-1.5 font-mono text-[11px] text-foreground">
-              Backend custody · ed25519 · {operator.wallet.status}
+              {t("Backend custody")} · ed25519 · {operator.wallet.status}
             </div>
             <div className="mt-1 font-mono text-[10px] text-muted-foreground">
-              Secret seed held by EnergyPay backend. Settlement signing is performed
-              server-side on {STELLAR_NETWORK_LABEL}.
+              {t("Secret seed held by EnergyPay backend. Settlement signing is performed server-side on")} {STELLAR_NETWORK_LABEL}.
             </div>
           </div>
 
@@ -238,16 +239,16 @@ export function OperatorBadge() {
           {/* Roles */}
           <div>
             <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Market Participant Roles
+              {t("Market Participant Roles")}
             </div>
             <div className="mt-1 flex flex-wrap gap-1">
               {operator.roles.length === 0 && (
-                <span className="font-mono text-[10px] text-muted-foreground">No roles provisioned</span>
+                <span className="font-mono text-[10px] text-muted-foreground">{t("No roles provisioned")}</span>
               )}
               {operator.roles.map((r) => (
                 <span key={r}
                   className={`rounded-sm border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-widest ${ROLE_META[r].color.border} ${ROLE_META[r].color.bg} ${ROLE_META[r].color.text}`}>
-                  {ROLE_META[r].label}
+                  {t(ROLE_META[r].label)}
                 </span>
               ))}
             </div>
@@ -256,23 +257,23 @@ export function OperatorBadge() {
           {operator.pendingRoles.length > 0 && (
             <div className="rounded-md border border-warning/40 bg-warning/10 px-2.5 py-1.5">
               <span className="font-mono text-[10px] uppercase tracking-widest text-warning">
-                Awaiting admin approval: {operator.pendingRoles.map((r) => ROLE_META[r].label).join(", ")}
+                {t("Awaiting admin approval:")} {operator.pendingRoles.map((r) => t(ROLE_META[r].label)).join(", ")}
               </span>
             </div>
           )}
 
           {/* Mini stats */}
           <div className="grid grid-cols-2 gap-2 font-mono text-[10px] uppercase tracking-widest">
-            <Mini label="Access Level"  value={operator.accessLevel.replace("_", " ")} />
-            <Mini label="Network"       value={operator.network || "Stellar"} />
-            <Mini label="Funded"        value={operator.funded ? "Yes" : "No"} />
-            <Mini label="Connectivity"  value="Horizon · OK" tone="success" />
+            <Mini label={t("Access Level")}  value={operator.accessLevel.replace("_", " ")} />
+            <Mini label={t("Network")}       value={operator.network || "Stellar"} />
+            <Mini label={t("Funded")}        value={operator.funded ? t("Yes") : t("No")} />
+            <Mini label={t("Connectivity")}  value="Horizon · OK" tone="success" />
           </div>
 
           {/* Permissions */}
           <div>
             <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Reconciliation Permissions
+              {t("Reconciliation Permissions")}
             </div>
             <div className="mt-1 flex flex-wrap gap-1">
               {operator.permissions.map((p) => (
@@ -292,12 +293,12 @@ export function OperatorBadge() {
               <div className="flex items-center gap-2">
                 <Bell className="h-3 w-3 text-muted-foreground" />
                 <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Notifications
+                  {t("Notifications")}
                 </span>
                 {unreadCount > 0 && (
                   <Badge variant="outline"
                     className="h-4 border-destructive/40 px-1.5 font-mono text-[9px] text-destructive">
-                    {unreadCount} new
+                    {unreadCount} {t("new")}
                   </Badge>
                 )}
               </div>
@@ -306,7 +307,7 @@ export function OperatorBadge() {
                   <button onClick={markAllRead}
                     className="flex items-center gap-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground hover:text-foreground">
                     <CheckCheck className="h-3 w-3" />
-                    Mark all read
+                    {t("Mark all read")}
                   </button>
                 )}
                 <button
@@ -314,7 +315,7 @@ export function OperatorBadge() {
                   className="flex items-center gap-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground hover:text-primary"
                 >
                   <ArrowUpRight className="h-3 w-3" />
-                  View all
+                  {t("View all")}
                 </button>
               </div>
             </div>
@@ -324,7 +325,7 @@ export function OperatorBadge() {
               {notifications.length === 0 ? (
                 <div className="py-8 text-center">
                   <Bell className="mx-auto mb-2 h-5 w-5 text-muted-foreground/30" />
-                  <p className="font-mono text-[10px] text-muted-foreground">No notifications</p>
+                  <p className="font-mono text-[10px] text-muted-foreground">{t("No notifications")}</p>
                 </div>
               ) : (
                 notifications.map((n) => (
@@ -362,7 +363,7 @@ export function OperatorBadge() {
                           {approving === n.contract_id
                             ? <Loader2 className="h-2.5 w-2.5 animate-spin" />
                             : <Check className="h-2.5 w-2.5" />}
-                          Approve
+                          {t("Approve")}
                         </Button>
                         <Button size="sm" variant="outline"
                           className="h-6 gap-1 border-destructive/40 font-mono text-[9px] uppercase tracking-widest text-destructive hover:bg-destructive/10"
@@ -371,7 +372,7 @@ export function OperatorBadge() {
                           {rejecting === n.contract_id
                             ? <Loader2 className="h-2.5 w-2.5 animate-spin" />
                             : <X className="h-2.5 w-2.5" />}
-                          Reject
+                          {t("Reject")}
                         </Button>
                         <Button size="sm" variant="ghost"
                           className="h-6 gap-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
@@ -380,7 +381,7 @@ export function OperatorBadge() {
                           {fetchingDoc === n.contract_id
                             ? <Loader2 className="h-2.5 w-2.5 animate-spin" />
                             : <FileText className="h-2.5 w-2.5" />}
-                          Document
+                          {t("Document")}
                         </Button>
                       </div>
                     )}
@@ -398,7 +399,7 @@ export function OperatorBadge() {
               {useUiStore.getState().theme === "dark"
                 ? <Moon className="h-3 w-3" />
                 : <Sun className="h-3 w-3" />}
-              Interface Theme
+              {t("Interface Theme")}
             </span>
             <ThemeToggle />
           </div>
@@ -408,11 +409,11 @@ export function OperatorBadge() {
         <div className="flex items-center justify-between border-t border-border bg-background/40 px-3 py-2">
           <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             <Activity className="h-3 w-3 text-success" />
-            Session active
+            {t("Session active")}
           </span>
           <Button type="button" variant="outline" size="sm" onClick={onLogout}
             className="h-7 px-2 font-mono text-[10px] uppercase tracking-widest">
-            <LogOut className="h-3 w-3" /> Sign out
+            <LogOut className="h-3 w-3" /> {t("Sign out")}
           </Button>
         </div>
       </PopoverContent>
@@ -425,6 +426,7 @@ export function OperatorBadge() {
 function ProfileEditor() {
   const operator   = useOperator((s) => s.operator);
   const setProfile = useOperator((s) => s.setProfile);
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving]   = useState(false);
   const clean = (v?: string) => (v && v !== "—" ? v : "");
@@ -439,7 +441,7 @@ function ProfileEditor() {
   if (!operator) return null;
 
   const handleSave = async () => {
-    if (!form.fullName.trim()) { toast.error("Full name is required."); return; }
+    if (!form.fullName.trim()) { toast.error(t("Full name is required.")); return; }
     setSaving(true);
     try {
       await apiUpdateProfile({
@@ -456,10 +458,10 @@ function ProfileEditor() {
         state:        form.state.trim() || undefined,
         city:         form.city.trim() || "—",
       });
-      toast.success("Profile updated.");
+      toast.success(t("Profile updated."));
       setEditing(false);
     } catch (err) {
-      toast.error((err as Error).message || "Failed to update profile.");
+      toast.error((err as Error).message || t("Failed to update profile."));
     } finally {
       setSaving(false);
     }
@@ -469,7 +471,7 @@ function ProfileEditor() {
     return (
       <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}
         className="h-7 w-full font-mono text-[10px] uppercase tracking-widest">
-        <Pencil className="mr-1.5 h-3 w-3" /> Edit Profile
+        <Pencil className="mr-1.5 h-3 w-3" /> {t("Edit Profile")}
       </Button>
     );
   }
@@ -485,12 +487,12 @@ function ProfileEditor() {
   return (
     <div className="space-y-2 rounded-md border border-border bg-background/40 p-2.5">
       <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-        Edit Profile
+        {t("Edit Profile")}
       </div>
       {fields.map(([k, label]) => (
         <div key={k} className="space-y-1">
           <label className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
-            {label}
+            {t(label)}
           </label>
           <Input
             value={form[k]}
@@ -501,14 +503,14 @@ function ProfileEditor() {
         </div>
       ))}
       <p className="font-mono text-[9px] text-muted-foreground/60">
-        Email, password, phone and roles are managed in their own sections.
+        {t("Email, password, phone and roles are managed in their own sections.")}
       </p>
       <div className="flex justify-end gap-2 pt-0.5">
         <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(false)} disabled={saving}
-          className="h-7 font-mono text-[10px] uppercase tracking-widest">Cancel</Button>
+          className="h-7 font-mono text-[10px] uppercase tracking-widest">{t("Cancel")}</Button>
         <Button type="button" size="sm" onClick={handleSave} disabled={saving}
           className="h-7 font-mono text-[10px] uppercase tracking-widest">
-          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : t("Save")}
         </Button>
       </div>
     </div>
@@ -540,6 +542,7 @@ function Mini({ label, value, tone }: { label: string; value: string; tone?: "su
 }
 
 function EmailVerificationBanner({ verified }: { verified: boolean }) {
+  const t = useT();
   const [sending, setSending] = useState(false);
   const setEmailVerified = useOperator((s) => s.setEmailVerified);
 
@@ -547,7 +550,7 @@ function EmailVerificationBanner({ verified }: { verified: boolean }) {
     return (
       <div className="flex items-center gap-2 rounded-md border border-success/40 bg-success/10 px-2.5 py-1.5">
         <MailCheck className="h-3.5 w-3.5 text-success" />
-        <span className="font-mono text-[10px] uppercase tracking-widest text-success">Email verified</span>
+        <span className="font-mono text-[10px] uppercase tracking-widest text-success">{t("Email verified")}</span>
       </div>
     );
   }
@@ -558,12 +561,12 @@ function EmailVerificationBanner({ verified }: { verified: boolean }) {
       const res = await apiResendVerification();
       if (res.already_verified) {
         setEmailVerified(true);
-        toast.success("Email already verified!");
+        toast.success(t("Email already verified!"));
       } else {
-        toast.success("Verification email sent — check your inbox.");
+        toast.success(t("Verification email sent — check your inbox."));
       }
     } catch (err) {
-      toast.error((err as Error).message || "Failed to send verification email.");
+      toast.error((err as Error).message || t("Failed to send verification email."));
     } finally {
       setSending(false);
     }
@@ -573,21 +576,22 @@ function EmailVerificationBanner({ verified }: { verified: boolean }) {
     <div className="rounded-md border border-warning/40 bg-warning/10 p-2.5">
       <div className="flex items-center gap-2">
         <AlertTriangle className="h-3.5 w-3.5 text-warning" />
-        <span className="font-mono text-[10px] uppercase tracking-widest text-warning">Email not verified</span>
+        <span className="font-mono text-[10px] uppercase tracking-widest text-warning">{t("Email not verified")}</span>
       </div>
       <p className="mt-1 text-[11px] text-muted-foreground">
-        Verify your email to appear on the Operational Grid and enable full settlement capabilities.
+        {t("Verify your email to appear on the Operational Grid and enable full settlement capabilities.")}
       </p>
       <Button type="button" variant="outline" size="sm" onClick={handleResend} disabled={sending}
         className="mt-2 h-7 w-full font-mono text-[10px] uppercase tracking-widest">
         {sending ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Mail className="mr-1.5 h-3 w-3" />}
-        {sending ? "Sending…" : "Send Verification Email"}
+        {sending ? t("Sending…") : t("Send Verification Email")}
       </Button>
     </div>
   );
 }
 
 function PhoneVerificationBanner({ verified, hasPhone, emailVerified }: { verified: boolean; hasPhone: boolean; emailVerified: boolean }) {
+  const t = useT();
   const [sending, setSending]   = useState(false);
   const [codeSent, setCodeSent] = useState(false);
   const [code, setCode]         = useState("");
@@ -598,7 +602,7 @@ function PhoneVerificationBanner({ verified, hasPhone, emailVerified }: { verifi
     return (
       <div className="flex items-center gap-2 rounded-md border border-success/40 bg-success/10 px-2.5 py-1.5">
         <PhoneCall className="h-3.5 w-3.5 text-success" />
-        <span className="font-mono text-[10px] uppercase tracking-widest text-success">Phone verified</span>
+        <span className="font-mono text-[10px] uppercase tracking-widest text-success">{t("Phone verified")}</span>
       </div>
     );
   }
@@ -608,7 +612,7 @@ function PhoneVerificationBanner({ verified, hasPhone, emailVerified }: { verifi
       <div className="flex items-center gap-2 rounded-md border border-border bg-background/40 px-2.5 py-1.5">
         <Phone className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          Phone verification · Verify email first
+          {t("Phone verification · Verify email first")}
         </span>
       </div>
     );
@@ -622,21 +626,21 @@ function PhoneVerificationBanner({ verified, hasPhone, emailVerified }: { verifi
       const res = await apiSendPhoneCode();
       if (res.already_verified) {
         setPhoneVerified(true);
-        toast.success("Phone already verified!");
+        toast.success(t("Phone already verified!"));
       } else {
         setCodeSent(true);
         if (res.dev_code) {
           // WhatsApp sandbox fallback — show code directly so operators can test
           toast.info(`[DEV] OTP provider unavailable. Your code: ${res.dev_code}`, {
             duration: 60000,
-            description: "This message only appears in development when no provider is configured.",
+            description: t("This message only appears in development when no provider is configured."),
           });
         } else {
-          toast.success("Verification code sent to your phone.");
+          toast.success(t("Verification code sent to your phone."));
         }
       }
     } catch (err) {
-      toast.error((err as Error).message || "Failed to send code.");
+      toast.error((err as Error).message || t("Failed to send code."));
     } finally {
       setSending(false);
     }
@@ -648,11 +652,11 @@ function PhoneVerificationBanner({ verified, hasPhone, emailVerified }: { verifi
     try {
       await apiVerifyPhoneCode(code.trim());
       setPhoneVerified(true);
-      toast.success("Phone verified successfully!");
+      toast.success(t("Phone verified successfully!"));
       setCodeSent(false);
       setCode("");
     } catch (err) {
-      toast.error((err as Error).message || "Invalid code.");
+      toast.error((err as Error).message || t("Invalid code."));
     } finally {
       setVerifying(false);
     }
@@ -662,16 +666,16 @@ function PhoneVerificationBanner({ verified, hasPhone, emailVerified }: { verifi
     <div className="rounded-md border border-warning/40 bg-warning/10 p-2.5">
       <div className="flex items-center gap-2">
         <Phone className="h-3.5 w-3.5 text-warning" />
-        <span className="font-mono text-[10px] uppercase tracking-widest text-warning">Phone not verified</span>
+        <span className="font-mono text-[10px] uppercase tracking-widest text-warning">{t("Phone not verified")}</span>
       </div>
       <p className="mt-1 text-[11px] text-muted-foreground">
-        Verify your phone to be visible to other participants and enable settlements.
+        {t("Verify your phone to be visible to other participants and enable settlements.")}
       </p>
       {!codeSent ? (
         <Button type="button" variant="outline" size="sm" onClick={handleSendCode} disabled={sending}
           className="mt-2 h-7 w-full font-mono text-[10px] uppercase tracking-widest">
           {sending ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Phone className="mr-1.5 h-3 w-3" />}
-          {sending ? "Sending…" : "Send Verification Code"}
+          {sending ? t("Sending…") : t("Send Verification Code")}
         </Button>
       ) : (
         <div className="mt-2 space-y-2">
@@ -682,12 +686,12 @@ function PhoneVerificationBanner({ verified, hasPhone, emailVerified }: { verifi
             <Button type="button" variant="outline" size="sm" onClick={handleVerify}
               disabled={verifying || code.length < 6}
               className="h-7 px-3 font-mono text-[10px] uppercase tracking-widest">
-              {verifying ? <Loader2 className="h-3 w-3 animate-spin" /> : "Verify"}
+              {verifying ? <Loader2 className="h-3 w-3 animate-spin" /> : t("Verify")}
             </Button>
           </div>
           <button type="button" onClick={handleSendCode} disabled={sending}
             className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary">
-            Resend code
+            {t("Resend code")}
           </button>
         </div>
       )}
@@ -696,20 +700,21 @@ function PhoneVerificationBanner({ verified, hasPhone, emailVerified }: { verifi
 }
 
 function PhoneRegisterForm() {
+  const t = useT();
   const [phone, setPhoneInput] = useState("");
   const [saving, setSaving]    = useState(false);
   const setPhone = useOperator((s) => s.setPhone);
 
   const handleSave = async () => {
     const clean = phone.replace(/[^\d+]/g, "");
-    if (clean.length < 8) { toast.error("Enter a valid phone number (min 8 digits)."); return; }
+    if (clean.length < 8) { toast.error(t("Enter a valid phone number (min 8 digits).")); return; }
     setSaving(true);
     try {
       await apiUpdatePhone(clean);
       setPhone(clean);
-      toast.success("Phone number saved. You can now verify it.");
+      toast.success(t("Phone number saved. You can now verify it."));
     } catch (err) {
-      toast.error((err as Error).message || "Failed to save phone.");
+      toast.error((err as Error).message || t("Failed to save phone."));
     } finally {
       setSaving(false);
     }
@@ -719,16 +724,16 @@ function PhoneRegisterForm() {
     <div className="rounded-md border border-warning/40 bg-warning/10 p-2.5">
       <div className="flex items-center gap-2">
         <Phone className="h-3.5 w-3.5 text-warning" />
-        <span className="font-mono text-[10px] uppercase tracking-widest text-warning">No phone registered</span>
+        <span className="font-mono text-[10px] uppercase tracking-widest text-warning">{t("No phone registered")}</span>
       </div>
-      <p className="mt-1 text-[11px] text-muted-foreground">Add your phone number to proceed with verification.</p>
+      <p className="mt-1 text-[11px] text-muted-foreground">{t("Add your phone number to proceed with verification.")}</p>
       <div className="mt-2 flex gap-2">
         <Input value={phone} onChange={(e) => setPhoneInput(e.target.value)}
           placeholder="+55 24 99999-0000" className="h-7 flex-1 font-mono text-xs" />
         <Button type="button" variant="outline" size="sm" onClick={handleSave}
           disabled={saving || phone.replace(/[^\d+]/g, "").length < 8}
           className="h-7 px-3 font-mono text-[10px] uppercase tracking-widest">
-          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : t("Save")}
         </Button>
       </div>
     </div>

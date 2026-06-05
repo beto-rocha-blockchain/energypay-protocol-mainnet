@@ -10,6 +10,7 @@ import {
 } from "@/components/ops/primitives";
 import { TOPO_NODES, TOPO_EDGES, fmtNum, type TopoNode } from "@/lib/institutional-data";
 import { Factory, Building2, Briefcase, Home, Users, Wallet } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/topology")({
   head: () => ({
@@ -47,6 +48,7 @@ const typeColor = (t: string) =>
           : "#38bdf8";
 
 function TopologyPage() {
+  const t = useT();
   const [sel, setSel] = useState<TopoNode>(TOPO_NODES[4]);
   const onlineCount = TOPO_NODES.filter((n) => n.status === "ONLINE").length;
   const degradedCount = TOPO_NODES.filter((n) => n.status === "DEGRADED").length;
@@ -57,30 +59,30 @@ function TopologyPage() {
     <div className="space-y-3">
       <div className="flex items-end justify-between">
         <div>
-          <p className="label-op">SCADA · National Interconnected System</p>
+          <p className="label-op">{t("SCADA · National Interconnected System")}</p>
           <h1 className="font-display text-2xl font-semibold tracking-tight">
-            Energy Network Topology
+            {t("Energy Network Topology")}
           </h1>
         </div>
         <SeverityBadge
           level={degradedCount > 0 ? "WARN" : "OK"}
-          label={`${degradedCount} DEGRADED · ${onlineCount} ONLINE`}
+          label={`${degradedCount} ${t("DEGRADED")} · ${onlineCount} ${t("ONLINE")}`}
         />
       </div>
 
       <KpiStrip>
-        <KpiTile label="Total Nodes" value={TOPO_NODES.length} tone="primary" />
-        <KpiTile label="Online" value={onlineCount} tone="ok" />
-        <KpiTile label="Degraded" value={degradedCount} tone="warn" />
-        <KpiTile label="Corridors Flowing" value={`${flowing}/${TOPO_EDGES.length}`} tone="ok" />
-        <KpiTile label="Aggregate Dispatch" value={fmtNum(totalLoad)} unit="MW" tone="primary" />
-        <KpiTile label="Submercados" value="4" sub="SE/CO · S · NE · N" />
+        <KpiTile label={t("Total Nodes")} value={TOPO_NODES.length} tone="primary" />
+        <KpiTile label={t("Online")} value={onlineCount} tone="ok" />
+        <KpiTile label={t("Degraded")} value={degradedCount} tone="warn" />
+        <KpiTile label={t("Corridors Flowing")} value={`${flowing}/${TOPO_EDGES.length}`} tone="ok" />
+        <KpiTile label={t("Aggregate Dispatch")} value={fmtNum(totalLoad)} unit="MW" tone="primary" />
+        <KpiTile label={t("Submercados")} value="4" sub="SE/CO · S · NE · N" />
       </KpiStrip>
 
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-4">
         <Panel
-          title="Regional SCADA Map"
-          subtitle="Topology · live participant + corridor state"
+          title={t("Regional SCADA Map")}
+          subtitle={t("Topology · live participant + corridor state")}
           className="xl:col-span-3"
         >
           <div className="relative aspect-[3/2] w-full overflow-hidden rounded-sm border border-border bg-background/40 grid-bg">
@@ -181,7 +183,7 @@ function TopologyPage() {
           </div>
         </Panel>
 
-        <Panel title="Node Inspector" subtitle="Selected participant telemetry">
+        <Panel title={t("Node Inspector")} subtitle={t("Selected participant telemetry")}>
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-sm border border-border bg-background/60">
               {(() => {
@@ -197,30 +199,30 @@ function TopologyPage() {
             </div>
           </div>
           <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-[11.5px]">
-            <dt className="label-op">Submercado</dt>
+            <dt className="label-op">{t("Submercado")}</dt>
             <dd className="font-mono">{sel.submercado}</dd>
-            <dt className="label-op">Status</dt>
+            <dt className="label-op">{t("Status")}</dt>
             <dd className="inline-flex items-center gap-1.5">
               <StatusDot
                 tone={sel.status === "ONLINE" ? "ok" : sel.status === "DEGRADED" ? "warn" : "bad"}
               />
               <span className="font-mono text-[10px] uppercase tracking-widest">{sel.status}</span>
             </dd>
-            <dt className="label-op">Dispatch</dt>
+            <dt className="label-op">{t("Dispatch")}</dt>
             <dd>
               <CellNum>{fmtNum(sel.loadMw)} MW</CellNum>
             </dd>
-            <dt className="label-op">Settlement Conn</dt>
+            <dt className="label-op">{t("Settlement Conn")}</dt>
             <dd>
-              <CellNum tone="ok">VERIFIED</CellNum>
+              <CellNum tone="ok">{t("VERIFIED")}</CellNum>
             </dd>
-            <dt className="label-op">Trustline</dt>
+            <dt className="label-op">{t("Trustline")}</dt>
             <dd className="font-mono text-[10px]">EPWR · OK</dd>
-            <dt className="label-op">Last Heartbeat</dt>
-            <dd className="font-mono text-[10px]">3.2s ago</dd>
+            <dt className="label-op">{t("Last Heartbeat")}</dt>
+            <dd className="font-mono text-[10px]">3.2s {t("ago")}</dd>
           </dl>
           <div className="mt-3 border-t border-border pt-3">
-            <p className="label-op mb-1">Connected Corridors</p>
+            <p className="label-op mb-1">{t("Connected Corridors")}</p>
             <ul className="space-y-1 font-mono text-[10.5px]">
               {TOPO_EDGES.filter((e) => e.from === sel.id || e.to === sel.id).map((e, i) => (
                 <li key={i} className="flex justify-between">
@@ -239,7 +241,7 @@ function TopologyPage() {
                 </li>
               ))}
               {TOPO_EDGES.filter((e) => e.from === sel.id || e.to === sel.id).length === 0 && (
-                <li className="text-muted-foreground">No active corridors</li>
+                <li className="text-muted-foreground">{t("No active corridors")}</li>
               )}
             </ul>
           </div>

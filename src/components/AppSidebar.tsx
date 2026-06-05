@@ -40,6 +40,7 @@ import { Button } from "@/components/ui/button";
 
 import { useOperator, SUBSCRIPTION_PLAN_META, type SubscriptionPlan } from "@/store/operator";
 import { BrandBadge } from "@/components/BrandLogo";
+import { useT } from "@/lib/i18n";
 
 type Role = "GENERATOR" | "SELLER" | "INVESTOR" | "USER" | "UTILITY" | "REGULATORY_AUTHORITY";
 
@@ -222,6 +223,7 @@ function Group({ label, items, path, open, onOpenChange }: {
 }) {
   const navigate = useNavigate();
   const { state } = useSidebar();
+  const t = useT();
 
   if (items.length === 0) return null;
 
@@ -241,7 +243,7 @@ function Group({ label, items, path, open, onOpenChange }: {
           className="px-2 font-mono text-[9.5px] font-medium tracking-[0.22em] text-muted-foreground/75"
         >
           <CollapsibleTrigger className="w-full cursor-pointer transition-colors hover:text-muted-foreground">
-            {label}
+            {t(label)}
             <ChevronDown className="ml-auto h-3 w-3 shrink-0 text-muted-foreground/55 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
           </CollapsibleTrigger>
         </SidebarGroupLabel>
@@ -258,7 +260,7 @@ function Group({ label, items, path, open, onOpenChange }: {
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton
                       isActive={active}
-                      tooltip={{ children: item.title, className: "font-mono text-[11px]" }}
+                      tooltip={{ children: t(item.title), className: "font-mono text-[11px]" }}
                       className="relative h-6 cursor-pointer select-none rounded-sm pl-2 pr-1 data-[active=true]:bg-sidebar-accent/70"
                       onClick={() => navigate({ to: item.url })}
                     >
@@ -271,7 +273,7 @@ function Group({ label, items, path, open, onOpenChange }: {
 
                       <item.icon className="h-3.5 w-3.5 shrink-0" />
 
-                      <span className="truncate text-[12px] leading-none">{item.title}</span>
+                      <span className="truncate text-[12px] leading-none">{t(item.title)}</span>
 
                       <span className="ml-auto font-mono text-[9px] tracking-widest text-muted-foreground/55">
                         {item.code}
@@ -299,6 +301,7 @@ const PLAN_ICONS: Record<SubscriptionPlan, React.ComponentType<{ className?: str
 function SubscriptionPanel() {
   const navigate  = useNavigate();
   const { state } = useSidebar();
+  const t = useT();
   const isIconMode = state === "collapsed";
   const operator  = useOperator((s) => s.operator);
 
@@ -321,7 +324,7 @@ function SubscriptionPanel() {
         <button
           onClick={() => navigate({ to: "/subscription" })}
           className="flex h-8 w-8 items-center justify-center rounded-md border border-sidebar-border bg-sidebar hover:bg-sidebar-accent"
-          title={`${meta.label} plan`}
+          title={`${meta.label} ${t("plan")}`}
         >
           <PlanIcon className={`h-3.5 w-3.5 ${meta.textColor}`} />
         </button>
@@ -355,7 +358,7 @@ function SubscriptionPanel() {
               ? "bg-success/10 text-success"
               : "bg-destructive/10 text-destructive"
           }`}>
-            {statusLabel[sub.status] ?? sub.status}
+            {t(statusLabel[sub.status] ?? sub.status)}
           </span>
         </div>
 
@@ -363,7 +366,7 @@ function SubscriptionPanel() {
         {sub.plan === "FREE" && sub.settlementsLimit && (
           <div className="mt-2 space-y-1">
             <div className="flex justify-between">
-              <span className="font-mono text-[9px] text-muted-foreground">Settlements</span>
+              <span className="font-mono text-[9px] text-muted-foreground">{t("Settlements")}</span>
               <span className="font-mono text-[9px] text-muted-foreground">
                 {sub.settlementsUsed ?? 0}/{sub.settlementsLimit}
               </span>
@@ -380,7 +383,7 @@ function SubscriptionPanel() {
         {/* Paid plan: renewal date or cancellation notice */}
         {sub.plan !== "FREE" && periodEndLabel && (
           <p className="mt-1.5 font-mono text-[9px] text-muted-foreground">
-            {sub.cancelAtPeriodEnd ? "Expires" : "Renews"} {periodEndLabel}
+            {sub.cancelAtPeriodEnd ? t("Expires") : t("Renews")} {periodEndLabel}
           </p>
         )}
 
@@ -390,7 +393,7 @@ function SubscriptionPanel() {
           className={`mt-2 h-6 w-full border font-mono text-[9px] uppercase tracking-widest ${meta.borderColor} ${meta.textColor} hover:${meta.bgColor}`}
           onClick={() => navigate({ to: "/subscription" })}
         >
-          {sub.plan === "FREE" ? "Upgrade →" : "Manage Subscription →"}
+          {sub.plan === "FREE" ? t("Upgrade →") : t("Manage Subscription →")}
         </Button>
       </div>
     </SidebarFooter>
@@ -403,6 +406,7 @@ export function AppSidebar() {
   });
   const navigate = useNavigate();
   const { setOpenMobile } = useSidebar();
+  const t = useT();
 
   const operator = useOperator((s) => s.operator);
   const roles = (operator?.roles ?? []) as Role[];
@@ -461,7 +465,7 @@ export function AppSidebar() {
       {/* Brand tagline — moved below the header divider; pushes the nav down. */}
       <div className="border-b border-sidebar-border px-3 py-2 group-data-[collapsible=icon]:hidden">
         <span className="block text-center font-mono text-[9px] uppercase leading-tight tracking-[0.12em] text-muted-foreground">
-          Programmable Pre-Clearing &amp; <span className="whitespace-nowrap">Settlement Infrastructure</span>
+          {t("Programmable Pre-Clearing &")} <span className="whitespace-nowrap">{t("Settlement Infrastructure")}</span>
         </span>
       </div>
 
@@ -486,14 +490,14 @@ export function AppSidebar() {
               <SidebarGroupLabel
                 className="px-2 font-mono text-[9.5px] font-medium tracking-[0.22em] text-violet-400/70"
               >
-                Platform Admin
+                {t("Platform Admin")}
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-[2px]">
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       isActive={path === "/admin"}
-                      tooltip={{ children: "Platform Admin", className: "font-mono text-[11px]" }}
+                      tooltip={{ children: t("Platform Admin"), className: "font-mono text-[11px]" }}
                       className="relative h-6 cursor-pointer select-none rounded-sm pl-2 pr-1 data-[active=true]:bg-violet-500/10"
                       onClick={() => navigate({ to: "/admin" })}
                     >
@@ -504,7 +508,7 @@ export function AppSidebar() {
                         />
                       )}
                       <Shield className="h-3.5 w-3.5 shrink-0 text-violet-400" />
-                      <span className="truncate text-[12px] leading-none">Platform Admin</span>
+                      <span className="truncate text-[12px] leading-none">{t("Platform Admin")}</span>
                       <span className="ml-auto font-mono text-[9px] tracking-widest text-violet-400/50">ADM-01</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

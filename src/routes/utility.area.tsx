@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { apiGetUtilityParticipants } from "@/lib/api";
 import { maskAddress, ROLE_COLORS } from "@/store/operator";
 import { RequireRole } from "@/components/RequireRole";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/utility/area")({
   component: () => (
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/utility/area")({
 });
 
 function UtilityAreaPage() {
+  const t = useT();
   const [participants, setParticipants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,7 +27,7 @@ function UtilityAreaPage() {
         const res = await apiGetUtilityParticipants();
         setParticipants(res.participants ?? []);
       } catch (err) {
-        toast.error(`Failed to load concession area data: ${(err as Error).message}`);
+        toast.error(`${t("Failed to load concession area data:")} ${(err as Error).message}`);
       } finally {
         setLoading(false);
       }
@@ -40,16 +42,15 @@ function UtilityAreaPage() {
       <div className="flex items-center gap-3">
         <MapPin className="h-5 w-5 text-orange-400" />
         <h1 className="font-mono text-sm uppercase tracking-widest text-orange-400">
-          Concession Area — UTL-05
+          {t("Concession Area")} — UTL-05
         </h1>
       </div>
 
       {/* Description */}
       <Card className="border-orange-400/20 bg-orange-400/5 p-4">
         <p className="font-mono text-xs text-muted-foreground">
-          Distribution concession areas registered on the EnergyPay platform.
-          Each operator with role{" "}
-          <span className="text-orange-400">UTILITY</span> represents a licensed distribution concessionaire.
+          {t("Distribution concession areas registered on the EnergyPay platform. Each operator with role")}{" "}
+          <span className="text-orange-400">UTILITY</span> {t("represents a licensed distribution concessionaire.")}
         </p>
       </Card>
 
@@ -57,12 +58,12 @@ function UtilityAreaPage() {
       {loading ? (
         <div className="flex items-center justify-center gap-2 p-12 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span className="font-mono text-xs uppercase tracking-widest">Loading…</span>
+          <span className="font-mono text-xs uppercase tracking-widest">{t("Loading…")}</span>
         </div>
       ) : participants.length === 0 ? (
         <Card className="flex flex-1 items-center justify-center border-orange-400/20 bg-orange-400/5 p-12">
           <p className="font-mono text-xs text-muted-foreground text-center max-w-md">
-            No distribution operators registered. Operators with the UTILITY role appear here.
+            {t("No distribution operators registered. Operators with the UTILITY role appear here.")}
           </p>
         </Card>
       ) : (

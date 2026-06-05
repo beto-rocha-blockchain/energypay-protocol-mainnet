@@ -71,6 +71,7 @@ import {
 import { TransactionSigningModal } from "@/components/TransactionSigningModal";
 import { toast } from "sonner";
 import { useOperator } from "@/store/operator";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/contracts/")({
   head: () => ({
@@ -213,6 +214,7 @@ function LifecycleActions({
   dbContract: DbContract | null;
   onRefresh: () => void;
 }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [movements, setMovements] = useState<ContractMovement[]>([]);
   const [reconciliation, setReconciliation] = useState<ContractReconciliation | null>(null);
@@ -256,7 +258,7 @@ function LifecycleActions({
       const res = await apiReconcileContract(dbContract.id);
       setReconciliation(res.reconciliation);
     } catch (err) {
-      toast.error("Reconciliation failed", { description: (err as Error).message });
+      toast.error(t("Reconciliation failed"), { description: (err as Error).message });
     } finally {
       setReconLoading(false);
     }
@@ -276,10 +278,10 @@ function LifecycleActions({
     setBusy(true);
     try {
       await apiActivateContract(dbContract.id);
-      toast.success("Contract activated", { description: "Status: ACTIVE · State: VALIDATED" });
+      toast.success(t("Contract activated"), { description: t("Status: ACTIVE · State: VALIDATED") });
       onRefresh();
     } catch (err) {
-      toast.error("Activation failed", { description: (err as Error).message });
+      toast.error(t("Activation failed"), { description: (err as Error).message });
     } finally {
       setBusy(false);
     }
@@ -289,12 +291,12 @@ function LifecycleActions({
     setBusy(true);
     try {
       const res = await apiRequestSettlement(dbContract.id);
-      toast.success("Settlement requested", {
-        description: `Instruction created · ${res.idempotency_key}`,
+      toast.success(t("Settlement requested"), {
+        description: `${t("Instruction created")} · ${res.idempotency_key}`,
       });
       onRefresh();
     } catch (err) {
-      toast.error("Settlement request failed", { description: (err as Error).message });
+      toast.error(t("Settlement request failed"), { description: (err as Error).message });
     } finally {
       setBusy(false);
     }
@@ -314,7 +316,7 @@ function LifecycleActions({
             : dbContract.buyer_public_key ?? "";
 
         if (!recipientKey) {
-          toast.error("Cannot determine settlement recipient from contract.");
+          toast.error(t("Cannot determine settlement recipient from contract."));
           setBusy(false);
           return;
         }
@@ -332,7 +334,7 @@ function LifecycleActions({
         setPendingSettlementId(prep.settlement_id);
         setSigningModalOpen(true);
       } catch (err) {
-        toast.error("Settlement preparation failed", { description: (err as Error).message });
+        toast.error(t("Settlement preparation failed"), { description: (err as Error).message });
       } finally {
         setBusy(false);
       }
@@ -342,12 +344,12 @@ function LifecycleActions({
     // PLATFORM_MANAGED: full server-side execution
     try {
       const res = await apiExecuteContractSettlement(dbContract.id);
-      toast.success("Settlement executed", {
-        description: `Tx ${res.tx_hash?.slice(0, 12)}… · Ledger #${res.ledger}`,
+      toast.success(t("Settlement executed"), {
+        description: `Tx ${res.tx_hash?.slice(0, 12)}… · ${t("Ledger")} #${res.ledger}`,
       });
       onRefresh();
     } catch (err) {
-      toast.error("Settlement execution failed", { description: (err as Error).message });
+      toast.error(t("Settlement execution failed"), { description: (err as Error).message });
     } finally {
       setBusy(false);
     }
@@ -363,12 +365,12 @@ function LifecycleActions({
         contract_id: dbContract?.id,
         amount_brl: dbContract?.price_brl,
       });
-      toast.success("Contract settlement executed", {
-        description: `Tx ${res.tx_hash.slice(0, 12)}… · Ledger #${res.ledger}`,
+      toast.success(t("Contract settlement executed"), {
+        description: `Tx ${res.tx_hash.slice(0, 12)}… · ${t("Ledger")} #${res.ledger}`,
       });
       onRefresh();
     } catch (err) {
-      toast.error("Contract settlement failed", { description: (err as Error).message });
+      toast.error(t("Contract settlement failed"), { description: (err as Error).message });
     } finally {
       setBusy(false);
     }
@@ -376,9 +378,9 @@ function LifecycleActions({
 
   const timeAgo = (iso: string) => {
     const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000);
-    if (mins < 1) return "now";
-    if (mins < 60) return `${mins}m ago`;
-    return `${Math.floor(mins / 60)}h ago`;
+    if (mins < 1) return t("now");
+    if (mins < 60) return `${mins}${t("m ago")}`;
+    return `${Math.floor(mins / 60)}${t("h ago")}`;
   };
 
   return (
@@ -387,7 +389,7 @@ function LifecycleActions({
       {!isSettled && !isFailed && (
         <div className="rounded-md border border-border bg-background/40 p-3">
           <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Lifecycle Actions
+            {t("Lifecycle Actions")}
           </p>
           {isParticipant ? (
             <div className="flex flex-wrap gap-2">
@@ -400,7 +402,7 @@ function LifecycleActions({
                   disabled={busy}
                 >
                   {busy ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : null}
-                  Activate Contract
+                  {t("Activate Contract")}
                 </Button>
               )}
               {canRequestSettlement && (
@@ -412,7 +414,7 @@ function LifecycleActions({
                   disabled={busy}
                 >
                   {busy ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : null}
-                  Request Settlement
+                  {t("Request Settlement")}
                 </Button>
               )}
               {canExecute && (
@@ -427,17 +429,17 @@ function LifecycleActions({
                   ) : (
                     <Zap className="mr-1.5 h-3 w-3" />
                   )}
-                  Execute Settlement
+                  {t("Execute Settlement")}
                 </Button>
               )}
             </div>
           ) : (
             <p className="font-mono text-[10px] text-muted-foreground/60">
-              Read-only access · lifecycle actions require an active market role.
+              {t("Read-only access · lifecycle actions require an active market role.")}
             </p>
           )}
           <p className="mt-1.5 font-mono text-[10px] text-muted-foreground/60">
-            Current: {status} · {state}
+            {t("Current:")} {status} · {state}
           </p>
         </div>
       )}
@@ -446,7 +448,7 @@ function LifecycleActions({
       {movements.length > 0 && (
         <div>
           <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Audit Trail · Contract Movements
+            {t("Audit Trail · Contract Movements")}
           </p>
           <ol className="space-y-1.5">
             {movements.map((m, i, arr) => (
@@ -476,7 +478,7 @@ function LifecycleActions({
                   )}
                   {m.tx_hash && (
                     <p className="font-mono text-[10px] text-success">
-                      Tx {m.tx_hash.slice(0, 12)}…
+                      {t("Tx")} {m.tx_hash.slice(0, 12)}…
                     </p>
                   )}
                 </div>
@@ -491,7 +493,7 @@ function LifecycleActions({
       <div>
         <div className="flex items-center justify-between">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Ledger Reconciliation
+            {t("Ledger Reconciliation")}
           </p>
           {canRunReconciliation ? (
             <Button
@@ -502,29 +504,29 @@ function LifecycleActions({
               disabled={reconLoading}
             >
               <RefreshCw className={`mr-1 h-3 w-3 ${reconLoading ? "animate-spin" : ""}`} />
-              Reconcile
+              {t("Reconcile")}
             </Button>
           ) : (
             <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground/50">
-              monitor only
+              {t("monitor only")}
             </span>
           )}
         </div>
         {reconciliation && (
           <div className="mt-2 rounded-md border border-border bg-background/40 p-3 space-y-1.5 font-mono text-[11px]">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Horizon verified</span>
+              <span className="text-muted-foreground">{t("Horizon verified")}</span>
               <span className={reconciliation.horizon_verified ? "text-success" : "text-destructive"}>
-                {reconciliation.horizon_verified ? "✓ YES" : "✗ NO"}
+                {reconciliation.horizon_verified ? t("✓ YES") : t("✗ NO")}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Internal ledger</span>
+              <span className="text-muted-foreground">{t("Internal ledger")}</span>
               <span>{reconciliation.internal_ledger ?? "—"}</span>
             </div>
             {reconciliation.horizon_ledger != null && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Horizon ledger</span>
+                <span className="text-muted-foreground">{t("Horizon ledger")}</span>
                 <span>{reconciliation.horizon_ledger}</span>
               </div>
             )}
@@ -532,7 +534,7 @@ function LifecycleActions({
               <p className="text-destructive text-[10px] pt-1">⚠ {reconciliation.discrepancy}</p>
             )}
             {!reconciliation.discrepancy && reconciliation.horizon_verified && (
-              <p className="text-success text-[10px] pt-1">✓ No discrepancy — ledger matches.</p>
+              <p className="text-success text-[10px] pt-1">{t("✓ No discrepancy — ledger matches.")}</p>
             )}
           </div>
         )}
@@ -548,7 +550,7 @@ function LifecycleActions({
         onCancel={() => {
           setSigningModalOpen(false);
           setBusy(false);
-          toast.info("Contract settlement signing cancelled.");
+          toast.info(t("Contract settlement signing cancelled."));
         }}
       />
     </div>
@@ -557,6 +559,7 @@ function LifecycleActions({
 
 // ── Document viewer — fetches a signed URL and opens it in a new tab ──────────
 function DocumentViewer({ contractId, documentName }: { contractId: string; documentName: string }) {
+  const t = useT();
   const [fetching, setFetching] = useState(false);
 
   const openDocument = async () => {
@@ -565,7 +568,7 @@ function DocumentViewer({ contractId, documentName }: { contractId: string; docu
       const res = await apiGetContractDocumentUrl(contractId);
       window.open(res.signed_url, "_blank", "noopener,noreferrer");
     } catch (err) {
-      toast.error("Failed to open document", { description: (err as Error).message });
+      toast.error(t("Failed to open document"), { description: (err as Error).message });
     } finally {
       setFetching(false);
     }
@@ -577,7 +580,7 @@ function DocumentViewer({ contractId, documentName }: { contractId: string; docu
         <FileText className="h-3.5 w-3.5 shrink-0 text-primary" />
         <div className="min-w-0">
           <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-            Contract Document
+            {t("Contract Document")}
           </p>
           <p className="truncate text-[12px] font-medium">{documentName}</p>
         </div>
@@ -594,13 +597,14 @@ function DocumentViewer({ contractId, documentName }: { contractId: string; docu
         ) : (
           <ExternalLink className="h-3 w-3" />
         )}
-        View
+        {t("View")}
       </Button>
     </div>
   );
 }
 
 function ContractsList() {
+  const t = useT();
   const { dbContracts, loading: dbLoading, reload: reloadDb } = useDbContracts();
 
   // Role guard for contract creation button
@@ -727,21 +731,20 @@ function ContractsList() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-            Clearing & Reconciliation / Contract Registry
+            {t("Clearing & Reconciliation / Contract Registry")}
           </p>
           <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight">
-            Contract Registry
+            {t("Contract Registry")}
           </h1>
           <p className="mt-1 text-xs text-muted-foreground">
-            Bilateral PPAs under settlement supervision · counterparty exposure, PLD reference and
-            transaction finality.
+            {t("Bilateral PPAs under settlement supervision · counterparty exposure, PLD reference and transaction finality.")}
           </p>
         </div>
         {canCreateContract && (
           <Link to="/contracts/new">
             <Button className="h-9 shrink-0 gap-2 font-mono text-xs uppercase tracking-widest">
               <Plus className="h-3.5 w-3.5" />
-              New Contract
+              {t("New Contract")}
             </Button>
           </Link>
         )}
@@ -751,13 +754,13 @@ function ContractsList() {
         <div className="flex items-center justify-between gap-3 border-b border-border bg-background/40 px-4 py-2.5">
           <div className="flex items-center gap-2">
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Registry · Live
+              {t("Registry · Live")}
             </span>
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="font-mono text-[10px]">
-              {rows.length} / {contracts.length} contracts
+              {rows.length} / {contracts.length} {t("contracts")}
             </Badge>
             <Button
               size="sm"
@@ -777,7 +780,7 @@ function ContractsList() {
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search ID, buyer or seller…"
+              placeholder={t("Search ID, buyer or seller…")}
               className="h-8 bg-input pl-8 text-xs"
             />
           </div>
@@ -793,11 +796,11 @@ function ContractsList() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All statuses</SelectItem>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="SETTLED">Settled</SelectItem>
-                <SelectItem value="FAILED">Failed</SelectItem>
+                <SelectItem value="ALL">{t("All statuses")}</SelectItem>
+                <SelectItem value="ACTIVE">{t("Active")}</SelectItem>
+                <SelectItem value="PENDING">{t("Pending")}</SelectItem>
+                <SelectItem value="SETTLED">{t("Settled")}</SelectItem>
+                <SelectItem value="FAILED">{t("Failed")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -807,24 +810,24 @@ function ContractsList() {
           <Table className="text-xs [&_th]:h-8 [&_th]:px-2.5 [&_td]:px-2.5 [&_td]:py-1.5">
             <TableHeader className="sticky top-0 z-10 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70">
               <TableRow className="border-border hover:bg-transparent">
-                <SortableHead k="id" label="Contract" />
-                <TableHead className="text-[10px] uppercase tracking-wider">Buyer</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider">Seller</TableHead>
-                <SortableHead k="volumeMWh" label="MWh" align="right" />
-                <SortableHead k="priceBRL" label="Price" align="right" />
-                <SortableHead k="pldBRL" label="PLD" align="right" />
-                <SortableHead k="exposure" label="Exposure" align="right" />
-                <TableHead className="text-[10px] uppercase tracking-wider">Status</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider">Period</TableHead>
-                <SortableHead k="startDate" label="Start" />
-                <SortableHead k="endDate" label="End" />
+                <SortableHead k="id" label={t("Contract")} />
+                <TableHead className="text-[10px] uppercase tracking-wider">{t("Buyer")}</TableHead>
+                <TableHead className="text-[10px] uppercase tracking-wider">{t("Seller")}</TableHead>
+                <SortableHead k="volumeMWh" label={t("MWh")} align="right" />
+                <SortableHead k="priceBRL" label={t("Price")} align="right" />
+                <SortableHead k="pldBRL" label={t("PLD")} align="right" />
+                <SortableHead k="exposure" label={t("Exposure")} align="right" />
+                <TableHead className="text-[10px] uppercase tracking-wider">{t("Status")}</TableHead>
+                <TableHead className="text-[10px] uppercase tracking-wider">{t("Period")}</TableHead>
+                <SortableHead k="startDate" label={t("Start")} />
+                <SortableHead k="endDate" label={t("End")} />
                 <TableHead className="text-[10px] uppercase tracking-wider text-right">
-                  Duration
+                  {t("Duration")}
                 </TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider">State</TableHead>
-                <SortableHead k="settlementDate" label="Settles" />
-                <TableHead className="text-[10px] uppercase tracking-wider">Ledger</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider">Tx Hash</TableHead>
+                <TableHead className="text-[10px] uppercase tracking-wider">{t("State")}</TableHead>
+                <SortableHead k="settlementDate" label={t("Settles")} />
+                <TableHead className="text-[10px] uppercase tracking-wider">{t("Ledger")}</TableHead>
+                <TableHead className="text-[10px] uppercase tracking-wider">{t("Tx Hash")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -898,10 +901,10 @@ function ContractsList() {
                   >
                     {dbLoading ? (
                       <span className="flex items-center justify-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" /> Loading contracts…
+                        <Loader2 className="h-4 w-4 animate-spin" /> {t("Loading contracts…")}
                       </span>
                     ) : (
-                      "No contracts match the current filters."
+                      t("No contracts match the current filters.")
                     )}
                   </TableCell>
                 </TableRow>
@@ -911,8 +914,8 @@ function ContractsList() {
         </div>
 
         <div className="flex items-center justify-between border-t border-border bg-background/40 px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-          <span>Σ Exposure · {fmtBRL(rows.reduce((a, c) => a + computeExposure(c), 0))}</span>
-          <span>{STELLAR_NETWORK_LABEL} · Settlement Network</span>
+          <span>{t("Σ Exposure")} · {fmtBRL(rows.reduce((a, c) => a + computeExposure(c), 0))}</span>
+          <span>{STELLAR_NETWORK_LABEL} · {t("Settlement Network")}</span>
         </div>
       </Card>
 
@@ -922,13 +925,13 @@ function ContractsList() {
             <>
               <DialogHeader className="border-b border-border px-5 py-4 space-y-1 shrink-0">
                 <DialogTitle className="font-display flex items-center gap-2">
-                  <span>Contract</span>
+                  <span>{t("Contract")}</span>
                   <span className="font-mono text-base text-primary">{selected.id}</span>
                   <StatusBadge status={selected.status} />
                   <PeriodBadge status={contractPeriodStatus(selected)} />
                 </DialogTitle>
                 <DialogDescription className="text-xs">
-                  Bilateral PPA · operational state, exposure, settlement finality & audit trail
+                  {t("Bilateral PPA · operational state, exposure, settlement finality & audit trail")}
                 </DialogDescription>
               </DialogHeader>
 
@@ -936,7 +939,7 @@ function ContractsList() {
                 {selected.state !== "SETTLED" && selected.state !== "FAILED" && (
                   <div>
                     <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                      Settlement state machine
+                      {t("Settlement state machine")}
                     </p>
                     <StateMachine current={selected.state} failed={false} />
                   </div>
@@ -945,40 +948,40 @@ function ContractsList() {
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-stretch">
                   <div className="flex h-full flex-col rounded-md border border-border bg-card p-3.5 text-sm">
                     <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                      Operational metadata
+                      {t("Operational metadata")}
                     </p>
                     <div className="flex-1 space-y-1.5">
-                      <KV k="Buyer" v={selected.buyer} />
-                      <KV k="Seller" v={selected.seller} />
-                      <KV k="Volume" v={`${selected.volumeMWh.toLocaleString("pt-BR")} MWh`} mono />
-                      <KV k="Contract price" v={`R$ ${selected.priceBRL.toFixed(2)}`} mono />
-                      <KV k="PLD reference" v={`R$ ${selected.pldBRL.toFixed(2)}`} mono />
-                      <KV k="Settlement window" v={selected.window} mono />
+                      <KV k={t("Buyer")} v={selected.buyer} />
+                      <KV k={t("Seller")} v={selected.seller} />
+                      <KV k={t("Volume")} v={`${selected.volumeMWh.toLocaleString("pt-BR")} MWh`} mono />
+                      <KV k={t("Contract price")} v={`R$ ${selected.priceBRL.toFixed(2)}`} mono />
+                      <KV k={t("PLD reference")} v={`R$ ${selected.pldBRL.toFixed(2)}`} mono />
+                      <KV k={t("Settlement window")} v={selected.window} mono />
                       <KV
-                        k="Active period"
+                        k={t("Active period")}
                         v={`${contractStartDate(selected)} → ${contractEndDate(selected)}`}
                         mono
                       />
-                      <KV k="Duration" v={`${contractDurationDays(selected)} days`} mono />
-                      <KV k="Settlement date" v={selected.settlementDate} mono />
+                      <KV k={t("Duration")} v={`${contractDurationDays(selected)} ${t("days")}`} mono />
+                      <KV k={t("Settlement date")} v={selected.settlementDate} mono />
                       <KV
-                        k="Ledger #"
+                        k={t("Ledger #")}
                         v={selected.ledger ? selected.ledger.toLocaleString("en-US") : "—"}
                         mono
                       />
                       <KV
-                        k="Finality"
+                        k={t("Finality")}
                         v={selected.latencyMs ? `${(selected.latencyMs / 1000).toFixed(2)}s` : "—"}
                         mono
                       />
                     </div>
                     <div className="mt-2 border-t border-border pt-2">
-                      <KV k="Net exposure" v={fmtBRL(computeExposure(selected))} mono highlight />
+                      <KV k={t("Net exposure")} v={fmtBRL(computeExposure(selected))} mono highlight />
                     </div>
                     <div className="mt-2 border-t border-border pt-2 space-y-1.5">
-                      <KV k="Submarket" v={selectedDb?.submarket ?? "—"} mono />
+                      <KV k={t("Submarket")} v={selectedDb?.submarket ?? "—"} mono />
                       <KV
-                        k="Settled"
+                        k={t("Settled")}
                         v={
                           selectedDb
                             ? `${Number(selectedDb.settled_mwh ?? 0).toLocaleString("pt-BR")} / ${Number(selectedDb.volume_mwh).toLocaleString("pt-BR")} MWh (${selectedDb.volume_mwh ? ((Number(selectedDb.settled_mwh ?? 0) / Number(selectedDb.volume_mwh)) * 100).toFixed(0) : 0}%)`
@@ -987,17 +990,17 @@ function ContractsList() {
                         mono
                       />
                       <KV
-                        k="Exposure (PLD)"
+                        k={t("Exposure (PLD)")}
                         v={selectedDb?.exposure_brl != null ? fmtBRL(Number(selectedDb.exposure_brl)) : "—"}
                         mono
                       />
                       <KV
-                        k="Risk"
+                        k={t("Risk")}
                         v={`${selectedDb?.risk_band ?? "—"}${selectedDb?.risk_status ? ` · ${selectedDb.risk_status}` : ""}`}
                         mono
                       />
                       <KV
-                        k="PLD snapshot"
+                        k={t("PLD snapshot")}
                         v={selectedDb?.pld_snapshot_id ? `${selectedDb.pld_snapshot_id.slice(0, 8)}…` : "—"}
                         mono
                       />
@@ -1006,14 +1009,14 @@ function ContractsList() {
 
                   <div className="flex h-full flex-col rounded-md border border-border bg-card p-3.5">
                     <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                      Operational timeline
+                      {t("Operational timeline")}
                     </p>
                     {movementsLoading ? (
                       <div className="flex flex-1 items-center justify-center">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                       </div>
                     ) : selectedMovements.length === 0 ? (
-                      <p className="text-[11px] text-muted-foreground">No events recorded yet.</p>
+                      <p className="text-[11px] text-muted-foreground">{t("No events recorded yet.")}</p>
                     ) : (
                       <ol className="flex-1 space-y-1.5">
                         {selectedMovements.map((m, i, arr) => (
@@ -1069,14 +1072,14 @@ function ContractsList() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                      Stellar Tx Hash
+                      {t("Stellar Tx Hash")}
                     </p>
                     <p className="truncate font-mono text-[11px]">
                       {selected.state === "FAILED"
-                        ? "— transaction not broadcast —"
+                        ? t("— transaction not broadcast —")
                         : selected.txHash && selected.txHash !== "0".repeat(64)
                           ? selected.txHash
-                          : "Awaiting settlement hash"}
+                          : t("Awaiting settlement hash")}
                     </p>
                   </div>
                   {selected.state !== "FAILED" &&
@@ -1088,7 +1091,7 @@ function ContractsList() {
                         rel="noreferrer"
                         className="inline-flex shrink-0 items-center gap-1 rounded border border-border bg-card px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-accent hover:bg-accent/10"
                       >
-                        View on Stellar Expert <ExternalLink className="h-3 w-3" />
+                        {t("View on Stellar Expert")} <ExternalLink className="h-3 w-3" />
                       </a>
                     )}
                 </div>
@@ -1096,7 +1099,7 @@ function ContractsList() {
 
               <div className="shrink-0 flex items-center justify-end gap-2 border-t border-border bg-card/40 px-5 py-3">
                 <Button size="sm" variant="ghost" onClick={handleDialogClose}>
-                  Close
+                  {t("Close")}
                 </Button>
               </div>
             </>

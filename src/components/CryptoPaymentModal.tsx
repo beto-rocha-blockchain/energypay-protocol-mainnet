@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n";
 import {
   Dialog,
   DialogContent,
@@ -69,6 +70,7 @@ function CopyField({
   mono?: boolean;
   emphasis?: boolean;
 }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const copy = () => {
     navigator.clipboard.writeText(value).then(() => {
@@ -89,7 +91,7 @@ function CopyField({
             {value}
           </p>
         </div>
-        <Button size="sm" variant="outline" className="h-auto shrink-0 px-3" onClick={copy} aria-label={`Copy ${label}`}>
+        <Button size="sm" variant="outline" className="h-auto shrink-0 px-3" onClick={copy} aria-label={`${t("Copy")} ${label}`}>
           {copied ? <CheckCheck className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
         </Button>
       </div>
@@ -110,6 +112,7 @@ export function CryptoPaymentModal({
   onClose: () => void;
   onConfirmed: () => void;
 }) {
+  const t = useT();
   const [asset, setAsset] = useState<CryptoBillingAsset>("XLM");
   const [invoice, setInvoice] = useState<CryptoInvoice | null>(null);
   const [creating, setCreating] = useState(false);
@@ -138,7 +141,7 @@ export function CryptoPaymentModal({
       const res = await apiCreateCryptoInvoice(plan, asset);
       setInvoice(res.invoice);
     } catch (err) {
-      const msg = (err as Error).message || "Failed to generate the invoice.";
+      const msg = (err as Error).message || t("Failed to generate the invoice.");
       setError(msg);
       toast.error(msg);
     } finally {
@@ -154,22 +157,22 @@ export function CryptoPaymentModal({
         const res = await apiVerifyCryptoInvoice(invoice.id);
         setInvoice(res.invoice);
         if (res.status === "PAID") {
-          toast.success("Payment confirmed on-chain!");
+          toast.success(t("Payment confirmed on-chain!"));
           setTimeout(onConfirmed, 1600);
         } else if (!silent) {
           if (res.status === "EXPIRED") {
-            toast.error("This invoice expired. Generate a new one.");
+            toast.error(t("This invoice expired. Generate a new one."));
           } else {
-            toast.info("Payment not detected on Stellar Mainnet yet.");
+            toast.info(t("Payment not detected on Stellar Mainnet yet."));
           }
         }
       } catch (err) {
-        if (!silent) toast.error((err as Error).message || "Error verifying.");
+        if (!silent) toast.error((err as Error).message || t("Error verifying."));
       } finally {
         setVerifying(false);
       }
     },
-    [invoice?.id, onConfirmed],
+    [invoice?.id, onConfirmed, t],
   );
 
   // Light auto-poll while an invoice is pending and the modal is open.
@@ -189,11 +192,10 @@ export function CryptoPaymentModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Coins className="h-4 w-4 text-primary" />
-            Pay with crypto — {planLabel}
+            {t("Pay with crypto —")} {planLabel}
           </DialogTitle>
           <DialogDescription>
-            Pay with XLM or USDC from any Stellar wallet. Payment is verified
-            on-chain on Stellar Mainnet — without exposing your secret key.
+            {t("Pay with XLM or USDC from any Stellar wallet. Payment is verified on-chain on Stellar Mainnet — without exposing your secret key.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -201,8 +203,8 @@ export function CryptoPaymentModal({
         {isPaid ? (
           <div className="flex flex-col items-center gap-3 py-8">
             <CheckCheck className="h-12 w-12 text-success" />
-            <p className="font-mono text-sm font-semibold text-success">Payment confirmed!</p>
-            <p className="text-[11px] text-muted-foreground">Activating your plan…</p>
+            <p className="font-mono text-sm font-semibold text-success">{t("Payment confirmed!")}</p>
+            <p className="text-[11px] text-muted-foreground">{t("Activating your plan…")}</p>
             {invoice?.explorer_url && (
               <a
                 href={invoice.explorer_url}
@@ -210,7 +212,7 @@ export function CryptoPaymentModal({
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 font-mono text-[10px] text-primary hover:underline"
               >
-                View transaction on Stellar Expert <ExternalLink className="h-3 w-3" />
+                {t("View transaction on Stellar Expert")} <ExternalLink className="h-3 w-3" />
               </a>
             )}
           </div>
@@ -219,7 +221,7 @@ export function CryptoPaymentModal({
           <div className="space-y-4">
             <div>
               <p className="mb-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                Payment asset
+                {t("Payment asset")}
               </p>
               <div className="flex gap-3">
                 {ASSETS.map((a) => (
@@ -248,13 +250,13 @@ export function CryptoPaymentModal({
 
             <Button className="w-full" size="sm" onClick={generate} disabled={creating}>
               {creating ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Coins className="mr-1.5 h-3 w-3" />}
-              Generate payment instructions
+              {t("Generate payment instructions")}
             </Button>
 
             <div className="flex items-start gap-2 rounded-md border border-border bg-muted/20 p-3">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <p className="font-mono text-[9px] leading-relaxed text-muted-foreground">
-                Internal wallet balance payments are not enabled for subscriptions yet.
+                {t("Internal wallet balance payments are not enabled for subscriptions yet.")}
               </p>
             </div>
           </div>
@@ -265,7 +267,7 @@ export function CryptoPaymentModal({
               <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
                 <p className="font-mono text-[10px] text-destructive">
-                  This invoice {invoice.status === "EXPIRED" ? "expired" : "failed"}. Generate a new one to continue.
+                  {t("This invoice")} {invoice.status === "EXPIRED" ? t("expired") : t("failed")}. {t("Generate a new one to continue.")}
                 </p>
               </div>
             )}
@@ -273,19 +275,19 @@ export function CryptoPaymentModal({
             {/* Amount summary */}
             <div className="grid grid-cols-2 gap-3 rounded-md border border-border bg-card/50 p-3">
               <div>
-                <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Amount to send</p>
+                <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">{t("Amount to send")}</p>
                 <p className="mt-0.5 font-mono text-base font-semibold text-foreground">
                   {trimAmount(invoice.expected_amount)} {invoice.asset_code}
                 </p>
               </div>
               <div className="text-right">
-                <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Equivalent</p>
+                <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">{t("Equivalent")}</p>
                 <p className="mt-0.5 font-mono text-base font-semibold text-foreground">{brl(invoice.amount_brl)}</p>
               </div>
               {invoice.exchange_rate && (
                 <div className="col-span-2 border-t border-border pt-2">
                   <p className="font-mono text-[9px] text-muted-foreground">
-                    Rate: 1 {invoice.asset_code} ≈ {brl(Number(invoice.exchange_rate))}
+                    {t("Rate:")} 1 {invoice.asset_code} ≈ {brl(Number(invoice.exchange_rate))}
                     {invoice.rate_source ? ` · ${invoice.rate_source}` : ""}
                   </p>
                 </div>
@@ -293,23 +295,22 @@ export function CryptoPaymentModal({
             </div>
 
             {/* Treasury address */}
-            <CopyField label="Treasury address (destination)" value={invoice.treasury_public_key} />
+            <CopyField label={t("Treasury address (destination)")} value={invoice.treasury_public_key} />
 
             {/* Memo — REQUIRED, emphasised */}
             <div>
-              <CopyField label="Memo / reference — REQUIRED" value={invoice.memo || invoice.payment_reference} emphasis />
+              <CopyField label={t("Memo / reference — REQUIRED")} value={invoice.memo || invoice.payment_reference} emphasis />
               <div className="mt-1.5 flex items-start gap-1.5">
                 <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-warning" />
                 <p className="font-mono text-[9px] leading-relaxed text-warning">
-                  Include this memo (type <span className="font-semibold">TEXT</span>) in the transaction. Without
-                  the correct memo, the payment cannot be matched to your invoice.
+                  {t("Include this memo (type")} <span className="font-semibold">TEXT</span>{t(") in the transaction. Without the correct memo, the payment cannot be matched to your invoice.")}
                 </p>
               </div>
             </div>
 
             {/* Asset detail (issuer for USDC) */}
             {invoice.asset === "USDC" && invoice.asset_issuer && (
-              <CopyField label={`${invoice.asset_code} issuer`} value={invoice.asset_issuer} />
+              <CopyField label={`${invoice.asset_code} ${t("issuer")}`} value={invoice.asset_issuer} />
             )}
 
             {/* Expiry */}
@@ -317,7 +318,7 @@ export function CryptoPaymentModal({
               <div className="flex items-center gap-1.5">
                 <Clock className="h-3 w-3 text-muted-foreground" />
                 <p className="font-mono text-[9px] text-muted-foreground">
-                  Valid until {new Date(invoice.expires_at).toLocaleString("en-US", {
+                  {t("Valid until")} {new Date(invoice.expires_at).toLocaleString("en-US", {
                     day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
                   })}
                 </p>
@@ -332,7 +333,7 @@ export function CryptoPaymentModal({
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 font-mono text-[9px] text-primary hover:underline"
               >
-                View treasury on Stellar Expert (mainnet) <ExternalLink className="h-3 w-3" />
+                {t("View treasury on Stellar Expert (mainnet)")} <ExternalLink className="h-3 w-3" />
               </a>
             )}
 
@@ -341,22 +342,22 @@ export function CryptoPaymentModal({
             {/* Actions */}
             {isExpired ? (
               <Button className="w-full" size="sm" onClick={() => setInvoice(null)}>
-                <RefreshCw className="mr-1.5 h-3 w-3" /> Generate new invoice
+                <RefreshCw className="mr-1.5 h-3 w-3" /> {t("Generate new invoice")}
               </Button>
             ) : (
               <div className="flex gap-2">
                 <Button className="flex-1" size="sm" onClick={() => verify(false)} disabled={verifying}>
                   {verifying ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1.5 h-3 w-3" />}
-                  I&apos;ve paid — verify
+                  {t("I've paid — verify")}
                 </Button>
                 <Button variant="outline" size="sm" onClick={onClose}>
-                  Pay later
+                  {t("Pay later")}
                 </Button>
               </div>
             )}
 
             <p className="text-center font-mono text-[9px] text-muted-foreground/70">
-              We check automatically every 15s. No secret key is requested.
+              {t("We check automatically every 15s. No secret key is requested.")}
             </p>
           </div>
         )}

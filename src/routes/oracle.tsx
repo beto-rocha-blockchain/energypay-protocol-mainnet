@@ -29,6 +29,7 @@ import { STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import { API_BASE_URL } from "@/lib/api";
 import { BrazilGridMap } from "@/components/generator/BrazilGridMap";
 import { useMarketContext } from "@/hooks/useMarketContext";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/oracle")({
   head: () => ({
@@ -194,6 +195,7 @@ function buildSmLabels(subMarkets: { id: string; label: string }[]): Record<stri
 /* ── Page ── */
 
 function OraclePage() {
+  const t = useT();
   const market = useMarketContext();
   const SM_COLORS = buildSmColors(market.subMarkets);
   const SM_LABELS = buildSmLabels(market.subMarkets);
@@ -219,10 +221,10 @@ function OraclePage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Oracle Center · {market.gridOperator.name} / {market.clearingHouse.name} · Real-Time {market.referencePrice.costLabel}
+            {t("Oracle Center")} · {market.gridOperator.name} / {market.clearingHouse.name} · {t("Real-Time")} {market.referencePrice.costLabel}
           </p>
           <h1 className="font-display text-2xl font-semibold tracking-tight">
-            Oracle & Market Data
+            {t("Oracle & Market Data")}
           </h1>
           <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
             {market.marketType} · {market.referencePrice.label} — {market.referencePrice.fullName} · {market.currency}
@@ -235,7 +237,7 @@ function OraclePage() {
           </Badge>
           <Button size="sm" variant="outline" onClick={refreshAll} disabled={loading}>
             <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            Refresh
+            {t("Refresh")}
           </Button>
         </div>
       </div>
@@ -252,19 +254,19 @@ function OraclePage() {
             }`}
           >
             {pldSource === "CCEE_PLD_OFFICIAL" || pldSource === "CCEE_CSV_OFFICIAL"
-              ? "Official PLD · CCEE"
-              : "Indicative PLD · ONS CMO bounded by ANEEL"}
+              ? t("Official PLD · CCEE")
+              : t("Indicative PLD · ONS CMO bounded by ANEEL")}
           </Badge>
           {pldLimits && (
             <span className="font-mono text-[10px] text-muted-foreground">
-              ANEEL limits {pldLimits.year}: {market.currencySymbol} {pldLimits.min_brl.toFixed(2)} – {pldLimits.max_hourly_brl.toFixed(2)} /{market.energyUnit}
+              {t("ANEEL limits")} {pldLimits.year}: {market.currencySymbol} {pldLimits.min_brl.toFixed(2)} – {pldLimits.max_hourly_brl.toFixed(2)} /{market.energyUnit}
             </span>
           )}
           <span className="font-mono text-[10px] text-muted-foreground/70">
-            PLD = CMO clamped to the ANEEL floor/ceiling — proxy, not the official CCEE settled PLD.
+            {t("PLD = CMO clamped to the ANEEL floor/ceiling — proxy, not the official CCEE settled PLD.")}
           </span>
           {updatedAt && (
-            <span className="ml-auto font-mono text-[10px] text-muted-foreground">updated {updatedAt}</span>
+            <span className="ml-auto font-mono text-[10px] text-muted-foreground">{t("updated")} {updatedAt}</span>
           )}
         </div>
       </Card>
@@ -298,7 +300,7 @@ function OraclePage() {
         ) : (
           <Card className="col-span-full border-border bg-card p-4 text-center">
             <p className="font-mono text-sm text-muted-foreground">
-              {pldError ? `Error: ${pldError}` : "Loading PLD prices..."}
+              {pldError ? `${t("Error")}: ${pldError}` : t("Loading PLD prices...")}
             </p>
           </Card>
         )}
@@ -309,9 +311,9 @@ function OraclePage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              {RANGE_OPTIONS.find((o) => o.id === range)?.subtitle} · Fonte: ONS
+              {t(RANGE_OPTIONS.find((o) => o.id === range)?.subtitle ?? "")} · Fonte: ONS
             </p>
-            <p className="font-display text-lg font-semibold">PLD Historical Curve</p>
+            <p className="font-display text-lg font-semibold">{t("PLD Historical Curve")}</p>
           </div>
           <div className="flex items-center gap-2">
             {/* Range selector */}
@@ -326,7 +328,7 @@ function OraclePage() {
                       : "bg-background/40 text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
-                  {opt.label}
+                  {t(opt.label)}
                 </button>
               ))}
             </div>
@@ -400,7 +402,7 @@ function OraclePage() {
             {pldLoading || historyLoading ? (
               <Skeleton className="h-full w-full" />
             ) : (
-              <p className="font-mono text-sm text-muted-foreground">No historical data available.</p>
+              <p className="font-mono text-sm text-muted-foreground">{t("No historical data available.")}</p>
             )}
           </div>
         )}
@@ -432,24 +434,24 @@ function OraclePage() {
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <Card className="border-border bg-card p-4 lg:col-span-2">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Oracle Feed Monitor · Data Sources
+            {t("Oracle Feed Monitor · Data Sources")}
           </p>
           <div className="mt-3 space-y-2">
             <FeedRow
-              source={`${market.gridOperator.name} Open Data`}
-              feed={`${market.referencePrice.costLabel} Semi-Hourly`}
+              source={`${market.gridOperator.name} ${t("Open Data")}`}
+              feed={`${market.referencePrice.costLabel} ${t("Semi-Hourly")}`}
               latency={null}
               status={prices.length > 0 ? "ok" : "degraded"}
             />
             <FeedRow
               source="Stellar Horizon"
-              feed="Ledger & Balances"
+              feed={t("Ledger & Balances")}
               latency={horizonLatency}
               status={horizonOnline ? "ok" : "degraded"}
             />
             <FeedRow
-              source="Backend API"
-              feed="Settlement Engine"
+              source={t("Backend API")}
+              feed={t("Settlement Engine")}
               latency={backendLatency}
               status={backendOnline ? "ok" : "degraded"}
             />
@@ -458,12 +460,12 @@ function OraclePage() {
 
         <Card className="border-border bg-card p-4">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Platform Treasury
+            {t("Platform Treasury")}
           </p>
           <div className="mt-3 space-y-2">
-            <TreasuryRow label="Operator XLM" value={horizon?.operator_balance?.xlm} symbol="XLM" />
-            <TreasuryRow label="Distribution XLM" value={horizon?.distribution_balance?.xlm} symbol="XLM" />
-            <TreasuryRow label="EPWR Supply" value={horizon?.distribution_balance?.epwr} symbol="EPWR" compact />
+            <TreasuryRow label={t("Operator XLM")} value={horizon?.operator_balance?.xlm} symbol="XLM" />
+            <TreasuryRow label={t("Distribution XLM")} value={horizon?.distribution_balance?.xlm} symbol="XLM" />
+            <TreasuryRow label={t("EPWR Supply")} value={horizon?.distribution_balance?.epwr} symbol="EPWR" compact />
           </div>
         </Card>
       </div>
@@ -472,24 +474,24 @@ function OraclePage() {
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <Card className="border-border bg-card p-4 lg:col-span-2">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Oracle Health Indicators
+            {t("Oracle Health Indicators")}
           </p>
           <div className="mt-3 space-y-3">
-            <HealthBar label="ONS Data Feed" value={prices.length > 0 ? 100 : 0} />
-            <HealthBar label="Horizon Availability" value={horizonOnline ? 100 : 0} />
-            <HealthBar label="Backend Availability" value={backendOnline ? 100 : health?.status === "degraded" ? 50 : 0} />
+            <HealthBar label={t("ONS Data Feed")} value={prices.length > 0 ? 100 : 0} />
+            <HealthBar label={t("Horizon Availability")} value={horizonOnline ? 100 : 0} />
+            <HealthBar label={t("Backend Availability")} value={backendOnline ? 100 : health?.status === "degraded" ? 50 : 0} />
           </div>
         </Card>
 
         <Card className="border-border bg-card p-4">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Oracle Telemetry
+            {t("Oracle Telemetry")}
           </p>
           <div className="mt-3 space-y-2">
-            <TelRow icon={<Gauge className="h-3.5 w-3.5" />} label="Horizon latency" value={`${horizonLatency} ms`} tone={horizonLatency < 1000 ? "ok" : "warn"} />
-            <TelRow icon={<Activity className="h-3.5 w-3.5" />} label="Backend latency" value={`${backendLatency} ms`} tone={backendLatency < 500 ? "ok" : "warn"} />
-            <TelRow icon={<CheckCircle2 className="h-3.5 w-3.5" />} label={`${market.referencePrice.label} feeds`} value={`${prices.length} / ${market.subMarkets.length} sub-markets`} tone={prices.length === market.subMarkets.length ? "ok" : "warn"} />
-            <TelRow icon={<ShieldCheck className="h-3.5 w-3.5" />} label="Data source" value={market.gridOperator.name} tone="ok" />
+            <TelRow icon={<Gauge className="h-3.5 w-3.5" />} label={t("Horizon latency")} value={`${horizonLatency} ms`} tone={horizonLatency < 1000 ? "ok" : "warn"} />
+            <TelRow icon={<Activity className="h-3.5 w-3.5" />} label={t("Backend latency")} value={`${backendLatency} ms`} tone={backendLatency < 500 ? "ok" : "warn"} />
+            <TelRow icon={<CheckCircle2 className="h-3.5 w-3.5" />} label={`${market.referencePrice.label} ${t("feeds")}`} value={`${prices.length} / ${market.subMarkets.length} ${t("sub-markets")}`} tone={prices.length === market.subMarkets.length ? "ok" : "warn"} />
+            <TelRow icon={<ShieldCheck className="h-3.5 w-3.5" />} label={t("Data source")} value={market.gridOperator.name} tone="ok" />
           </div>
         </Card>
       </div>
@@ -510,6 +512,7 @@ function FeedRow({
   latency: number | null;
   status: "ok" | "degraded";
 }) {
+  const t = useT();
   return (
     <div className="flex items-center justify-between rounded-md border border-border bg-background/40 px-3 py-2">
       <div className="flex items-center gap-3">
@@ -528,7 +531,7 @@ function FeedRow({
             <span className={`relative inline-flex h-2 w-2 rounded-full ${status === "ok" ? "bg-success" : "bg-destructive"}`} />
           </span>
           <span className={`font-mono text-[10px] uppercase tracking-widest ${status === "ok" ? "text-success" : "text-destructive"}`}>
-            {status === "ok" ? "VERIFIED" : "DEGRADED"}
+            {status === "ok" ? t("VERIFIED") : t("DEGRADED")}
           </span>
         </span>
       </div>

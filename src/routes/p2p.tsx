@@ -49,6 +49,7 @@ import {
 } from "@/components/P2PLiveStatusPanel";
 import { SettlementRailBanner } from "@/components/SettlementRailBanner";
 import { useSettlementRail } from "@/hooks/useSettlementRail";
+import { useT } from "@/lib/i18n";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/p2p")({
@@ -80,6 +81,7 @@ const ROLE_CONTEXT: Record<string, string> = {
 };
 
 function P2PPage() {
+  const t = useT();
   const operator = useOperator((s) => s.operator);
   const { transfers, counterparties, fetchCounterparties, recordTransfer } = useP2P();
   const { railState, isOffline, isExecutable } = useSettlementRail();
@@ -233,7 +235,7 @@ function P2PPage() {
       setFieldError({ field: preflight.field, message: preflight.message });
       setPhase(null, "FAILED", { errorMessage: preflight.message });
       setRunning(false);
-      toast.error("Settlement payload rejected", { description: preflight.message });
+      toast.error(t("Settlement payload rejected"), { description: preflight.message });
       return;
     }
 
@@ -244,7 +246,7 @@ function P2PPage() {
       setFieldError({ field: "amount", message: msg });
       setPhase(null, "FAILED", { errorMessage: msg });
       setRunning(false);
-      toast.error("Insufficient spendable balance", { description: msg });
+      toast.error(t("Insufficient spendable balance"), { description: msg });
       return;
     }
 
@@ -281,7 +283,7 @@ function P2PPage() {
           append("FAILED", `✗ prepare · ${msg}`, "warn");
           setPhase(null, "FAILED", { errorMessage: msg });
           setRunning(false);
-          toast.error("Settlement preparation failed", { description: msg });
+          toast.error(t("Settlement preparation failed"), { description: msg });
           return;
         }
       }
@@ -308,7 +310,7 @@ function P2PPage() {
         append("FAILED", `✗ ${msg}`, "warn");
         setPhase("SUBMITTED", "FAILED", { errorMessage: msg });
         setRunning(false);
-        toast.error("Direct settlement failed", { description: msg });
+        toast.error(t("Direct settlement failed"), { description: msg });
         return;
       }
 
@@ -356,7 +358,7 @@ function P2PPage() {
       recordTransfer(transfer);
       setResult(transfer);
       setRunning(false);
-      toast.success("Direct settlement finalized", {
+      toast.success(t("Direct settlement finalized"), {
         description: `${transfer.amount} ${transfer.asset} → ${recipient}`,
       });
     } catch (err) {
@@ -372,7 +374,7 @@ function P2PPage() {
       append("FAILED", `✗ ${code ?? "submission"} · ${msg}`, "warn");
       setPhase(null, "FAILED", { errorMessage: msg });
       setRunning(false);
-      toast.error("Direct settlement failed", { description: msg });
+      toast.error(t("Direct settlement failed"), { description: msg });
     }
   };
 
@@ -432,7 +434,7 @@ function P2PPage() {
         };
         recordTransfer(transfer);
         setResult(transfer);
-        toast.success("Direct settlement finalized", {
+        toast.success(t("Direct settlement finalized"), {
           description: `${transfer.amount} ${transfer.asset} → ${recipient}`,
         });
       }
@@ -444,7 +446,7 @@ function P2PPage() {
       setLogs((l) => [...l, { ts: fmtTs(new Date()), text: `✗ submit-signed · ${msg}`, level: "warn" }]);
       setPhase(null, "FAILED", { errorMessage: msg });
       setRunning(false);
-      toast.error("Direct settlement failed", { description: msg });
+      toast.error(t("Direct settlement failed"), { description: msg });
     }
   };
 
@@ -482,7 +484,7 @@ function P2PPage() {
       <div className="mx-auto max-w-2xl">
         <Card className="border-destructive/30 bg-card p-6">
           <p className="flex items-center gap-2 font-mono text-sm text-destructive">
-            <AlertTriangle className="h-4 w-4" /> No operational identity bound to session.
+            <AlertTriangle className="h-4 w-4" /> {t("No operational identity bound to session.")}
           </p>
         </Card>
       </div>
@@ -503,19 +505,18 @@ function P2PPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            Settlement Rails / Direct Peer-to-Peer
+            {t("Settlement Rails / Direct Peer-to-Peer")}
           </p>
           <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">
-            Direct Settlement
+            {t("Direct Settlement")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Real-time operator-to-operator settlement on Stellar. Programmable transfer
-            authorization between market participants.
+            {t("Real-time operator-to-operator settlement on Stellar. Programmable transfer authorization between market participants.")}
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs">
           <span className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 font-mono">
-            <Radio className="h-3 w-3 text-success" /> DIRECT RAIL · ACTIVE
+            <Radio className="h-3 w-3 text-success" /> {t("DIRECT RAIL · ACTIVE")}
           </span>
           <span className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 font-mono text-success">
             <Activity className="h-3 w-3 animate-pulse" /> {STELLAR_NETWORK}
@@ -527,9 +528,8 @@ function P2PPage() {
 
       {isOffline && (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 font-mono text-[11px] text-destructive">
-          ✗ Settlement backend unreachable at{" "}
-          <span className="font-semibold">http://localhost:3000</span>. Execute Settlement is
-          disabled. Verify the backend service is running and Horizon is reachable.
+          {t("✗ Settlement backend unreachable at")}{" "}
+          <span className="font-semibold">http://localhost:3000</span>. {t("Execute Settlement is disabled. Verify the backend service is running and Horizon is reachable.")}
         </div>
       )}
 
@@ -538,7 +538,7 @@ function P2PPage() {
           <div className="mb-5 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Send className="h-4 w-4 text-primary" />
-              <p className="font-display text-base font-semibold">Settlement Transfer</p>
+              <p className="font-display text-base font-semibold">{t("Settlement Transfer")}</p>
             </div>
             <Badge
               variant="outline"
@@ -558,11 +558,11 @@ function P2PPage() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
                 <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                  Recipient organization
+                  {t("Recipient organization")}
                 </Label>
                 <Select value={destinationOrg} onValueChange={pickCounterparty}>
                   <SelectTrigger className="bg-input">
-                    <SelectValue placeholder="Select known counterparty" />
+                    <SelectValue placeholder={t("Select known counterparty")} />
                   </SelectTrigger>
                   <SelectContent>
                     {counterparties.map((c) => (
@@ -576,31 +576,31 @@ function P2PPage() {
                 <Input
                   value={destinationOrg}
                   onChange={(e) => setDestinationOrg(e.target.value)}
-                  placeholder="Or type counterparty name"
+                  placeholder={t("Or type counterparty name")}
                   className="bg-input font-mono text-xs"
                 />
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                  Recipient settlement address
+                  {t("Recipient settlement address")}
                 </Label>
                 <Input
                   value={destinationAddress}
                   onChange={(e) => setDestinationAddress(e.target.value)}
-                  placeholder="G… (Stellar public key)"
+                  placeholder={t("G… (Stellar public key)")}
                   className={`bg-input font-mono text-xs ${
                     destinationAddress && !validAddress ? "border-destructive" : ""
                   }`}
                 />
                 {destinationAddress && !validAddress && (
                   <p className="font-mono text-[10px] text-destructive">
-                    Invalid Stellar public key (G… 56 chars).
+                    {t("Invalid Stellar public key (G… 56 chars).")}
                   </p>
                 )}
                 {fieldError?.field === "recipient_public_key" && (
                   <p className="font-mono text-[10px] text-destructive">
-                    server · {fieldError.message}
+                    {t("server")} · {fieldError.message}
                   </p>
                 )}
               </div>
@@ -609,7 +609,7 @@ function P2PPage() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="space-y-1.5 md:col-span-2">
                 <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                  Settlement amount
+                  {t("Settlement amount")}
                 </Label>
                 <Input
                   type="number"
@@ -633,28 +633,28 @@ function P2PPage() {
                 )}
                 {fieldError?.field === "amount" && (
                   <p className="font-mono text-[10px] text-destructive">
-                    server · {fieldError.message}
+                    {t("server")} · {fieldError.message}
                   </p>
                 )}
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                  Asset
+                  {t("Asset")}
                 </Label>
                 <Select value={asset} onValueChange={(v) => setAsset(v as P2PAsset)}>
                   <SelectTrigger className="bg-input">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="XLM">XLM · Stellar Lumen</SelectItem>
+                    <SelectItem value="XLM">{t("XLM · Stellar Lumen")}</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="font-mono text-[10px] text-muted-foreground">
-                  EPWR is settled only through energy contracts, not direct P2P.
+                  {t("EPWR is settled only through energy contracts, not direct P2P.")}
                 </p>
                 {fieldError?.field === "asset" && (
                   <p className="font-mono text-[10px] text-destructive">
-                    server · {fieldError.message}
+                    {t("server")} · {fieldError.message}
                   </p>
                 )}
               </div>
@@ -662,12 +662,12 @@ function P2PPage() {
 
             <div className="space-y-1.5">
               <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                Settlement memo
+                {t("Settlement memo")}
               </Label>
               <Textarea
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
-                placeholder="EPAY direct settlement note · invoice ref · operational tag"
+                placeholder={t("EPAY direct settlement note · invoice ref · operational tag")}
                 className={`min-h-[72px] bg-input font-mono text-xs ${
                   fieldError?.field === "memo" ? "border-destructive" : ""
                 }`}
@@ -676,11 +676,11 @@ function P2PPage() {
               <div className="flex items-center justify-between">
                 {fieldError?.field === "memo" ? (
                   <p className="font-mono text-[10px] text-destructive">
-                    server · {fieldError.message}
+                    {t("server")} · {fieldError.message}
                   </p>
                 ) : (
                   <p className="font-mono text-[10px] text-muted-foreground">
-                    Stellar memo_text · 28 bytes max · ASCII safe
+                    {t("Stellar memo_text · 28 bytes max · ASCII safe")}
                   </p>
                 )}
                 <p className="font-mono text-[10px] text-muted-foreground">{memo.length}/28</p>
@@ -689,8 +689,7 @@ function P2PPage() {
 
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
               <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                <ShieldCheck className="h-3 w-3 text-success" /> Direct settlement rail · Stellar
-                finality ~2s
+                <ShieldCheck className="h-3 w-3 text-success" /> {t("Direct settlement rail · Stellar finality ~2s")}
                 <span className="ml-2 inline-flex items-center gap-1 rounded border border-border bg-background/40 px-1.5 py-0.5">
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${
@@ -709,11 +708,11 @@ function P2PPage() {
               <div className="flex items-center gap-2">
                 {result && (
                   <Button size="sm" variant="outline" onClick={reset}>
-                    New transfer
+                    {t("New transfer")}
                   </Button>
                 )}
                 <Button size="lg" onClick={execute} disabled={!canExecute}>
-                  <Zap className="mr-2 h-4 w-4" /> Execute Settlement
+                  <Zap className="mr-2 h-4 w-4" /> {t("Execute Settlement")}
                 </Button>
               </div>
             </div>
@@ -724,29 +723,29 @@ function P2PPage() {
         <Card className="border-border bg-card p-6">
           <div className="mb-3 flex items-center gap-2">
             <KeyRound className="h-4 w-4 text-primary" />
-            <p className="font-display text-base font-semibold">Settlement Authorization</p>
+            <p className="font-display text-base font-semibold">{t("Settlement Authorization")}</p>
           </div>
           <div className="space-y-2 text-[11px]">
             <SignerCell
-              label="Source operator"
+              label={t("Source operator")}
               value={`${operator.operatorId} · ${operator.organization}`}
             />
-            <SignerCell label="Signer address" value={operator.wallet.publicKey} mono truncate />
-            <SignerCell label="Active network" value={`${STELLAR_NETWORK} · horizon.stellar.org`} />
+            <SignerCell label={t("Signer address")} value={operator.wallet.publicKey} mono truncate />
+            <SignerCell label={t("Active network")} value={`${STELLAR_NETWORK} · horizon.stellar.org`} />
             <SignerCell
-              label="Authorization state"
-              value={running ? "BINDING SIGNER" : result ? "FINALIZED" : "READY"}
+              label={t("Authorization state")}
+              value={running ? t("BINDING SIGNER") : result ? t("FINALIZED") : t("READY")}
               tone={running ? "warn" : result ? "ok" : "info"}
             />
             <SignerCell
-              label="Active roles"
+              label={t("Active roles")}
               value={operator.roles.map((r) => ROLE_META[r].label).join(" · ") || "—"}
             />
           </div>
 
           <div className="mt-4 rounded-md border border-border bg-background/40 p-3">
             <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Role-bound capabilities on direct rail
+              {t("Role-bound capabilities on direct rail")}
             </p>
             <ul className="space-y-1.5">
               {operator.roles.map((r) => (
@@ -756,7 +755,7 @@ function P2PPage() {
                     <span className={`font-mono text-[10px] uppercase tracking-widest ${ROLE_META[r].color.text}`}>
                       {ROLE_META[r].label}
                     </span>
-                    <p className="text-foreground/85">{ROLE_CONTEXT[r]}</p>
+                    <p className="text-foreground/85">{t(ROLE_CONTEXT[r])}</p>
                   </div>
                 </li>
               ))}
@@ -773,10 +772,10 @@ function P2PPage() {
         <Card className="border-border bg-card p-0 lg:col-span-2">
           <div className="flex items-center justify-between border-b border-border px-5 py-3">
             <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-              <Terminal className="h-3.5 w-3.5 text-primary" /> Execution log · stdout
+              <Terminal className="h-3.5 w-3.5 text-primary" /> {t("Execution log · stdout")}
             </p>
             <p className="font-mono text-[10px] text-muted-foreground">
-              signer {maskAddress(operator.wallet.publicKey)}
+              {t("signer")} {maskAddress(operator.wallet.publicKey)}
             </p>
           </div>
           <div
@@ -784,7 +783,7 @@ function P2PPage() {
             className="h-[260px] overflow-y-auto p-4 font-mono text-[11px] leading-relaxed"
           >
             {logs.length === 0 && (
-              <p className="text-muted-foreground/70">$ awaiting transfer authorization…</p>
+              <p className="text-muted-foreground/70">{t("$ awaiting transfer authorization…")}</p>
             )}
             {logs.map((l, i) => (
               <div key={i} className="flex gap-3">
@@ -805,7 +804,7 @@ function P2PPage() {
             {running && (
               <div className="mt-1 flex items-center gap-2 text-muted-foreground">
                 <span className="h-2 w-1.5 animate-pulse bg-primary" />
-                <span className="text-[10px]">processing…</span>
+                <span className="text-[10px]">{t("processing…")}</span>
               </div>
             )}
           </div>
@@ -813,23 +812,23 @@ function P2PPage() {
 
         <Card className="border-border bg-card p-5">
           <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Settlement receipt
+            {t("Settlement receipt")}
           </p>
           {result ? (
             <div className="space-y-3">
               <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-[11px]">
-                <Meta k="Transfer ID" v={result.id} />
-                <Meta k="Asset" v={`${result.amount} ${result.asset}`} highlight />
-                <Meta k="Source" v={maskAddress(result.sourcePublicKey)} />
-                <Meta k="Destination" v={maskAddress(result.destinationPublicKey)} />
-                <Meta k="Counterparty" v={result.destinationOrg} />
-                <Meta k="Ledger #" v={result.ledger.toLocaleString("en-US")} />
-                <Meta k="Finality" v={`${(result.latencyMs / 1000).toFixed(2)}s`} />
-                <Meta k="Status" v="FINALIZED" highlight />
+                <Meta k={t("Transfer ID")} v={result.id} />
+                <Meta k={t("Asset")} v={`${result.amount} ${result.asset}`} highlight />
+                <Meta k={t("Source")} v={maskAddress(result.sourcePublicKey)} />
+                <Meta k={t("Destination")} v={maskAddress(result.destinationPublicKey)} />
+                <Meta k={t("Counterparty")} v={result.destinationOrg} />
+                <Meta k={t("Ledger #")} v={result.ledger.toLocaleString("en-US")} />
+                <Meta k={t("Finality")} v={`${(result.latencyMs / 1000).toFixed(2)}s`} />
+                <Meta k={t("Status")} v={t("FINALIZED")} highlight />
               </dl>
               <div>
                 <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Tx hash
+                  {t("Tx hash")}
                 </p>
                 <div className="mt-1 flex items-start gap-2">
                   <code className="flex-1 break-all rounded bg-background/60 p-2 font-mono text-[10px]">
@@ -840,7 +839,7 @@ function P2PPage() {
                     variant="ghost"
                     onClick={() => {
                       navigator.clipboard.writeText(result.txHash);
-                      toast.success("Tx hash copied");
+                      toast.success(t("Tx hash copied"));
                     }}
                   >
                     <Copy className="h-4 w-4" />
@@ -853,12 +852,12 @@ function P2PPage() {
                 rel="noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs text-accent hover:underline"
               >
-                View on Stellar Expert <ExternalLink className="h-3 w-3" />
+                {t("View on Stellar Expert")} <ExternalLink className="h-3 w-3" />
               </a>
             </div>
           ) : (
             <p className="font-mono text-[11px] text-muted-foreground">
-              No settlement executed in this session. Authorize a transfer to produce a receipt.
+              {t("No settlement executed in this session. Authorize a transfer to produce a receipt.")}
             </p>
           )}
         </Card>
@@ -868,67 +867,67 @@ function P2PPage() {
       <Card className="border-border bg-card p-0">
         <div className="flex items-center justify-between border-b border-border px-5 py-3">
           <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-            <Activity className="h-3.5 w-3.5 text-primary" /> Recent direct settlements
+            <Activity className="h-3.5 w-3.5 text-primary" /> {t("Recent direct settlements")}
           </p>
           <p className="font-mono text-[10px] text-muted-foreground">
-            session log · {transfers.length} record{transfers.length === 1 ? "" : "s"}
+            {t("session log")} · {transfers.length} {transfers.length === 1 ? t("record") : t("records")}
           </p>
         </div>
         {transfers.length === 0 ? (
           <p className="px-5 py-6 font-mono text-[11px] text-muted-foreground">
-            No direct settlements recorded yet on this rail.
+            {t("No direct settlements recorded yet on this rail.")}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-[11px]">
               <thead className="bg-background/40 text-muted-foreground">
                 <tr className="font-mono uppercase tracking-widest">
-                  <th className="px-5 py-2 text-left text-[10px]">Transfer</th>
-                  <th className="px-3 py-2 text-left text-[10px]">Counterparty</th>
-                  <th className="px-3 py-2 text-left text-[10px]">Route</th>
-                  <th className="px-3 py-2 text-right text-[10px]">Amount</th>
-                  <th className="px-3 py-2 text-left text-[10px]">Ledger</th>
-                  <th className="px-3 py-2 text-left text-[10px]">Status</th>
+                  <th className="px-5 py-2 text-left text-[10px]">{t("Transfer")}</th>
+                  <th className="px-3 py-2 text-left text-[10px]">{t("Counterparty")}</th>
+                  <th className="px-3 py-2 text-left text-[10px]">{t("Route")}</th>
+                  <th className="px-3 py-2 text-right text-[10px]">{t("Amount")}</th>
+                  <th className="px-3 py-2 text-left text-[10px]">{t("Ledger")}</th>
+                  <th className="px-3 py-2 text-left text-[10px]">{t("Status")}</th>
                   <th className="px-5 py-2"></th>
                 </tr>
               </thead>
               <tbody>
-                {transfers.map((t) => (
-                  <tr key={t.id} className="border-t border-border/60 font-mono">
+                {transfers.map((tx) => (
+                  <tr key={tx.id} className="border-t border-border/60 font-mono">
                     <td className="px-5 py-2.5">
-                      <div className="text-foreground">{t.id}</div>
-                      <div className="text-[10px] text-muted-foreground">{t.ts}</div>
+                      <div className="text-foreground">{tx.id}</div>
+                      <div className="text-[10px] text-muted-foreground">{tx.ts}</div>
                     </td>
-                    <td className="px-3 py-2.5">{t.destinationOrg}</td>
+                    <td className="px-3 py-2.5">{tx.destinationOrg}</td>
                     <td className="px-3 py-2.5">
                       <span className="inline-flex items-center gap-1 text-muted-foreground">
-                        {maskAddress(t.sourcePublicKey)}
+                        {maskAddress(tx.sourcePublicKey)}
                         <ArrowRight className="h-3 w-3" />
                         <span className="text-foreground">
-                          {maskAddress(t.destinationPublicKey)}
+                          {maskAddress(tx.destinationPublicKey)}
                         </span>
                       </span>
                     </td>
                     <td className="px-3 py-2.5 text-right">
-                      {t.amount} <span className="text-muted-foreground">{t.asset}</span>
+                      {tx.amount} <span className="text-muted-foreground">{tx.asset}</span>
                     </td>
-                    <td className="px-3 py-2.5">#{t.ledger.toLocaleString("en-US")}</td>
+                    <td className="px-3 py-2.5">#{tx.ledger.toLocaleString("en-US")}</td>
                     <td className="px-3 py-2.5">
                       <Badge
                         variant="outline"
                         className="border-success/40 bg-success/10 font-mono text-[10px] text-success"
                       >
-                        {t.state}
+                        {tx.state}
                       </Badge>
                     </td>
                     <td className="px-5 py-2.5 text-right">
                       <a
-                        href={stellarExpertTx(t.txHash)}
+                        href={stellarExpertTx(tx.txHash)}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 text-[10px] text-accent hover:underline"
                       >
-                        view <ExternalLink className="h-3 w-3" />
+                        {t("view")} <ExternalLink className="h-3 w-3" />
                       </a>
                     </td>
                   </tr>
@@ -960,7 +959,7 @@ function P2PPage() {
             startedAt: null,
             errorMessage: null,
           });
-          toast.info("Transaction signing cancelled.");
+          toast.info(t("Transaction signing cancelled."));
         }}
       />
     </div>

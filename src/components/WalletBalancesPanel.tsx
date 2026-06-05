@@ -23,6 +23,7 @@ import { useWalletBalances } from "@/hooks/useWalletBalances";
 import { stellarExpertAccount, STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import { maskAddress } from "@/store/operator";
 import { toast } from "sonner";
+import { useT } from "@/lib/i18n";
 
 type Props = {
   publicKey: string;
@@ -39,6 +40,7 @@ const fmtAmount = (raw: string, decimals = 4) => {
 const sinceMs = (iso: string | null) => (iso ? Date.now() - new Date(iso).getTime() : null);
 
 export function WalletBalancesPanel({ publicKey, organization, funded }: Props) {
+  const t = useT();
   const { data, error, loading, fetchedAt, refreshCount, refresh } = useWalletBalances(publicKey);
   const [copied, setCopied] = useState(false);
 
@@ -78,26 +80,26 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
       });
       const json = await res.json();
       if (json.success) {
-        toast.success("EPWR trustline created successfully");
+        toast.success(t("EPWR trustline created successfully"));
         refresh();
       } else {
-        toast.error(json.error || "Failed to create trustline");
+        toast.error(json.error || t("Failed to create trustline"));
       }
     } catch (err) {
-      toast.error("Network error creating trustline");
+      toast.error(t("Network error creating trustline"));
     } finally {
       setEnablingTrustline(false);
     }
-  }, [refresh]);
+  }, [refresh, t]);
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(publicKey);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-      toast.success("Public key copied");
+      toast.success(t("Public key copied"));
     } catch {
-      toast.error("Copy failed");
+      toast.error(t("Copy failed"));
     }
   };
 
@@ -107,13 +109,13 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Custody Wallet · Your Settlement Account
+            {t("Custody Wallet · Your Settlement Account")}
           </p>
           <h2 className="mt-1 font-display text-2xl font-semibold tracking-tight">
-            Live Wallet Balances
+            {t("Live Wallet Balances")}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Live on-chain balances for <strong>your</strong> personal settlement account on the Stellar ledger — backed directly by Horizon.
+            {t("Live on-chain balances for")} <strong>{t("your")}</strong> {t("personal settlement account on the Stellar ledger — backed directly by Horizon.")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -130,11 +132,11 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
                   : "text-muted-foreground"
             }`}
           >
-            <Activity className="mr-1.5 h-3 w-3" /> {health.label}
+            <Activity className="mr-1.5 h-3 w-3" /> {t(health.label)}
           </Badge>
           <Button size="sm" variant="outline" onClick={refresh} disabled={loading}>
             <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            Refresh
+            {t("Refresh")}
           </Button>
         </div>
       </div>
@@ -148,14 +150,14 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
             </div>
             <div>
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Your Settlement Account · Stellar {data?.network ?? "Mainnet"}
+                {t("Your Settlement Account · Stellar")} {data?.network ?? "Mainnet"}
               </p>
               <div className="mt-0.5 flex items-center gap-2">
                 <span className="font-mono text-sm">{maskAddress(publicKey)}</span>
                 <button
                   onClick={handleCopy}
                   className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  aria-label="Copy public key"
+                  aria-label={t("Copy public key")}
                 >
                   {copied ? (
                     <CheckCircle2 className="h-3.5 w-3.5 text-success" />
@@ -168,7 +170,7 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
                   target="_blank"
                   rel="noopener noreferrer"
                   className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  aria-label="Open in Stellar Expert"
+                  aria-label={t("Open in Stellar Expert")}
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                 </a>
@@ -180,18 +182,18 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
           </div>
           <div className="grid grid-cols-3 gap-2 md:gap-4">
             <Indicator
-              label="Funded"
-              value={data?.account_funded || funded ? "YES" : "—"}
+              label={t("Funded")}
+              value={data?.account_funded || funded ? t("YES") : "—"}
               tone={data?.account_funded || funded ? "ok" : "muted"}
             />
             <Indicator
-              label="Trustline"
-              value={trustline ? "EPWR" : "PENDING"}
+              label={t("Trustline")}
+              value={trustline ? "EPWR" : t("PENDING")}
               tone={trustline ? "ok" : "warn"}
             />
             <Indicator
-              label="Reserve"
-              value={xlmNum >= 1 ? "OK" : "LOW"}
+              label={t("Reserve")}
+              value={xlmNum >= 1 ? t("OK") : t("LOW")}
               tone={xlmNum >= 1 ? "ok" : "warn"}
             />
           </div>
@@ -205,12 +207,12 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
             <AlertTriangle className="mt-0.5 h-4 w-4 text-destructive" />
             <div className="flex-1">
               <p className="font-mono text-[11px] uppercase tracking-widest text-destructive">
-                Balance Feed Degraded
+                {t("Balance Feed Degraded")}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">{error}</p>
             </div>
             <Button size="sm" variant="outline" onClick={refresh}>
-              Retry
+              {t("Retry")}
             </Button>
           </div>
         </Card>
@@ -223,14 +225,13 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
             <AlertTriangle className="mt-0.5 h-4 w-4 text-yellow-500 shrink-0" />
             <div className="flex-1">
               <p className="font-mono text-[11px] uppercase tracking-widest text-yellow-500">
-                Settlement Account — Not Yet on the Ledger
+                {t("Settlement Account — Not Yet on the Ledger")}
               </p>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                Your EnergyPay settlement account (<span className="font-mono text-foreground">{publicKey.slice(0, 6)}…{publicKey.slice(-6)}</span>) has not been activated on Stellar Mainnet yet.
-                To activate it, the account needs a minimum deposit of <strong>1 XLM</strong>.
+                {t("Your EnergyPay settlement account (")}<span className="font-mono text-foreground">{publicKey.slice(0, 6)}…{publicKey.slice(-6)}</span>{t(") has not been activated on Stellar Mainnet yet. To activate it, the account needs a minimum deposit of")} <strong>{t("1 XLM")}</strong>.
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Please contact EnergyPay support or fund the account using Stellar Expert:
+                {t("Please contact EnergyPay support or fund the account using Stellar Expert:")}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <a
@@ -239,7 +240,7 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-yellow-500 hover:bg-yellow-500/20 transition-colors"
                 >
-                  View on Stellar Expert <ExternalLink className="h-3 w-3" />
+                  {t("View on Stellar Expert")} <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
             </div>
@@ -251,16 +252,16 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <BalanceGlowCard
           symbol="XLM"
-          label="Stellar Lumens"
-          tagline="Network reserve · operational gas"
+          label={t("Stellar Lumens")}
+          tagline={t("Network reserve · operational gas")}
           icon={<Zap className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />}
           loading={loading && !data}
           amount={fmtAmount(xlm, 4)}
         />
         <BalanceGlowCard
           symbol="EPWR"
-          label="EnergyPay Receivable"
-          tagline="Energy settlement unit · 1 EPWR = 1 MWh"
+          label={t("EnergyPay Receivable")}
+          tagline={t("Energy settlement unit · 1 EPWR = 1 MWh")}
           icon={<Coins className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />}
           loading={loading && !data}
           amount={fmtAmount(eprw, 2)}
@@ -272,23 +273,23 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
         <div className="rounded-md border border-border bg-background/40 px-4 py-2.5">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[10px]">
             <span className="text-muted-foreground uppercase tracking-widest shrink-0">
-              Account Balance Breakdown
+              {t("Account Balance Breakdown")}
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">Total on-chain:</span>
+              <span className="text-muted-foreground">{t("Total on-chain:")}</span>
               <span className="text-foreground font-semibold">{xlmNum.toFixed(7)} XLM</span>
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">Stellar reserve lock:</span>
+              <span className="text-muted-foreground">{t("Stellar reserve lock:")}</span>
               <span className="text-foreground">
                 {xlmReserved.toFixed(2)} XLM
                 <span className="text-muted-foreground/70">
-                  {" "}· {2 + subentries} entries × 0.5 XLM
+                  {" "}· {2 + subentries} {t("entries × 0.5 XLM")}
                 </span>
               </span>
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">Spendable:</span>
+              <span className="text-muted-foreground">{t("Spendable:")}</span>
               <span className={xlmSpendable < 0.5 ? "text-destructive font-semibold" : "text-success font-semibold"}>
                 {xlmSpendable.toFixed(7)} XLM
               </span>
@@ -296,7 +297,7 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
           </div>
           {xlmNum > 0 && xlmSpendable < 0.1 && (
             <p className="mt-1.5 font-mono text-[10px] text-destructive">
-              ⚠ Spendable balance is very low — reserve consumes most of the account balance.
+              ⚠ {t("Spendable balance is very low — reserve consumes most of the account balance.")}
             </p>
           )}
         </div>
@@ -306,30 +307,30 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card className="border-border bg-card p-4">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Operational Telemetry
+            {t("Operational Telemetry")}
           </p>
           <div className="mt-3 space-y-2">
             <TelemetryRow
               icon={<Gauge className="h-3.5 w-3.5" />}
-              label="Backend latency"
+              label={t("Backend latency")}
               value={latency != null ? `${latency} ms` : "—"}
               tone={latency != null && latency < 600 ? "ok" : "warn"}
             />
             <TelemetryRow
               icon={<RefreshCw className="h-3.5 w-3.5" />}
-              label="Refresh cadence"
+              label={t("Refresh cadence")}
               value="10 s"
               tone="muted"
             />
             <TelemetryRow
               icon={<Activity className="h-3.5 w-3.5" />}
-              label="Polls completed"
+              label={t("Polls completed")}
               value={String(refreshCount)}
               tone="muted"
             />
             <TelemetryRow
               icon={<ShieldCheck className="h-3.5 w-3.5" />}
-              label="Last update"
+              label={t("Last update")}
               value={
                 fetchedAt
                   ? `${Math.max(0, Math.round((sinceMs(fetchedAt) ?? 0) / 1000))}s ago`
@@ -343,7 +344,7 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
         <Card className="border-border bg-card p-4 md:col-span-2">
           <div className="flex items-center justify-between">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Blockchain Activity
+              {t("Blockchain Activity")}
             </p>
             <a
               href={stellarExpertAccount(publicKey)}
@@ -351,7 +352,7 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
               rel="noopener noreferrer"
               className="font-mono text-[10px] uppercase tracking-widest text-primary hover:underline"
             >
-              View on Stellar Expert
+              {t("View on Stellar Expert")}
               <ExternalLink className="ml-1 inline h-3 w-3" />
             </a>
           </div>
@@ -361,17 +362,17 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
               ok={!loading && !error}
               text={
                 loading && !data
-                  ? "Initializing balance feed…"
+                  ? t("Initializing balance feed…")
                   : data
-                    ? `Horizon snapshot resolved · ${data.checked_at.slice(11, 19)}`
+                    ? `${t("Horizon snapshot resolved ·")} ${data.checked_at.slice(11, 19)}`
                     : error
-                      ? "Horizon snapshot unavailable"
-                      : "Awaiting first sample"
+                      ? t("Horizon snapshot unavailable")
+                      : t("Awaiting first sample")
               }
             />
             <ActivityLine
               ok={trustline}
-              text={trustline ? "Trustline EPWR established" : "EPWR trustline not yet detected"}
+              text={trustline ? t("Trustline EPWR established") : t("EPWR trustline not yet detected")}
             />
             {!trustline && data && !loading && (
               <Button
@@ -381,24 +382,24 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
                 disabled={enablingTrustline}
                 onClick={handleEnableEPWR}
               >
-                {enablingTrustline ? "Enabling…" : "Enable EPWR"}
+                {enablingTrustline ? t("Enabling…") : t("Enable EPWR")}
               </Button>
             )}
             <ActivityLine
               ok={data?.account_funded || funded || false}
-              text={data?.account_funded || funded ? "Account funded on ledger" : "Account funding unconfirmed"}
+              text={data?.account_funded || funded ? t("Account funded on ledger") : t("Account funding unconfirmed")}
             />
             <ActivityLine
               ok={xlmNum >= 1}
               text={
                 xlmNum >= 1
-                  ? "Reserve sufficient for fee submission"
-                  : "Reserve below 1 XLM threshold"
+                  ? t("Reserve sufficient for fee submission")
+                  : t("Reserve below 1 XLM threshold")
               }
             />
             <ActivityLine
               ok={!error}
-              text={error ? `Backend rail: ${error}` : "Backend settlement rail responsive"}
+              text={error ? `${t("Backend rail:")} ${error}` : t("Backend settlement rail responsive")}
             />
           </div>
         </Card>
@@ -443,6 +444,7 @@ function BalanceGlowCard({
   loading: boolean;
   amount: string;
 }) {
+  const t = useT();
   return (
     <Card className="relative overflow-hidden border-border bg-card p-6">
       <div
@@ -476,7 +478,7 @@ function BalanceGlowCard({
 
       <div className="relative mt-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
         <Activity className="h-3 w-3 text-success" />
-        Live · Horizon settlement rail
+        {t("Live · Horizon settlement rail")}
       </div>
     </Card>
   );

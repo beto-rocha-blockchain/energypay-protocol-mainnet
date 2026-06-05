@@ -2,6 +2,7 @@ import { CheckCircle2, Loader2, AlertTriangle, ExternalLink, Radio } from "lucid
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { stellarExpertTx, STELLAR_NETWORK_LABEL } from "@/lib/stellar";
+import { useT } from "@/lib/i18n";
 import type { P2PTransferState } from "@/store/p2p";
 
 export type LiveStatusPhase = "SUBMITTED" | "CONFIRMED" | "SETTLED";
@@ -26,7 +27,7 @@ const PHASE_LABEL: Record<LiveStatusPhase, string> = {
 };
 
 const PHASE_HINT: Record<LiveStatusPhase, string> = {
-  SUBMITTED: `Backend signing in custody · broadcasting to ${STELLAR_NETWORK_LABEL}`,
+  SUBMITTED: "Backend signing in custody · broadcasting to",
   CONFIRMED: "Tx accepted into ledger · awaiting finality",
   SETTLED: "Direct settlement rail closed · receipt issued",
 };
@@ -34,6 +35,7 @@ const PHASE_HINT: Record<LiveStatusPhase, string> = {
 const phaseRank = (p: LiveStatusPhase | null) => (p === null ? -1 : ORDER.indexOf(p));
 
 export function P2PLiveStatusPanel({ data }: { data: LiveStatusData }) {
+  const t = useT();
   const failed = data.state === "FAILED";
   const idle = data.phase === null && !failed;
   const currentRank = phaseRank(data.phase);
@@ -42,7 +44,7 @@ export function P2PLiveStatusPanel({ data }: { data: LiveStatusData }) {
     <Card className="border-border bg-card p-0">
       <div className="flex items-center justify-between border-b border-border px-5 py-3">
         <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          <Radio className="h-3.5 w-3.5 text-primary" /> Live transfer status · backend feed
+          <Radio className="h-3.5 w-3.5 text-primary" /> {t("Live transfer status · backend feed")}
         </p>
         <Badge
           variant="outline"
@@ -56,7 +58,7 @@ export function P2PLiveStatusPanel({ data }: { data: LiveStatusData }) {
                   : "border-primary/40 bg-primary/10 font-mono text-[10px] text-primary"
           }
         >
-          {failed ? "● FAILED" : idle ? "IDLE" : `● ${data.state}`}
+          {failed ? `● ${t("FAILED")}` : idle ? t("IDLE") : `● ${data.state}`}
         </Badge>
       </div>
 
@@ -99,9 +101,12 @@ export function P2PLiveStatusPanel({ data }: { data: LiveStatusData }) {
                       done ? "text-success" : active ? "text-primary" : "text-muted-foreground"
                     }`}
                   >
-                    {PHASE_LABEL[phase]}
+                    {t(PHASE_LABEL[phase])}
                   </p>
-                  <p className="text-[11px] text-foreground/75">{PHASE_HINT[phase]}</p>
+                  <p className="text-[11px] text-foreground/75">
+                    {t(PHASE_HINT[phase])}
+                    {phase === "SUBMITTED" ? ` ${STELLAR_NETWORK_LABEL}` : ""}
+                  </p>
                   {phase === "CONFIRMED" && reached && data.txHash && (
                     <code className="mt-1 block break-all rounded bg-background/60 p-1.5 font-mono text-[10px] text-foreground/85">
                       tx · {data.txHash}
@@ -130,14 +135,16 @@ export function P2PLiveStatusPanel({ data }: { data: LiveStatusData }) {
             rel="noreferrer"
             className="inline-flex items-center gap-1.5 font-mono text-[11px] text-accent hover:underline"
           >
-            View on Stellar Expert <ExternalLink className="h-3 w-3" />
+            {t("View on Stellar Expert")} <ExternalLink className="h-3 w-3" />
           </a>
         )}
 
         {idle && (
           <p className="font-mono text-[11px] text-muted-foreground">
-            $ awaiting settlement authorization · status feed will stream phases as the backend
-            confirms.
+            ${" "}
+            {t(
+              "awaiting settlement authorization · status feed will stream phases as the backend confirms.",
+            )}
           </p>
         )}
       </div>

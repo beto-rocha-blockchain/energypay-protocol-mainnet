@@ -1,7 +1,9 @@
 import { SETTLEMENT_STATE_FLOW, type SettlementState } from "@/lib/mock-data";
+import { useT } from "@/lib/i18n";
 import { Check } from "lucide-react";
 
 export function StateMachine({ current, failed }: { current: SettlementState; failed?: boolean }) {
+  const t = useT();
   const idx = SETTLEMENT_STATE_FLOW.indexOf(current);
   return (
     <div className="flex w-full items-center gap-1 overflow-x-auto">
@@ -29,7 +31,7 @@ export function StateMachine({ current, failed }: { current: SettlementState; fa
               ) : (
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-30" />
               )}
-              <span className="truncate">{s}</span>
+              <span className="truncate">{t(s)}</span>
             </div>
             {i < SETTLEMENT_STATE_FLOW.length - 1 && (
               <div className={`h-px w-2 ${i < idx ? "bg-success/40" : "bg-border"}`} />

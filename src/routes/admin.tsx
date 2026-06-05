@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useT } from "@/lib/i18n";
 import { useOperator } from "@/store/operator";
 import type { PlatformRole } from "@/store/operator";
 import {
@@ -141,6 +142,7 @@ function EditModal({
   onClose: () => void;
   onSaved: (updated: AdminUser) => void;
 }) {
+  const t = useT();
   const canLinkWallet = user.wallet_mode === "USER_CONTROLLED" && !user.stellar_public_key;
 
   const [form, setForm] = useState({
@@ -170,11 +172,11 @@ function EditModal({
         payload.stellar_public_key = form.stellar_public_key.trim();
       }
       const res = await apiAdminUpdateUser(user.id, payload);
-      toast.success("Profile updated.");
+      toast.success(t("Profile updated."));
       onSaved(res.user);
       onClose();
     } catch (err) {
-      toast.error((err as Error).message || "Failed to update profile.");
+      toast.error((err as Error).message || t("Failed to update profile."));
     } finally {
       setSaving(false);
     }
@@ -186,10 +188,10 @@ function EditModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm">
             <Edit2 className="h-4 w-4 text-primary" />
-            Edit Profile — {user.email}
+            {t("Edit Profile")} — {user.email}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Market roles, email, and encrypted wallet fields cannot be changed here.
+            {t("Market roles, email, and encrypted wallet fields cannot be changed here.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -197,7 +199,7 @@ function EditModal({
           {(["full_name", "organization", "phone", "country", "state", "city"] as const).map(field => (
             <div key={field} className="grid gap-1">
               <label className="font-mono text-[11px] text-muted-foreground capitalize">
-                {field.replace("_", " ")}
+                {t(field.replace("_", " "))}
               </label>
               <Input
                 value={form[field]}
@@ -211,25 +213,25 @@ function EditModal({
           {canLinkWallet && (
             <div className="grid gap-1 border-t border-border/40 pt-3">
               <label className="font-mono text-[11px] text-yellow-400">
-                Link Stellar Wallet (optional)
+                {t("Link Stellar Wallet (optional)")}
               </label>
               <Input
                 value={form.stellar_public_key}
                 onChange={e => setForm(f => ({ ...f, stellar_public_key: e.target.value }))}
-                placeholder="G… (56 characters, Stellar Mainnet)"
+                placeholder={t("G… (56 characters, Stellar Mainnet)")}
                 className="h-8 font-mono text-xs"
               />
               <p className="text-[10px] text-muted-foreground">
-                Public key only — secret never stored. Leave blank to skip.
+                {t("Public key only — secret never stored. Leave blank to skip.")}
               </p>
             </div>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>{t("Cancel")}</Button>
           <Button size="sm" onClick={handleSave} disabled={saving}>
-            {saving ? "Saving…" : "Save Changes"}
+            {saving ? t("Saving…") : t("Save Changes")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -246,6 +248,7 @@ function SetPasswordModal({
   user: AdminUser;
   onClose: () => void;
 }) {
+  const t = useT();
   const [pwd, setPwd]         = useState("");
   const [confirm, setConfirm] = useState("");
   const [reason, setReason]   = useState("");
@@ -258,10 +261,10 @@ function SetPasswordModal({
     setSaving(true);
     try {
       await apiAdminSetPassword(user.id, pwd, reason || undefined);
-      toast.success("Password reset successfully.");
+      toast.success(t("Password reset successfully."));
       onClose();
     } catch (err) {
-      toast.error((err as Error).message || "Failed to reset password.");
+      toast.error((err as Error).message || t("Failed to reset password."));
     } finally {
       setSaving(false);
     }
@@ -273,7 +276,7 @@ function SetPasswordModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm">
             <Key className="h-4 w-4 text-yellow-400" />
-            Force Reset Password
+            {t("Force Reset Password")}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
             {user.email}
@@ -282,32 +285,32 @@ function SetPasswordModal({
 
         <div className="grid gap-3 py-2">
           <div className="grid gap-1">
-            <label className="font-mono text-[11px] text-muted-foreground">New Password (min 8 chars)</label>
+            <label className="font-mono text-[11px] text-muted-foreground">{t("New Password (min 8 chars)")}</label>
             <Input type="password" autoComplete="new-password" value={pwd} onChange={e => setPwd(e.target.value)} className="h-8 text-sm" />
           </div>
           <div className="grid gap-1">
-            <label className="font-mono text-[11px] text-muted-foreground">Confirm Password</label>
+            <label className="font-mono text-[11px] text-muted-foreground">{t("Confirm Password")}</label>
             <Input type="password" autoComplete="new-password" value={confirm} onChange={e => setConfirm(e.target.value)} className="h-8 text-sm" />
             {confirm && !valid && pwd !== confirm && (
-              <span className="text-[11px] text-red-400">Passwords do not match.</span>
+              <span className="text-[11px] text-red-400">{t("Passwords do not match.")}</span>
             )}
           </div>
           <div className="grid gap-1">
-            <label className="font-mono text-[11px] text-muted-foreground">Reason (optional)</label>
-            <Input value={reason} onChange={e => setReason(e.target.value)} className="h-8 text-sm" placeholder="e.g. User requested recovery" />
+            <label className="font-mono text-[11px] text-muted-foreground">{t("Reason (optional)")}</label>
+            <Input value={reason} onChange={e => setReason(e.target.value)} className="h-8 text-sm" placeholder={t("e.g. User requested recovery")} />
           </div>
           <div className="flex items-start gap-2 rounded border border-yellow-500/30 bg-yellow-500/5 p-3">
             <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-yellow-400" />
             <p className="text-xs text-yellow-300/80">
-              This action is logged in the admin audit trail and cannot be undone.
+              {t("This action is logged in the admin audit trail and cannot be undone.")}
             </p>
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>{t("Cancel")}</Button>
           <Button size="sm" variant="destructive" onClick={handleSave} disabled={saving || !valid}>
-            {saving ? "Setting…" : "Set Password"}
+            {saving ? t("Setting…") : t("Set Password")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -337,6 +340,7 @@ function SetRoleModal({
   onClose: () => void;
   onSaved: (id: string, role: PlatformRole) => void;
 }) {
+  const t = useT();
   const [role, setRole]   = useState<PlatformRole>(user.platform_role);
   const [saving, setSaving] = useState(false);
 
@@ -345,11 +349,11 @@ function SetRoleModal({
     setSaving(true);
     try {
       await apiAdminSetPlatformRole(user.id, role);
-      toast.success(`Role set to ${role}.`);
+      toast.success(`${t("Role set to")} ${role}.`);
       onSaved(user.id, role);
       onClose();
     } catch (err) {
-      toast.error((err as Error).message || "Failed to set role.");
+      toast.error((err as Error).message || t("Failed to set role."));
     } finally {
       setSaving(false);
     }
@@ -361,7 +365,7 @@ function SetRoleModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm">
             <UserCog className="h-4 w-4 text-violet-400" />
-            Set Platform Role
+            {t("Set Platform Role")}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">{user.email}</DialogDescription>
         </DialogHeader>
@@ -384,9 +388,9 @@ function SetRoleModal({
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>{t("Cancel")}</Button>
           <Button size="sm" onClick={handleSave} disabled={saving || role === user.platform_role}>
-            {saving ? "Saving…" : "Set Role"}
+            {saving ? t("Saving…") : t("Set Role")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -413,6 +417,7 @@ function SetMarketRolesModal({
   onClose: () => void;
   onSaved: (id: string, roles: string[], pendingRoles: string[]) => void;
 }) {
+  const t = useT();
   const [selected, setSelected] = useState<string[]>(
     (user.roles ?? []).filter(r => MARKET_ROLE_OPTIONS.some(o => o.value === r)),
   );
@@ -431,9 +436,9 @@ function SetMarketRolesModal({
       setPending(res.pending_roles);
       setSelected(res.roles.filter(r => MARKET_ROLE_OPTIONS.some(o => o.value === r)));
       onSaved(user.id, res.roles, res.pending_roles);
-      toast.success(approve ? `${roleLabel(role)} approved.` : `${roleLabel(role)} rejected.`);
+      toast.success(approve ? `${t(roleLabel(role))} ${t("approved.")}` : `${t(roleLabel(role))} ${t("rejected.")}`);
     } catch (err) {
-      toast.error((err as Error).message || "Failed to resolve role request.");
+      toast.error((err as Error).message || t("Failed to resolve role request."));
     } finally {
       setResolving(null);
     }
@@ -443,11 +448,11 @@ function SetMarketRolesModal({
     setSaving(true);
     try {
       const res = await apiAdminSetRoles(user.id, selected);
-      toast.success("Market roles updated.");
+      toast.success(t("Market roles updated."));
       onSaved(user.id, res.roles, pending);
       onClose();
     } catch (err) {
-      toast.error((err as Error).message || "Failed to update roles.");
+      toast.error((err as Error).message || t("Failed to update roles."));
     } finally {
       setSaving(false);
     }
@@ -459,7 +464,7 @@ function SetMarketRolesModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm">
             <Layers className="h-4 w-4 text-primary" />
-            Market Roles
+            {t("Market Roles")}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">{user.email}</DialogDescription>
         </DialogHeader>
@@ -467,20 +472,20 @@ function SetMarketRolesModal({
         {pending.length > 0 && (
           <div className="space-y-1.5 rounded-md border border-warning/40 bg-warning/10 p-2.5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-warning">
-              Pending approval
+              {t("Pending approval")}
             </p>
             {pending.map(r => (
               <div key={r} className="flex items-center justify-between gap-2">
-                <span className="text-sm">{roleLabel(r)}</span>
+                <span className="text-sm">{t(roleLabel(r))}</span>
                 <div className="flex items-center gap-1">
                   <Button size="sm" className="h-6 px-2 font-mono text-[9px] uppercase tracking-widest"
                     disabled={resolving === r} onClick={() => resolve(r, true)}>
-                    {resolving === r ? "…" : "Approve"}
+                    {resolving === r ? "…" : t("Approve")}
                   </Button>
                   <Button size="sm" variant="outline"
                     className="h-6 px-2 font-mono text-[9px] uppercase tracking-widest border-destructive/40 text-destructive hover:bg-destructive/10"
                     disabled={resolving === r} onClick={() => resolve(r, false)}>
-                    Reject
+                    {t("Reject")}
                   </Button>
                 </div>
               </div>
@@ -499,7 +504,7 @@ function SetMarketRolesModal({
                   : "border-border/50 bg-background hover:border-border text-muted-foreground"
                 }`}
             >
-              <span>{o.label}</span>
+              <span>{t(o.label)}</span>
               {selected.includes(o.value) && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
             </button>
           ))}
@@ -507,14 +512,14 @@ function SetMarketRolesModal({
 
         {preserved.length > 0 && (
           <p className="font-mono text-[10px] text-muted-foreground">
-            Preserved (unchanged): {preserved.map(r => (r === "ADMIN" ? "Platform Operator" : "Regulatory")).join(", ")}
+            {t("Preserved (unchanged):")} {preserved.map(r => (r === "ADMIN" ? t("Platform Operator") : t("Regulatory"))).join(", ")}
           </p>
         )}
 
         <DialogFooter>
-          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>{t("Cancel")}</Button>
           <Button size="sm" onClick={handleSave} disabled={saving}>
-            {saving ? "Saving…" : "Save Roles"}
+            {saving ? t("Saving…") : t("Save Roles")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -533,6 +538,7 @@ function ChangeEmailModal({
   onClose: () => void;
   onSaved: (id: string, email: string) => void;
 }) {
+  const t = useT();
   const [email, setEmail]   = useState("");
   const [saving, setSaving] = useState(false);
   const valid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) && email.trim().toLowerCase() !== user.email.toLowerCase();
@@ -542,11 +548,11 @@ function ChangeEmailModal({
     setSaving(true);
     try {
       const res = await apiAdminSetEmail(user.id, email.trim());
-      toast.success("Email updated — the new address must be re-verified.");
+      toast.success(t("Email updated — the new address must be re-verified."));
       onSaved(user.id, res.email);
       onClose();
     } catch (err) {
-      toast.error((err as Error).message || "Failed to change email.");
+      toast.error((err as Error).message || t("Failed to change email."));
     } finally {
       setSaving(false);
     }
@@ -557,25 +563,25 @@ function ChangeEmailModal({
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm">
-            <Mail className="h-4 w-4 text-primary" /> Change Email
+            <Mail className="h-4 w-4 text-primary" /> {t("Change Email")}
           </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">Current: {user.email}</DialogDescription>
+          <DialogDescription className="text-xs text-muted-foreground">{t("Current:")} {user.email}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 py-2">
           <div className="grid gap-1">
-            <label className="font-mono text-[11px] text-muted-foreground">New email</label>
+            <label className="font-mono text-[11px] text-muted-foreground">{t("New email")}</label>
             <Input type="email" autoComplete="off" value={email} onChange={e => setEmail(e.target.value)} className="h-8 text-sm" placeholder="user@example.com" />
           </div>
           <div className="flex items-start gap-2 rounded border border-yellow-500/30 bg-yellow-500/5 p-3">
             <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-yellow-400" />
             <p className="text-xs text-yellow-300/80">
-              Changing the email resets verification (the new address must be re-verified) and is recorded in the audit trail.
+              {t("Changing the email resets verification (the new address must be re-verified) and is recorded in the audit trail.")}
             </p>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button size="sm" onClick={handleSave} disabled={saving || !valid}>{saving ? "Saving…" : "Change Email"}</Button>
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>{t("Cancel")}</Button>
+          <Button size="sm" onClick={handleSave} disabled={saving || !valid}>{saving ? t("Saving…") : t("Change Email")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -593,6 +599,7 @@ function BlockModal({
   onClose: () => void;
   onBlocked: (id: string) => void;
 }) {
+  const t = useT();
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -600,11 +607,11 @@ function BlockModal({
     setSaving(true);
     try {
       await apiAdminBlockUser(user.id, reason || undefined);
-      toast.success("Account blocked — the user can no longer log in.");
+      toast.success(t("Account blocked — the user can no longer log in."));
       onBlocked(user.id);
       onClose();
     } catch (err) {
-      toast.error((err as Error).message || "Failed to block account.");
+      toast.error((err as Error).message || t("Failed to block account."));
     } finally {
       setSaving(false);
     }
@@ -615,25 +622,25 @@ function BlockModal({
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm">
-            <Ban className="h-4 w-4 text-red-400" /> Block Account
+            <Ban className="h-4 w-4 text-red-400" /> {t("Block Account")}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">{user.email}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 py-2">
           <div className="grid gap-1">
-            <label className="font-mono text-[11px] text-muted-foreground">Reason (optional)</label>
-            <Input value={reason} onChange={e => setReason(e.target.value)} className="h-8 text-sm" placeholder="e.g. Abuse / fraud / user request" />
+            <label className="font-mono text-[11px] text-muted-foreground">{t("Reason (optional)")}</label>
+            <Input value={reason} onChange={e => setReason(e.target.value)} className="h-8 text-sm" placeholder={t("e.g. Abuse / fraud / user request")} />
           </div>
           <div className="flex items-start gap-2 rounded border border-red-500/30 bg-red-500/5 p-3">
             <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-red-400" />
             <p className="text-xs text-red-300/80">
-              A blocked account cannot log in (existing sessions expire within 12h). Recorded in the audit trail.
+              {t("A blocked account cannot log in (existing sessions expire within 12h). Recorded in the audit trail.")}
             </p>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button size="sm" variant="destructive" onClick={handleBlock} disabled={saving}>{saving ? "Blocking…" : "Block Account"}</Button>
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>{t("Cancel")}</Button>
+          <Button size="sm" variant="destructive" onClick={handleBlock} disabled={saving}>{saving ? t("Blocking…") : t("Block Account")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -643,6 +650,7 @@ function BlockModal({
 // ─── Users Tab ───────────────────────────────────────────────────────────────
 
 function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; operatorRole: PlatformRole }) {
+  const t = useT();
   const isOwner = operatorRole === "PLATFORM_OWNER";
   const isAdmin = operatorRole === "PLATFORM_OWNER" || operatorRole === "PLATFORM_ADMIN";
   const [users, setUsers]       = useState<AdminUser[]>([]);
@@ -665,7 +673,7 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
       setUsers(res.users);
       setTotal(res.total);
     } catch (err) {
-      toast.error((err as Error).message || "Failed to load users.");
+      toast.error((err as Error).message || t("Failed to load users."));
     } finally {
       setLoading(false);
     }
@@ -679,9 +687,9 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
     try {
       await apiAdminUnblockUser(id);
       setUsers(us => us.map(u => u.id === id ? { ...u, account_status: "ACTIVE" } : u));
-      toast.success("Account unblocked.");
+      toast.success(t("Account unblocked."));
     } catch (err) {
-      toast.error((err as Error).message || "Failed to unblock account.");
+      toast.error((err as Error).message || t("Failed to unblock account."));
     }
   };
 
@@ -692,7 +700,7 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search email, name, org…"
+            placeholder={t("Search email, name, org…")}
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
             className="h-8 pl-8 text-sm"
@@ -701,7 +709,7 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
         <Button variant="outline" size="sm" onClick={load} className="h-8 w-8 p-0">
           <RefreshCw className="h-3.5 w-3.5" />
         </Button>
-        <span className="font-mono text-xs text-muted-foreground">{total} total</span>
+        <span className="font-mono text-xs text-muted-foreground">{total} {t("total")}</span>
       </div>
 
       {/* Table */}
@@ -709,12 +717,12 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
         <Table>
           <TableHeader>
             <TableRow className="border-border/50">
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">NAME / EMAIL</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">ORG</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">MARKET ROLES</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">PLATFORM</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">STATUS</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">JOINED</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("NAME / EMAIL")}</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("ORG")}</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("MARKET ROLES")}</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("PLATFORM")}</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("STATUS")}</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("JOINED")}</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
@@ -741,7 +749,7 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
                         <MarketRoles roles={u.roles ?? []} />
                         {(u.pending_roles?.length ?? 0) > 0 && (
                           <span className="rounded border border-warning/40 bg-warning/10 px-1 py-px font-mono text-[9px] text-warning">
-                            {u.pending_roles.length} pending
+                            {u.pending_roles.length} {t("pending")}
                           </span>
                         )}
                       </div>
@@ -751,19 +759,19 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
                       <div className="flex flex-col gap-0.5">
                         {u.account_status === "BLOCKED" && (
                           <span className="w-fit rounded border border-red-500/40 bg-red-500/15 px-1 py-px font-mono text-[9px] font-semibold text-red-400">
-                            BLOCKED
+                            {t("BLOCKED")}
                           </span>
                         )}
                         {u.stellar_public_key
                           ? <span className="font-mono text-[10px]">{u.wallet_status ?? "—"}</span>
-                          : <span className="rounded border border-yellow-500/30 bg-yellow-500/10 px-1 py-px font-mono text-[9px] text-yellow-400">no wallet</span>
+                          : <span className="rounded border border-yellow-500/30 bg-yellow-500/10 px-1 py-px font-mono text-[9px] text-yellow-400">{t("no wallet")}</span>
                         }
                         <div className="flex gap-1">
                           {u.email_verified
                             ? <CheckCircle2 className="h-3 w-3 text-green-400" />
                             : <XCircle className="h-3 w-3 text-red-400/60" />
                           }
-                          <span className="font-mono text-[9px] text-muted-foreground/60">email</span>
+                          <span className="font-mono text-[9px] text-muted-foreground/60">{t("email")}</span>
                         </div>
                       </div>
                     </TableCell>
@@ -774,41 +782,41 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
                       <div className="flex items-center gap-1">
                         {isAdmin && (
                           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                            onClick={() => setEditUser(u)} title="Edit profile">
+                            onClick={() => setEditUser(u)} title={t("Edit profile")}>
                             <Edit2 className="h-3 w-3" />
                           </Button>
                         )}
                         {isAdmin && (
                           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
-                            onClick={() => setMarketRolesUser(u)} title="Market roles">
+                            onClick={() => setMarketRolesUser(u)} title={t("Market roles")}>
                             <Layers className="h-3 w-3" />
                           </Button>
                         )}
                         {uiCanRecover(operatorEmail, operatorRole, u) && (
                           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-yellow-400"
-                            onClick={() => setPwdUser(u)} title="Recover password (reset)">
+                            onClick={() => setPwdUser(u)} title={t("Recover password (reset)")}>
                             <Key className="h-3 w-3" />
                           </Button>
                         )}
                         {isAdmin && u.platform_role !== "PLATFORM_OWNER" && u.email !== operatorEmail && (
                           u.account_status === "BLOCKED"
                             ? <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-green-400"
-                                onClick={() => handleUnblock(u.id)} title="Unblock account">
+                                onClick={() => handleUnblock(u.id)} title={t("Unblock account")}>
                                 <CheckCircle2 className="h-3 w-3" />
                               </Button>
                             : <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-red-400"
-                                onClick={() => setBlockUser(u)} title="Block account">
+                                onClick={() => setBlockUser(u)} title={t("Block account")}>
                                 <Ban className="h-3 w-3" />
                               </Button>
                         )}
                         {isOwner && (
                           <>
                             <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-sky-400"
-                              onClick={() => setEmailUser(u)} title="Change email">
+                              onClick={() => setEmailUser(u)} title={t("Change email")}>
                               <Mail className="h-3 w-3" />
                             </Button>
                             <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-violet-400"
-                              onClick={() => setRoleUser(u)} title="Set platform role">
+                              onClick={() => setRoleUser(u)} title={t("Set platform role")}>
                               <UserCog className="h-3 w-3" />
                             </Button>
                           </>
@@ -879,6 +887,7 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
 // ─── Audit Log Tab ────────────────────────────────────────────────────────────
 
 function AuditLogTab() {
+  const t = useT();
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const [total, setTotal]     = useState(0);
   const [page, setPage]       = useState(1);
@@ -892,7 +901,7 @@ function AuditLogTab() {
       setEntries(res.entries);
       setTotal(res.total);
     } catch (err) {
-      toast.error((err as Error).message || "Failed to load audit log.");
+      toast.error((err as Error).message || t("Failed to load audit log."));
     } finally {
       setLoading(false);
     }
@@ -905,7 +914,7 @@ function AuditLogTab() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-xs text-muted-foreground">{total} entries</span>
+        <span className="font-mono text-xs text-muted-foreground">{total} {t("entries")}</span>
         <Button variant="outline" size="sm" onClick={load} className="h-7 w-7 p-0">
           <RefreshCw className="h-3 w-3" />
         </Button>
@@ -915,11 +924,11 @@ function AuditLogTab() {
         <Table>
           <TableHeader>
             <TableRow className="border-border/50">
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">WHEN</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">ACTOR</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">ACTION</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">TARGET</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">DETAILS</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("WHEN")}</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("ACTOR")}</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("ACTION")}</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("TARGET")}</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("DETAILS")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -932,7 +941,7 @@ function AuditLogTab() {
                   </TableRow>
                 ))
               : entries.length === 0
-                ? <TableRow><TableCell colSpan={5} className="py-8 text-center text-xs text-muted-foreground">No audit entries yet.</TableCell></TableRow>
+                ? <TableRow><TableCell colSpan={5} className="py-8 text-center text-xs text-muted-foreground">{t("No audit entries yet.")}</TableCell></TableRow>
                 : entries.map(e => (
                     <TableRow key={e.id} className="border-border/30 hover:bg-muted/30">
                       <TableCell className="font-mono text-[10px] text-muted-foreground whitespace-nowrap">{timeAgo(e.created_at)}</TableCell>
@@ -987,6 +996,7 @@ const ADMIN_ACTION_LABEL: Record<string, string> = {
 };
 
 function ActivityFeedTab() {
+  const t = useT();
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const [total, setTotal]     = useState(0);
   const [page, setPage]       = useState(1);
@@ -1000,7 +1010,7 @@ function ActivityFeedTab() {
       setEntries(res.entries);
       setTotal(res.total);
     } catch (err) {
-      toast.error((err as Error).message || "Failed to load activity feed.");
+      toast.error((err as Error).message || t("Failed to load activity feed."));
     } finally {
       setLoading(false);
     }
@@ -1028,11 +1038,11 @@ function ActivityFeedTab() {
         <Table>
           <TableHeader>
             <TableRow className="border-border/50">
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">WHEN</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">ADMIN</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">ACTION</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">TARGET</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">DETAILS</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("WHEN")}</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("ADMIN")}</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("ACTION")}</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("TARGET")}</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("DETAILS")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1045,7 +1055,7 @@ function ActivityFeedTab() {
                   </TableRow>
                 ))
               : entries.length === 0
-                ? <TableRow><TableCell colSpan={5} className="py-8 text-center text-xs text-muted-foreground">No actions by other admins yet.</TableCell></TableRow>
+                ? <TableRow><TableCell colSpan={5} className="py-8 text-center text-xs text-muted-foreground">{t("No actions by other admins yet.")}</TableCell></TableRow>
                 : entries.map(e => (
                     <TableRow key={e.id} className="border-border/30 hover:bg-muted/30">
                       <TableCell className="font-mono text-[10px] text-muted-foreground whitespace-nowrap">{timeAgo(e.created_at)}</TableCell>
@@ -1059,7 +1069,7 @@ function ActivityFeedTab() {
                       </TableCell>
                       <TableCell>
                         <span className="rounded bg-violet-500/10 px-1.5 py-0.5 font-mono text-[10px] text-violet-300">
-                          {ADMIN_ACTION_LABEL[e.action] ?? e.action}
+                          {t(ADMIN_ACTION_LABEL[e.action] ?? e.action)}
                         </span>
                       </TableCell>
                       <TableCell className="font-mono text-[10px] text-muted-foreground">{e.target?.email ?? "—"}</TableCell>
@@ -1091,6 +1101,7 @@ function ActivityFeedTab() {
 // ─── Recovery Links Tab ───────────────────────────────────────────────────────
 
 function RecoveryLinksTab({ isOwner }: { isOwner: boolean }) {
+  const t = useT();
   const [links, setLinks]     = useState<RecoveryLink[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -1100,7 +1111,7 @@ function RecoveryLinksTab({ isOwner }: { isOwner: boolean }) {
       const res = await apiAdminGetRecoveryLinks();
       setLinks(res.links);
     } catch (err) {
-      toast.error((err as Error).message || "Failed to load recovery links.");
+      toast.error((err as Error).message || t("Failed to load recovery links."));
     } finally {
       setLoading(false);
     }
@@ -1112,16 +1123,16 @@ function RecoveryLinksTab({ isOwner }: { isOwner: boolean }) {
     try {
       await apiAdminRemoveRecoveryLink(id);
       setLinks(ls => ls.filter(l => l.id !== id));
-      toast.success("Recovery link removed.");
+      toast.success(t("Recovery link removed."));
     } catch (err) {
-      toast.error((err as Error).message || "Failed to remove link.");
+      toast.error((err as Error).message || t("Failed to remove link."));
     }
   };
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-xs text-muted-foreground">{links.length} links</span>
+        <span className="font-mono text-xs text-muted-foreground">{links.length} {t("links")}</span>
         <Button variant="outline" size="sm" onClick={load} className="h-7 w-7 p-0">
           <RefreshCw className="h-3 w-3" />
         </Button>
@@ -1131,9 +1142,9 @@ function RecoveryLinksTab({ isOwner }: { isOwner: boolean }) {
         <Table>
           <TableHeader>
             <TableRow className="border-border/50">
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">ACCOUNT</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">CAN BE RECOVERED BY</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">ADDED</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("ACCOUNT")}</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("CAN BE RECOVERED BY")}</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("ADDED")}</TableHead>
               {isOwner && <TableHead />}
             </TableRow>
           </TableHeader>
@@ -1147,7 +1158,7 @@ function RecoveryLinksTab({ isOwner }: { isOwner: boolean }) {
                   </TableRow>
                 ))
               : links.length === 0
-                ? <TableRow><TableCell colSpan={isOwner ? 4 : 3} className="py-8 text-center text-xs text-muted-foreground">No recovery links configured.</TableCell></TableRow>
+                ? <TableRow><TableCell colSpan={isOwner ? 4 : 3} className="py-8 text-center text-xs text-muted-foreground">{t("No recovery links configured.")}</TableCell></TableRow>
                 : links.map(l => (
                     <TableRow key={l.id} className="border-border/30 hover:bg-muted/30">
                       <TableCell>
@@ -1173,7 +1184,7 @@ function RecoveryLinksTab({ isOwner }: { isOwner: boolean }) {
                             size="sm"
                             className="h-6 w-6 p-0 text-muted-foreground hover:text-red-400"
                             onClick={() => handleRemove(l.id)}
-                            title="Remove recovery link"
+                            title={t("Remove recovery link")}
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
@@ -1194,6 +1205,7 @@ function RecoveryLinksTab({ isOwner }: { isOwner: boolean }) {
 type Tab = "users" | "audit" | "recovery" | "activity";
 
 function AdminPage() {
+  const tr = useT();
   const operator = useOperator(s => s.operator);
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("users");
@@ -1220,12 +1232,12 @@ function AdminPage() {
   const isOwner = operator.platformRole === "PLATFORM_OWNER";
 
   const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: "users",    label: "Users",          icon: Shield },
-    { id: "audit",    label: "Audit Log",       icon: ClipboardList },
-    { id: "recovery", label: "Recovery Links",  icon: Link2 },
+    { id: "users",    label: tr("Users"),          icon: Shield },
+    { id: "audit",    label: tr("Audit Log"),       icon: ClipboardList },
+    { id: "recovery", label: tr("Recovery Links"),  icon: Link2 },
   ];
   // Owner-only: live feed of every other admin's actions ("Deus" oversight).
-  if (isOwner) TABS.push({ id: "activity", label: "Activity Feed", icon: Activity });
+  if (isOwner) TABS.push({ id: "activity", label: tr("Activity Feed"), icon: Activity });
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -1235,9 +1247,9 @@ function AdminPage() {
           <Shield className="h-4 w-4 text-violet-400" />
         </div>
         <div>
-          <h1 className="text-sm font-semibold">Platform Admin</h1>
+          <h1 className="text-sm font-semibold">{tr("Platform Admin")}</h1>
           <p className="text-[11px] text-muted-foreground">
-            {isOwner ? "Full access — PLATFORM_OWNER" : `${operator.platformRole} access`}
+            {isOwner ? tr("Full access — PLATFORM_OWNER") : `${operator.platformRole} ${tr("access")}`}
           </p>
         </div>
 
@@ -1254,8 +1266,7 @@ function AdminPage() {
         <div className="flex items-start gap-2 rounded border border-yellow-500/30 bg-yellow-500/5 p-3">
           <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-yellow-400" />
           <p className="text-xs text-yellow-300/80">
-            You have <strong>Account Recovery</strong> access. You can view users but cannot edit profiles
-            or change platform roles. Contact a PLATFORM_OWNER to request elevated access.
+            {tr("You have")} <strong>{tr("Account Recovery")}</strong> {tr("access. You can view users but cannot edit profiles or change platform roles. Contact a PLATFORM_OWNER to request elevated access.")}
           </p>
         </div>
       )}

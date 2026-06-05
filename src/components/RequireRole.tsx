@@ -15,6 +15,7 @@ import { ShieldAlert, ArrowLeft } from "lucide-react";
 
 import { useOperator, type ParticipantRole } from "@/store/operator";
 import { Card } from "@/components/ui/card";
+import { useT } from "@/lib/i18n";
 
 export function RequireRole({
   role,
@@ -25,6 +26,7 @@ export function RequireRole({
 }) {
   const isAuthenticated = useOperator((s) => s.isAuthenticated);
   const operator = useOperator((s) => s.operator);
+  const t = useT();
 
   if (!isAuthenticated || !operator) return <Navigate to="/login" />;
 
@@ -36,16 +38,16 @@ export function RequireRole({
       <div className="flex flex-1 items-center justify-center p-6">
         <Card className="max-w-md border-border bg-card p-8 text-center">
           <ShieldAlert className="mx-auto mb-3 h-7 w-7 text-warning" />
-          <h1 className="font-display text-lg font-semibold">Access restricted</h1>
+          <h1 className="font-display text-lg font-semibold">{t("Access restricted")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            This area is available only to operators holding the{" "}
-            <span className="font-mono text-foreground">{required.join(" / ")}</span> role.
+            {t("This area is available only to operators holding the")}{" "}
+            <span className="font-mono text-foreground">{required.join(" / ")}</span> {t("role.")}
           </p>
           <Link
             to="/"
             className="mt-5 inline-flex items-center gap-1.5 rounded-md border border-border bg-background/40 px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-foreground transition hover:border-primary/40 hover:bg-primary/5"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to dashboard
+            <ArrowLeft className="h-3.5 w-3.5" /> {t("Back to dashboard")}
           </Link>
         </Card>
       </div>

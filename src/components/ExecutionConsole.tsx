@@ -16,6 +16,7 @@ import { useOperator, maskAddress, canExecuteSettlement, ROLE_META } from "@/sto
 import { apiExecuteSettlement, type SettlementResult } from "@/lib/api";
 import { stellarExpertTx, stellarExpertAccount, STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import { toast } from "sonner";
+import { useT } from "@/lib/i18n";
 
 type LogLine = { ts: string; text: string; level?: "info" | "ok" | "warn" };
 
@@ -41,6 +42,7 @@ export function ExecutionConsole({
   pld: number;
   amount: number;
 }) {
+  const t = useT();
   const operator = useOperator((s) => s.operator);
   const authorized = canExecuteSettlement(operator);
 
@@ -140,7 +142,7 @@ export function ExecutionConsole({
           log("FAILED", `✗ ${msg}`, "warn");
           setFailed(msg);
           setRunning(false);
-          toast.error("Settlement failed", { description: msg });
+          toast.error(t("Settlement failed"), { description: msg });
           return;
         }
 
@@ -174,7 +176,7 @@ export function ExecutionConsole({
           status: "CONFIRMED",
         };
         recordSettlement(stl);
-        toast.success("Settlement finalized", {
+        toast.success(t("Settlement finalized"), {
           description: `Ledger #${res.ledger} · ${(lat / 1000).toFixed(2)}s`,
         });
       } catch (err) {
@@ -183,7 +185,7 @@ export function ExecutionConsole({
         log("FAILED", `✗ ${msg}`, "warn");
         setFailed(msg);
         setRunning(false);
-        toast.error("Settlement broadcast failed", { description: msg });
+        toast.error(t("Settlement broadcast failed"), { description: msg });
       }
     })();
 
@@ -202,6 +204,7 @@ export function ExecutionConsole({
     appendOpsLog,
     updateContractState,
     recordSettlement,
+    t,
   ]);
 
   useEffect(() => {
@@ -218,7 +221,7 @@ export function ExecutionConsole({
             <div className="flex items-center justify-between gap-2">
               <SheetTitle className="font-display flex items-center gap-2 text-base">
                 <Terminal className="h-4 w-4 text-primary" />
-                Settlement Authorization Console
+                {t("Settlement Authorization Console")}
               </SheetTitle>
               <Badge
                 variant="outline"
@@ -235,14 +238,14 @@ export function ExecutionConsole({
                 }
               >
                 {!authorized
-                  ? "● UNAUTHORIZED"
+                  ? t("● UNAUTHORIZED")
                   : failed
-                    ? "● FAILED"
+                    ? t("● FAILED")
                     : running
-                      ? "● SIGNING"
+                      ? t("● SIGNING")
                       : done
-                        ? "● FINALIZED"
-                        : "IDLE"}
+                        ? t("● FINALIZED")
+                        : t("IDLE")}
               </Badge>
             </div>
             <SheetDescription className="font-mono text-[11px] uppercase tracking-widest">
@@ -256,7 +259,7 @@ export function ExecutionConsole({
           <div className="mb-2 flex items-center justify-between">
             <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               <ShieldCheck className="h-3 w-3 text-success" />
-              Execution Signer · Backend Custody
+              {t("Execution Signer · Backend Custody")}
             </p>
             {operator && (
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -267,32 +270,32 @@ export function ExecutionConsole({
           {operator ? (
             <div className="grid grid-cols-2 gap-2 text-[11px]">
               <SignerCell
-                label="Source Public Key"
+                label={t("Source Public Key")}
                 value={operator.wallet.publicKey}
                 mono
                 truncate
               />
-              <SignerCell label="Settlement Authority" value={operator.organization} />
+              <SignerCell label={t("Settlement Authority")} value={operator.organization} />
               <SignerCell
-                label="Active Roles"
+                label={t("Active Roles")}
                 value={operator.roles.map((r) => ROLE_META[r].label).join(" · ") || "—"}
               />
               <SignerCell
-                label="Wallet Status"
+                label={t("Wallet Status")}
                 value={`${operator.wallet.status}${operator.funded ? " · FUNDED" : ""}`}
               />
             </div>
           ) : (
             <div className="flex items-center gap-2 font-mono text-[11px] text-destructive">
               <AlertTriangle className="h-3.5 w-3.5" />
-              No operational identity bound to session
+              {t("No operational identity bound to session")}
             </div>
           )}
         </div>
 
         <div className="border-b border-border px-5 py-3">
           <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            State machine
+            {t("State machine")}
           </p>
           <StateMachine current={state} />
         </div>
@@ -300,10 +303,10 @@ export function ExecutionConsole({
         <div className="px-5 py-3">
           <div className="mb-2 flex items-center justify-between">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Execution log · stdout
+              {t("Execution log · stdout")}
             </p>
             <p className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
-              <KeyRound className="h-3 w-3" /> signer {sourceShort}
+              <KeyRound className="h-3 w-3" /> {t("signer")} {sourceShort}
             </p>
           </div>
           <div
@@ -329,7 +332,7 @@ export function ExecutionConsole({
             {running && (
               <div className="mt-1 flex items-center gap-2 text-muted-foreground">
                 <span className="h-2 w-1.5 animate-pulse bg-primary" />
-                <span className="text-[10px]">awaiting backend confirmation…</span>
+                <span className="text-[10px]">{t("awaiting backend confirmation…")}</span>
               </div>
             )}
           </div>
@@ -338,27 +341,27 @@ export function ExecutionConsole({
         {done && tx && operator && result && (
           <div className="border-t border-border bg-card/40 px-5 py-4">
             <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Settlement receipt · backend
+              {t("Settlement receipt · backend")}
             </p>
             <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[12px]">
-              <Meta k="Contract ID" v={contract.id} />
-              <Meta k="Settlement ID" v={result.settlement_id} />
-              <Meta k="Counterparty" v={contract.seller} />
-              <Meta k="Amount" v={fmtBRL(amount)} />
-              <Meta k="Ledger #" v={ledger?.toLocaleString("en-US") ?? "—"} />
-              <Meta k="Finality" v={`${((latency ?? 0) / 1000).toFixed(2)}s`} />
-              <Meta k="Signer Operator" v={operator.operatorId} />
+              <Meta k={t("Contract ID")} v={contract.id} />
+              <Meta k={t("Settlement ID")} v={result.settlement_id} />
+              <Meta k={t("Counterparty")} v={contract.seller} />
+              <Meta k={t("Amount")} v={fmtBRL(amount)} />
+              <Meta k={t("Ledger #")} v={ledger?.toLocaleString("en-US") ?? "—"} />
+              <Meta k={t("Finality")} v={`${((latency ?? 0) / 1000).toFixed(2)}s`} />
+              <Meta k={t("Signer Operator")} v={operator.operatorId} />
               <Meta
-                k="Source Account"
+                k={t("Source Account")}
                 v={maskAddress(result.source_public_key ?? operator.wallet.publicKey)}
                 highlight
               />
-              <Meta k="Window" v={contract.window} />
-              <Meta k="Status" v={result.status} highlight />
+              <Meta k={t("Window")} v={contract.window} />
+              <Meta k={t("Status")} v={result.status} highlight />
             </dl>
             <div className="mt-3">
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Tx hash
+                {t("Tx hash")}
               </p>
               <div className="mt-1 flex items-start gap-2">
                 <code className="flex-1 break-all rounded bg-background/60 p-2 font-mono text-[11px]">
@@ -369,9 +372,9 @@ export function ExecutionConsole({
                   variant="ghost"
                   onClick={() => {
                     navigator.clipboard.writeText(tx);
-                    toast.success("Tx hash copied");
+                    toast.success(t("Tx hash copied"));
                   }}
-                  aria-label="Copy tx hash"
+                  aria-label={t("Copy tx hash")}
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
@@ -385,7 +388,7 @@ export function ExecutionConsole({
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 text-xs text-accent hover:underline"
                 >
-                  View transaction on Stellar Expert <ExternalLink className="h-3 w-3" />
+                  {t("View transaction on Stellar Expert")} <ExternalLink className="h-3 w-3" />
                 </a>
                 <a
                   href={stellarExpertAccount(result.source_public_key ?? operator.wallet.publicKey)}
@@ -393,11 +396,11 @@ export function ExecutionConsole({
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-accent"
                 >
-                  Source account audit <ExternalLink className="h-3 w-3" />
+                  {t("Source account audit")} <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
               <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>
-                Close
+                {t("Close")}
               </Button>
             </div>
           </div>
@@ -407,12 +410,12 @@ export function ExecutionConsole({
           <div className="border-t border-border bg-destructive/5 px-5 py-4">
             <p className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-widest text-destructive">
               <AlertTriangle className="h-3.5 w-3.5" />
-              Settlement broadcast failed
+              {t("Settlement broadcast failed")}
             </p>
             <p className="mt-1 font-mono text-[11px] text-muted-foreground">{failed}</p>
             <p className="mt-1 font-mono text-[10px] text-muted-foreground">
-              Verify backend connectivity ({"http://localhost:3000"}) and Horizon network status,
-              then retry.
+              {t("Verify backend connectivity")} ({"http://localhost:3000"}){" "}
+              {t("and Horizon network status, then retry.")}
             </p>
           </div>
         )}
@@ -421,13 +424,12 @@ export function ExecutionConsole({
           <div className="border-t border-border bg-destructive/5 px-5 py-4">
             <p className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-widest text-destructive">
               <AlertTriangle className="h-3.5 w-3.5" />
-              Settlement authorization unavailable
+              {t("Settlement authorization unavailable")}
             </p>
             <p className="mt-1 font-mono text-[11px] text-muted-foreground">
-              The current session has no provisioned settlement authority. Sign in with an
-              operational identity holding{" "}
-              <span className="text-foreground">settlements.execute</span> to authorize this
-              transaction.
+              {t("The current session has no provisioned settlement authority. Sign in with an operational identity holding")}{" "}
+              <span className="text-foreground">settlements.execute</span>{" "}
+              {t("to authorize this transaction.")}
             </p>
           </div>
         )}

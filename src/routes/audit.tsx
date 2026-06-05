@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDashboard } from "@/hooks/useDashboard";
 import { useSettlementRail } from "@/hooks/useSettlementRail";
 import { stellarExpertTx, STELLAR_NETWORK_LABEL } from "@/lib/stellar";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/audit")({
   head: () => ({
@@ -60,6 +61,7 @@ const timeAgo = (iso: string) => {
 function AuditPage() {
   const { stats, settlements, horizon, loading, refresh } = useDashboard();
   const { health, telemetry } = useSettlementRail();
+  const t = useT();
 
   const total = stats?.total_settlements ?? 0;
   const settled = stats?.settled_count ?? 0;
@@ -75,10 +77,10 @@ function AuditPage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Compliance Office · Ledger Provenance
+            {t("Compliance Office · Ledger Provenance")}
           </p>
           <h1 className="font-display text-2xl font-semibold tracking-tight">
-            Audit & Compliance
+            {t("Audit & Compliance")}
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -88,7 +90,7 @@ function AuditPage() {
           </Badge>
           <Button size="sm" variant="outline" onClick={refresh} disabled={loading}>
             <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            Refresh
+            {t("Refresh")}
           </Button>
         </div>
       </div>
@@ -99,13 +101,13 @@ function AuditPage() {
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div>
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Operator participation disclosure
+              {t("Operator participation disclosure")}
             </p>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              EnergyPay-operated accounts may participate in the market. They are labeled{" "}
-              <span className="font-mono text-emerald-400">Platform Operator</span> wherever they
-              appear, do not set the reference price (PLD comes from an external oracle), and every
-              one of their settlements is publicly verifiable on {STELLAR_NETWORK_LABEL}.
+              {t("EnergyPay-operated accounts may participate in the market. They are labeled")}{" "}
+              <span className="font-mono text-emerald-400">{t("Platform Operator")}</span>{" "}
+              {t("wherever they appear, do not set the reference price (PLD comes from an external oracle), and every one of their settlements is publicly verifiable on")}{" "}
+              {STELLAR_NETWORK_LABEL}.
             </p>
           </div>
         </div>
@@ -114,42 +116,42 @@ function AuditPage() {
       {/* KPI Strip */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <KpiCard
-          label="Pending"
+          label={t("Pending")}
           value={String(pending)}
-          sub="awaiting confirmation"
+          sub={t("awaiting confirmation")}
           loading={loading && !stats}
           tone={pending > 0 ? "warn" : "ok"}
         />
         <KpiCard
-          label="Confirmed"
+          label={t("Confirmed")}
           value={String(settled)}
-          sub="on-chain confirmed"
+          sub={t("on-chain confirmed")}
           loading={loading && !stats}
           tone="ok"
         />
         <KpiCard
-          label="Failed / Reverted"
+          label={t("Failed / Reverted")}
           value={String(failed)}
-          sub={failed > 0 ? "requires review" : "no failures"}
+          sub={failed > 0 ? t("requires review") : t("no failures")}
           loading={loading && !stats}
           tone={failed > 0 ? "warn" : "ok"}
         />
         <KpiCard
-          label="Cleared Volume"
+          label={t("Cleared Volume")}
           value={fmtBRL(stats?.total_value_brl ?? 0)}
-          sub="total BRL settled"
+          sub={t("total BRL settled")}
           loading={loading && !stats}
         />
         <KpiCard
-          label="Compliance Rate"
+          label={t("Compliance Rate")}
           value={total > 0 ? fmtPct(successRate) : "—"}
-          sub={total > 0 ? "settlement success" : "no data"}
+          sub={total > 0 ? t("settlement success") : t("no data")}
           loading={loading && !stats}
           tone={successRate >= 95 ? "ok" : "warn"}
         />
         <KpiCard
-          label="Ledger Status"
-          value={horizon?.horizon_online ? "ANCHORED" : "OFFLINE"}
+          label={t("Ledger Status")}
+          value={horizon?.horizon_online ? t("ANCHORED") : t("OFFLINE")}
           sub={`Horizon ${horizonLatency} ms`}
           loading={loading && !horizon}
           tone={horizon?.horizon_online ? "ok" : "warn"}
@@ -161,26 +163,26 @@ function AuditPage() {
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <Card className="border-border bg-card p-4 lg:col-span-2">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Compliance Health Indicators
+            {t("Compliance Health Indicators")}
           </p>
           <div className="mt-3 space-y-3">
-            <HealthBar label="Settlement Compliance" value={successRate} />
-            <HealthBar label="Horizon Connectivity" value={horizon?.horizon_online ? 100 : 0} />
-            <HealthBar label="Backend Availability" value={health?.status === "ok" ? 100 : health?.status === "degraded" ? 50 : 0} />
-            <HealthBar label="Finality SLA (< 6s)" value={finalityMs > 0 ? Math.min(100, (6000 / finalityMs) * 100) : 0} noData={finalityMs <= 0} />
+            <HealthBar label={t("Settlement Compliance")} value={successRate} />
+            <HealthBar label={t("Horizon Connectivity")} value={horizon?.horizon_online ? 100 : 0} />
+            <HealthBar label={t("Backend Availability")} value={health?.status === "ok" ? 100 : health?.status === "degraded" ? 50 : 0} />
+            <HealthBar label={t("Finality SLA (< 6s)")} value={finalityMs > 0 ? Math.min(100, (6000 / finalityMs) * 100) : 0} noData={finalityMs <= 0} />
           </div>
         </Card>
 
         <Card className="border-border bg-card p-4">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Audit Telemetry
+            {t("Audit Telemetry")}
           </p>
           <div className="mt-3 space-y-2">
-            <TelRow icon={<ShieldCheck className="h-3.5 w-3.5" />} label="Compliance rate" value={total > 0 ? fmtPct(successRate) : "—"} tone={successRate >= 95 ? "ok" : "warn"} />
-            <TelRow icon={<Activity className="h-3.5 w-3.5" />} label="Horizon latency" value={`${horizonLatency} ms`} tone={horizonLatency < 1000 ? "ok" : "warn"} />
-            <TelRow icon={<CheckCircle2 className="h-3.5 w-3.5" />} label="Confirmed" value={String(settled)} tone="ok" />
-            <TelRow icon={<XCircle className="h-3.5 w-3.5" />} label="Failed" value={String(failed)} tone={failed > 0 ? "warn" : "ok"} />
-            <TelRow icon={<FileCheck className="h-3.5 w-3.5" />} label="Counterparties" value={String(stats?.total_users ?? 0)} tone="muted" />
+            <TelRow icon={<ShieldCheck className="h-3.5 w-3.5" />} label={t("Compliance rate")} value={total > 0 ? fmtPct(successRate) : "—"} tone={successRate >= 95 ? "ok" : "warn"} />
+            <TelRow icon={<Activity className="h-3.5 w-3.5" />} label={t("Horizon latency")} value={`${horizonLatency} ms`} tone={horizonLatency < 1000 ? "ok" : "warn"} />
+            <TelRow icon={<CheckCircle2 className="h-3.5 w-3.5" />} label={t("Confirmed")} value={String(settled)} tone="ok" />
+            <TelRow icon={<XCircle className="h-3.5 w-3.5" />} label={t("Failed")} value={String(failed)} tone={failed > 0 ? "warn" : "ok"} />
+            <TelRow icon={<FileCheck className="h-3.5 w-3.5" />} label={t("Counterparties")} value={String(stats?.total_users ?? 0)} tone="muted" />
           </div>
         </Card>
       </div>
@@ -189,9 +191,9 @@ function AuditPage() {
       <Card className="border-border bg-card p-5">
         <div className="mb-4">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Immutable Audit Log · Ledger Anchored · Provenance
+            {t("Immutable Audit Log · Ledger Anchored · Provenance")}
           </p>
-          <p className="font-display text-lg font-semibold">Settlement Audit Trail</p>
+          <p className="font-display text-lg font-semibold">{t("Settlement Audit Trail")}</p>
         </div>
 
         {loading && settlements.length === 0 ? (
@@ -204,20 +206,20 @@ function AuditPage() {
           <div className="py-10 text-center">
             <ShieldCheck className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
             <p className="font-mono text-sm text-muted-foreground">
-              No audit records yet. Settlements will appear here with full ledger provenance.
+              {t("No audit records yet. Settlements will appear here with full ledger provenance.")}
             </p>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-[11px] uppercase tracking-wider">ID</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Seller</TableHead>
-                <TableHead className="text-right text-[11px] uppercase tracking-wider">Amount</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">PLD snapshot</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Tx Hash</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Status</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">When</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("ID")}</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("Seller")}</TableHead>
+                <TableHead className="text-right text-[11px] uppercase tracking-wider">{t("Amount")}</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("PLD snapshot")}</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("Tx Hash")}</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("Status")}</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("When")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -324,6 +326,7 @@ function KpiCard({
 }
 
 function HealthBar({ label, value, noData }: { label: string; value: number; noData?: boolean }) {
+  const t = useT();
   const pct = Math.max(0, Math.min(100, value));
   const color = pct >= 95 ? "bg-success" : pct >= 70 ? "bg-warning" : "bg-destructive";
   return (
@@ -331,7 +334,7 @@ function HealthBar({ label, value, noData }: { label: string; value: number; noD
       <div className="flex items-center justify-between">
         <span className="text-[11px] text-muted-foreground">{label}</span>
         {noData ? (
-          <span className="font-mono text-[11px] text-muted-foreground/60">Awaiting data</span>
+          <span className="font-mono text-[11px] text-muted-foreground/60">{t("Awaiting data")}</span>
         ) : (
           <span className={`font-mono text-[11px] ${pct >= 95 ? "text-success" : pct >= 70 ? "text-warning" : "text-destructive"}`}>
             {pct.toFixed(1)}%

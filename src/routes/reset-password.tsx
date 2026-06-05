@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/reset-password")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -32,6 +33,7 @@ export const Route = createFileRoute("/reset-password")({
 type ResetStep = "password" | "phone-otp" | "done";
 
 function ResetPasswordPage() {
+  const t = useT();
   const navigate = useNavigate();
   const { token } = Route.useSearch();
 
@@ -55,15 +57,15 @@ function ResetPasswordPage() {
   const onSubmitPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 6) {
-      toast.error("Password must be at least 6 characters.");
+      toast.error(t("Password must be at least 6 characters."));
       return;
     }
     if (password !== confirm) {
-      toast.error("Passwords do not match.");
+      toast.error(t("Passwords do not match."));
       return;
     }
     if (!token) {
-      toast.error("Invalid or missing reset token.");
+      toast.error(t("Invalid or missing reset token."));
       return;
     }
     setBusy(true);
@@ -75,7 +77,7 @@ function ResetPasswordPage() {
       });
       const data = await res.json();
       if (!data.success) {
-        toast.error(data.error || "Reset failed.");
+        toast.error(data.error || t("Reset failed."));
         return;
       }
       if (data.require_phone) {
@@ -89,7 +91,7 @@ function ResetPasswordPage() {
         setTimeout(() => navigate({ to: "/login" }), 2500);
       }
     } catch {
-      toast.error("Request failed — check your connection and retry.");
+      toast.error(t("Request failed — check your connection and retry."));
     } finally {
       setBusy(false);
     }
@@ -99,7 +101,7 @@ function ResetPasswordPage() {
   const onSubmitOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (otp.length !== 6) {
-      toast.error("Enter the 6-digit code.");
+      toast.error(t("Enter the 6-digit code."));
       return;
     }
     setVerifying(true);
@@ -111,13 +113,13 @@ function ResetPasswordPage() {
       });
       const data = await res.json();
       if (!data.success) {
-        toast.error(data.error || "Verification failed.");
+        toast.error(data.error || t("Verification failed."));
         return;
       }
       setStep("done");
       setTimeout(() => navigate({ to: "/login" }), 2500);
     } catch {
-      toast.error("Request failed — check your connection and retry.");
+      toast.error(t("Request failed — check your connection and retry."));
     } finally {
       setVerifying(false);
     }
@@ -136,12 +138,12 @@ function ResetPasswordPage() {
       if (data.require_phone) {
         if (data.dev_otp) setDevOtp(data.dev_otp);
         setOtp("");
-        toast.success("A new verification code was sent to your phone.");
+        toast.success(t("A new verification code was sent to your phone."));
       } else {
-        toast.error("Could not resend code.");
+        toast.error(t("Could not resend code."));
       }
     } catch {
-      toast.error("Request failed.");
+      toast.error(t("Request failed."));
     } finally {
       setResending(false);
     }
@@ -156,7 +158,7 @@ function ResetPasswordPage() {
           <div className="leading-tight" style={{ gap: 3, display: "flex", flexDirection: "column" }}>
             <BrandName size="md" />
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              Set New Password
+              {t("Set New Password")}
             </div>
           </div>
         </div>
@@ -166,7 +168,7 @@ function ResetPasswordPage() {
           <div className="flex items-center justify-between border-b border-border bg-background/40 px-4 py-2.5">
             <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
               <span className="h-1.5 w-1.5 rounded-full bg-success" />
-              Password Reset Terminal
+              {t("Password Reset Terminal")}
             </div>
             {/* Step indicator */}
             <div className="flex items-center gap-1.5">
@@ -188,9 +190,9 @@ function ResetPasswordPage() {
           {step === "done" && (
             <div className="space-y-4 p-6 text-center">
               <CheckCircle2 className="mx-auto h-10 w-10 text-success" />
-              <h2 className="font-display text-xl font-semibold">Password updated</h2>
+              <h2 className="font-display text-xl font-semibold">{t("Password updated")}</h2>
               <p className="text-sm text-muted-foreground">
-                Your password has been reset successfully. Redirecting to login…
+                {t("Your password has been reset successfully. Redirecting to login…")}
               </p>
             </div>
           )}
@@ -200,7 +202,7 @@ function ResetPasswordPage() {
             <form onSubmit={onSubmitPassword} className="space-y-4 p-5">
               {!token && (
                 <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 font-mono text-[11px] text-destructive">
-                  Invalid or missing reset token. Request a new password reset link.
+                  {t("Invalid or missing reset token. Request a new password reset link.")}
                 </div>
               )}
 
@@ -209,7 +211,7 @@ function ResetPasswordPage() {
                   htmlFor="pw"
                   className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
                 >
-                  New Password
+                  {t("New Password")}
                 </Label>
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -236,7 +238,7 @@ function ResetPasswordPage() {
                   htmlFor="confirm"
                   className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
                 >
-                  Confirm Password
+                  {t("Confirm Password")}
                 </Label>
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -253,7 +255,7 @@ function ResetPasswordPage() {
                   />
                 </div>
                 {confirm && confirm !== password && (
-                  <p className="font-mono text-[10px] text-destructive">Passwords do not match.</p>
+                  <p className="font-mono text-[10px] text-destructive">{t("Passwords do not match.")}</p>
                 )}
               </div>
 
@@ -261,7 +263,7 @@ function ResetPasswordPage() {
               <div className="flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2.5">
                 <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
                 <p className="font-mono text-[10px] text-muted-foreground">
-                  A verification code will be sent to your registered phone to confirm this change.
+                  {t("A verification code will be sent to your registered phone to confirm this change.")}
                 </p>
               </div>
 
@@ -274,7 +276,7 @@ function ResetPasswordPage() {
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <>
-                    Continue <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                    {t("Continue")} <ArrowRight className="ml-1 h-3.5 w-3.5" />
                   </>
                 )}
               </Button>
@@ -284,7 +286,7 @@ function ResetPasswordPage() {
                   to="/login"
                   className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary"
                 >
-                  ← Back to login
+                  ← {t("Back to login")}
                 </Link>
               </div>
             </form>
@@ -300,10 +302,10 @@ function ResetPasswordPage() {
                 </div>
                 <div>
                   <p className="font-mono text-[11px] uppercase tracking-widest text-foreground">
-                    Phone Verification
+                    {t("Phone Verification")}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    A 6-digit code was sent to{" "}
+                    {t("A 6-digit code was sent to")}{" "}
                     <span className="font-mono text-foreground">{phoneMasked}</span>
                   </p>
                 </div>
@@ -313,10 +315,10 @@ function ResetPasswordPage() {
               {devOtp && (
                 <div className="rounded-md border border-warning/40 bg-warning/5 p-3">
                   <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-warning">
-                    ⚠ Dev mode — Twilio not configured
+                    ⚠ {t("Dev mode — Twilio not configured")}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    Your verification code is:{" "}
+                    {t("Your verification code is:")}{" "}
                     <span className="font-mono font-bold text-foreground">{devOtp}</span>
                   </p>
                 </div>
@@ -327,7 +329,7 @@ function ResetPasswordPage() {
                   htmlFor="otp"
                   className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
                 >
-                  Verification Code
+                  {t("Verification Code")}
                 </Label>
                 <Input
                   id="otp"
@@ -342,7 +344,7 @@ function ResetPasswordPage() {
                   autoFocus
                 />
                 <p className="font-mono text-[10px] text-muted-foreground">
-                  Code expires in 10 minutes.
+                  {t("Code expires in 10 minutes.")}
                 </p>
               </div>
 
@@ -355,7 +357,7 @@ function ResetPasswordPage() {
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <>
-                    Verify & Reset Password <ShieldCheck className="ml-1 h-3.5 w-3.5" />
+                    {t("Verify & Reset Password")} <ShieldCheck className="ml-1 h-3.5 w-3.5" />
                   </>
                 )}
               </Button>
@@ -369,17 +371,17 @@ function ResetPasswordPage() {
                 >
                   {resending ? (
                     <span className="flex items-center gap-1">
-                      <Loader2 className="h-3 w-3 animate-spin" /> Sending…
+                      <Loader2 className="h-3 w-3 animate-spin" /> {t("Sending…")}
                     </span>
                   ) : (
-                    "Resend Code"
+                    t("Resend Code")
                   )}
                 </button>
                 <Link
                   to="/forgot-password"
                   className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary"
                 >
-                  Start Over
+                  {t("Start Over")}
                 </Link>
               </div>
             </form>
