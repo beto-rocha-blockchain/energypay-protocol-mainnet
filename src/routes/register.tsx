@@ -60,6 +60,7 @@ import { apiResendVerification, apiSendPhoneCode, apiVerifyPhoneCode, apiUploadI
 import { getSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { startRegisterTour } from "@/lib/tour";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/register")({
   component: RegisterPage,
@@ -88,6 +89,7 @@ const PROVISIONING_STEPS = [
 ];
 
 function RegisterPage() {
+  const t = useT();
   const navigate = useNavigate();
   const isAuthenticated = useOperator((s) => s.isAuthenticated);
   const register = useOperator((s) => s.register);
@@ -189,10 +191,10 @@ useEffect(() => {
     }
     return raw.length >= 4;
   }, [documentNumber, isBrazil, documentType]);
-  const docLabel = (!isBrazil ? "Tax / Registration ID" : documentType === "COMPANY" ? "CNPJ" : "CPF") + " (optional)";
+  const docLabel = (!isBrazil ? t("Tax / Registration ID") : documentType === "COMPANY" ? "CNPJ" : "CPF") + " " + t("(optional)");
   const docHint = !isBrazil
-    ? "Enter at least 4 characters."
-    : documentType === "COMPANY" ? "CNPJ must have 14 digits." : "CPF must have 11 digits.";
+    ? t("Enter at least 4 characters.")
+    : documentType === "COMPANY" ? t("CNPJ must have 14 digits.") : t("CPF must have 11 digits.");
 
   const formValid = useMemo(
     () =>
@@ -222,7 +224,7 @@ useEffect(() => {
   ];
   const goNext = () => {
     if (!stepValid[formStep]) {
-      toast.error("Complete the highlighted fields to continue.");
+      toast.error(t("Complete the highlighted fields to continue."));
       return;
     }
     setFormStep((s) => Math.min(s + 1, FORM_STEPS.length - 1));
@@ -247,7 +249,7 @@ useEffect(() => {
       return;
     }
     if (!formValid) {
-      toast.error("Operational credentials incomplete.");
+      toast.error(t("Operational credentials incomplete."));
       return;
     }
     setProvisionError(null);
@@ -281,13 +283,13 @@ useEffect(() => {
         try {
           await apiUploadIdentityDocument(documentFile);
         } catch (uploadErr) {
-          toast.error(`Identity document upload failed (you can add it later): ${(uploadErr as Error).message}`);
+          toast.error(`${t("Identity document upload failed (you can add it later):")} ${(uploadErr as Error).message}`);
         }
       }
       setProvisionError(null);
       setStep("verify-email");
     } catch (err) {
-      const reason = safeErrorMessage(err, "Settlement Network unreachable.");
+      const reason = safeErrorMessage(err, t("Settlement Network unreachable."));
       setProvisionError(reason);
       // Do NOT clear session, do NOT redirect to /login — keep operator on
       // the form with an inline institutional error banner.
@@ -298,7 +300,7 @@ useEffect(() => {
   const requestGeo = () => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setGeoStatus("denied");
-      toast.error("Geolocation unavailable on this device.");
+      toast.error(t("Geolocation unavailable on this device."));
       return;
     }
     setGeoStatus("requesting");
@@ -306,11 +308,11 @@ useEffect(() => {
       (pos) => {
         setCoordsLocal({ lat: pos.coords.latitude, lng: pos.coords.longitude, source: "GPS" });
         setGeoStatus("granted");
-        toast.success("Operational coordinates bound to identity.");
+        toast.success(t("Operational coordinates bound to identity."));
       },
       () => {
         setGeoStatus("denied");
-        toast.error("GPS denied — provide a region manually.");
+        toast.error(t("GPS denied — provide a region manually."));
       },
       { enableHighAccuracy: false, timeout: 8000 },
     );
@@ -321,9 +323,9 @@ useEffect(() => {
     const lng = parseFloat(manualLng);
     if (Number.isFinite(lat) && Number.isFinite(lng)) {
       setCoordsLocal({ lat, lng, source: "MANUAL" });
-      toast.success("Manual region recorded.");
+      toast.success(t("Manual region recorded."));
     } else {
-      toast.error("Enter valid latitude/longitude.");
+      toast.error(t("Enter valid latitude/longitude."));
     }
   };
 
@@ -341,19 +343,19 @@ useEffect(() => {
                 <div className="leading-tight" style={{ gap: 3, display: "flex", flexDirection: "column" }}>
                   <BrandName size="md" />
                   <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                    Clearing &amp; Settlement Infrastructure
+                    {t("Clearing & Settlement Infrastructure")}
                   </div>
                 </div>
               </div>
               <div>
                 <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Network Provisioning · Pilot Environment
+                  {t("Network Provisioning · Pilot Environment")}
                 </div>
                 <h1 className="font-display text-lg font-semibold leading-snug">
-                  Provision a settlement participant identity.
+                  {t("Provision a settlement participant identity.")}
                 </h1>
                 <p className="mt-1 text-[11px] text-muted-foreground">
-                  Mints an identity, binds an ed25519 keypair and registers your market roles on Stellar.
+                  {t("Mints an identity, binds an ed25519 keypair and registers your market roles on Stellar.")}
                 </p>
               </div>
             </div>
@@ -364,7 +366,7 @@ useEffect(() => {
             {/* B · Onboarding Steps */}
             <div className="flex-1 min-w-[220px]">
               <div className="mb-3 text-[10px] font-mono font-semibold uppercase tracking-widest text-foreground/60">
-                Onboarding Steps
+                {t("Onboarding Steps")}
               </div>
               <div className="grid grid-cols-2 gap-x-5 gap-y-3">
                 {(
@@ -377,8 +379,8 @@ useEffect(() => {
                   <div key={n} className="flex items-start gap-2">
                     <span className="mt-0.5 shrink-0 font-mono text-xs font-bold text-primary">{n}</span>
                     <span>
-                      <span className="block font-mono text-xs font-semibold text-foreground">{label}</span>
-                      <span className="block text-[11px] leading-relaxed text-muted-foreground">{sub}</span>
+                      <span className="block font-mono text-xs font-semibold text-foreground">{t(label)}</span>
+                      <span className="block text-[11px] leading-relaxed text-muted-foreground">{t(sub)}</span>
                     </span>
                   </div>
                 ))}
@@ -392,13 +394,13 @@ useEffect(() => {
             <div className="flex shrink-0 flex-wrap gap-3">
               <div className="rounded-md border border-border bg-background/40 p-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 <div className="flex items-center justify-between gap-4">
-                  <span>Network</span>
+                  <span>{t("Network")}</span>
                   <span className="flex items-center gap-1 text-success">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> Nominal
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> {t("Nominal")}
                   </span>
                 </div>
                 <div className="mt-2 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1.5 border-t border-border/40 pt-2">
-                  <span>Chain</span>
+                  <span>{t("Chain")}</span>
                   <span className="text-right text-foreground">{STELLAR_NETWORK_LABEL}</span>
                   <span>Horizon</span>
                   <span className="break-all text-right text-foreground">{HORIZON_URL.replace("https://", "")}</span>
@@ -407,24 +409,24 @@ useEffect(() => {
 
               <div className="rounded-md border border-border bg-background/40 p-3">
                 <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Required
+                  {t("Required")}
                 </div>
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
                     <Mail className="h-3 w-3 shrink-0" />
-                    <span>Institutional email</span>
+                    <span>{t("Institutional email")}</span>
                   </div>
                   <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
                     <Phone className="h-3 w-3 shrink-0" />
-                    <span>WhatsApp phone</span>
+                    <span>{t("WhatsApp phone")}</span>
                   </div>
                   <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
                     <ShieldCheck className="h-3 w-3 shrink-0" />
-                    <span>Participant role</span>
+                    <span>{t("Participant role")}</span>
                   </div>
                   <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
                     <KeyRound className="h-3 w-3 shrink-0" />
-                    <span>Backend key custody</span>
+                    <span>{t("Backend key custody")}</span>
                   </div>
                 </div>
               </div>
@@ -432,9 +434,9 @@ useEffect(() => {
           </div>
 
           <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-            <span>EnergyPay Clearing · v0.4.2</span>
+            <span>{t("EnergyPay Clearing · v0.4.2")}</span>
             <Link to="/login" className="text-foreground hover:text-primary">
-              Operator Access →
+              {t("Operator Access →")}
             </Link>
           </div>
         </Card>
@@ -443,11 +445,10 @@ useEffect(() => {
         <Card className="overflow-hidden border-border bg-card/70">
           <div className="flex items-center justify-between border-b border-border bg-background/40 px-4 py-2.5">
             <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-              <span className="h-1.5 w-1.5 rounded-full bg-success" /> Settlement Network ·
-              Provisioning Terminal
+              <span className="h-1.5 w-1.5 rounded-full bg-success" /> {t("Settlement Network · Provisioning Terminal")}
             </div>
             <div className="font-mono text-[10px] text-muted-foreground">
-              SECURE · TLS · ed25519
+              {t("SECURE · TLS · ed25519")}
             </div>
           </div>
 
@@ -456,7 +457,7 @@ useEffect(() => {
               {/* Guided tour trigger */}
               <div className="flex items-center justify-between">
                 <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Step {formStep + 1} of {FORM_STEPS.length}
+                  {t("Step")} {formStep + 1} {t("of")} {FORM_STEPS.length}
                 </span>
                 <button
                   type="button"
@@ -477,7 +478,7 @@ useEffect(() => {
                     <span
                       className={`font-mono text-[9px] uppercase tracking-widest ${i === formStep ? "text-primary" : "text-muted-foreground/60"}`}
                     >
-                      {String(i + 1).padStart(2, "0")} {label}
+                      {String(i + 1).padStart(2, "0")} {t(label)}
                     </span>
                   </div>
                 ))}
@@ -488,32 +489,31 @@ useEffect(() => {
                   <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-destructive">
                     <span className="flex items-center gap-1.5">
                       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-destructive" />
-                      Provisioning Failed · Settlement Rail
+                      {t("Provisioning Failed · Settlement Rail")}
                     </span>
                     <button
                       type="button"
                       onClick={() => setProvisionError(null)}
                       className="text-destructive/80 hover:text-destructive"
                     >
-                      DISMISS
+                      {t("DISMISS")}
                     </button>
                   </div>
                   <div className="mt-1.5 font-mono text-[11px] text-foreground break-words">
                     {provisionError}
                   </div>
                   <div className="mt-1 font-mono text-[10px] text-muted-foreground">
-                    Session preserved. Re-submit when the backend is reachable — no operator state
-                    was cleared.
+                    {t("Session preserved. Re-submit when the backend is reachable — no operator state was cleared.")}
                   </div>
                 </div>
               )}
               {formStep === 0 && (
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                  § 01 · Operator Credentials
+                  {t("§ 01 · Operator Credentials")}
                 </div>
                 <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <Field label="Full Name" icon={<User className="h-3.5 w-3.5" />}>
+                  <Field label={t("Full Name")} icon={<User className="h-3.5 w-3.5" />}>
                     <Input
                       data-tour="reg-fullname"
                       value={fullName}
@@ -522,7 +522,7 @@ useEffect(() => {
                       className="h-9 pl-8 font-mono text-xs"
                     />
                   </Field>
-                  <Field label="Operator Email" icon={<Mail className="h-3.5 w-3.5" />}>
+                  <Field label={t("Operator Email")} icon={<Mail className="h-3.5 w-3.5" />}>
                     <Input
                       data-tour="reg-email"
                       type="email"
@@ -534,9 +534,9 @@ useEffect(() => {
                   </Field>
                   <div>
                     <Field
-                      label="Phone Number *"
+                      label={t("Phone Number *")}
                       icon={<Phone className="h-3.5 w-3.5" />}
-                      hint="Required for 2FA. Include country code, e.g. +55 11 99999-9999"
+                      hint={t("Required for 2FA. Include country code, e.g. +55 11 99999-9999")}
                     >
                       <Input
                         data-tour="reg-phone"
@@ -553,12 +553,12 @@ useEffect(() => {
                     </Field>
                     {phone && !phoneValid && (
                       <p className="mt-1 font-mono text-[10px] text-destructive">
-                        Include country code — e.g. +55 11 99999-9999
+                        {t("Include country code — e.g. +55 11 99999-9999")}
                       </p>
                     )}
                   </div>
                   <Field
-                    label="Password"
+                    label={t("Password")}
                     icon={<Lock className="h-3.5 w-3.5" />}
                   >
                     <Input
@@ -588,11 +588,11 @@ useEffect(() => {
               {formStep === 1 && (<>
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                  § 02 · Organization &amp; Jurisdiction
+                  {t("§ 02 · Organization & Jurisdiction")}
                 </div>
                 <div className="mt-2 grid gap-3 md:grid-cols-3">
                   <Field
-                    label="Organization"
+                    label={t("Organization")}
                     icon={<Building2 className="h-3.5 w-3.5" />}
                     className="md:col-span-3"
                   >
@@ -606,13 +606,13 @@ useEffect(() => {
                   </Field>
 
                   {/* Country */}
-                  <GeoSelectField label="Country" icon={<Globe2 className="h-3.5 w-3.5" />}>
+                  <GeoSelectField label={t("Country")} icon={<Globe2 className="h-3.5 w-3.5" />}>
                     <Select
                       value={country}
                       onValueChange={(v) => { setCountry(v); setState(""); setCity(""); }}
                     >
                       <SelectTrigger data-tour="reg-country" className="h-9 bg-input font-mono text-xs">
-                        <SelectValue placeholder="Select country…" />
+                        <SelectValue placeholder={t("Select country…")} />
                       </SelectTrigger>
                       <SelectContent className="max-h-60">
                         {COUNTRIES.map((c) => (
@@ -626,14 +626,14 @@ useEffect(() => {
 
                   {/* State / Province — only shown when the selected country has states */}
                   {stateRequired ? (
-                    <GeoSelectField label="State / Province" icon={<MapPin className="h-3.5 w-3.5" />}>
+                    <GeoSelectField label={t("State / Province")} icon={<MapPin className="h-3.5 w-3.5" />}>
                       <Select
                         value={state}
                         onValueChange={(v) => { setState(v); setCity(""); }}
                         disabled={!country}
                       >
                         <SelectTrigger className="h-9 bg-input font-mono text-xs">
-                          <SelectValue placeholder="Select state…" />
+                          <SelectValue placeholder={t("Select state…")} />
                         </SelectTrigger>
                         <SelectContent className="max-h-60">
                           {availableStates.map((s) => (
@@ -650,7 +650,7 @@ useEffect(() => {
                   )}
 
                   {/* City */}
-                  <GeoSelectField label="City" icon={<MapPin className="h-3.5 w-3.5" />}>
+                  <GeoSelectField label={t("City")} icon={<MapPin className="h-3.5 w-3.5" />}>
                     {availableCities.length > 0 ? (
                       <Select
                         value={city}
@@ -659,9 +659,9 @@ useEffect(() => {
                       >
                         <SelectTrigger className="h-9 bg-input font-mono text-xs">
                           <SelectValue placeholder={
-                            !country ? "Select country first…"
-                            : stateRequired && !state ? "Select state first…"
-                            : "Select city…"
+                            !country ? t("Select country first…")
+                            : stateRequired && !state ? t("Select state first…")
+                            : t("Select city…")
                           } />
                         </SelectTrigger>
                         <SelectContent className="max-h-60">
@@ -671,7 +671,7 @@ useEffect(() => {
                             </SelectItem>
                           ))}
                           <SelectItem value="__other__" className="font-mono text-xs text-muted-foreground">
-                            Other…
+                            {t("Other…")}
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -701,10 +701,10 @@ useEffect(() => {
 
               <div data-tour="reg-identity">
                 <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                  § 02c · Identity Document
+                  {t("§ 02c · Identity Document")}
                 </div>
                 <div className="mt-2 grid gap-3 md:grid-cols-3">
-                  <Field label="Identity Type" icon={<ShieldCheck className="h-3.5 w-3.5" />}>
+                  <Field label={t("Identity Type")} icon={<ShieldCheck className="h-3.5 w-3.5" />}>
                     <Select
                       value={documentType}
                       onValueChange={(v) => setDocumentType(v as "INDIVIDUAL" | "COMPANY")}
@@ -713,8 +713,8 @@ useEffect(() => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="INDIVIDUAL" className="font-mono text-xs">Individual</SelectItem>
-                        <SelectItem value="COMPANY" className="font-mono text-xs">Company</SelectItem>
+                        <SelectItem value="INDIVIDUAL" className="font-mono text-xs">{t("Individual")}</SelectItem>
+                        <SelectItem value="COMPANY" className="font-mono text-xs">{t("Company")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </Field>
@@ -738,12 +738,12 @@ useEffect(() => {
                         const f = e.target.files?.[0];
                         if (!f) return;
                         if (f.type !== "application/pdf") {
-                          toast.error("Only PDF files are accepted.");
+                          toast.error(t("Only PDF files are accepted."));
                           e.target.value = "";
                           return;
                         }
                         if (f.size > 15 * 1024 * 1024) {
-                          toast.error("File too large — maximum 15 MB.");
+                          toast.error(t("File too large — maximum 15 MB."));
                           e.target.value = "";
                           return;
                         }
@@ -755,7 +755,7 @@ useEffect(() => {
                       htmlFor="id-doc"
                       className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border bg-background/20 px-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
                     >
-                      {documentFile ? `Attached · ${documentFile.name}` : "Attach document · PDF · optional"}
+                      {documentFile ? `${t("Attached")} · ${documentFile.name}` : t("Attach document · PDF · optional")}
                     </label>
                     {documentFile && (
                       <button
@@ -763,7 +763,7 @@ useEffect(() => {
                         onClick={() => setDocumentFile(null)}
                         className="mt-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-destructive"
                       >
-                        Remove document
+                        {t("Remove document")}
                       </button>
                     )}
                     {documentNumber.trim() && !docValid && (
@@ -776,14 +776,14 @@ useEffect(() => {
               <div>
                 <div className="flex items-center justify-between">
                   <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                    § 02b · Operational Geolocation · Optional
+                    {t("§ 02b · Operational Geolocation · Optional")}
                   </div>
                   <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                     {coords
-                      ? `${coords.source} · BOUND`
+                      ? `${coords.source} · ${t("BOUND")}`
                       : geoStatus === "denied"
-                        ? "GPS DENIED"
-                        : "UNBOUND"}
+                        ? t("GPS DENIED")
+                        : t("UNBOUND")}
                   </span>
                 </div>
                 <div className="mt-2 grid gap-2 md:grid-cols-[auto_1fr]">
@@ -795,25 +795,24 @@ useEffect(() => {
                   >
                     {geoStatus === "requesting" ? (
                       <>
-                        <Loader2 className="h-3 w-3 animate-spin" /> Requesting…
+                        <Loader2 className="h-3 w-3 animate-spin" /> {t("Requesting…")}
                       </>
                     ) : coords?.source === "GPS" ? (
                       <>
-                        <Check className="h-3 w-3" /> GPS Bound
+                        <Check className="h-3 w-3" /> {t("GPS Bound")}
                       </>
                     ) : (
                       <>
-                        <MapPin className="h-3 w-3" /> Capture GPS coordinates
+                        <MapPin className="h-3 w-3" /> {t("Capture GPS coordinates")}
                       </>
                     )}
                   </Button>
                   <div className="rounded-md border border-border bg-background/40 p-3">
                     <div className="font-mono text-[11px] text-foreground">
-                      Bind operational coordinates to your settlement identity
+                      {t("Bind operational coordinates to your settlement identity")}
                     </div>
                     <div className="mt-1 text-[10px] text-muted-foreground">
-                      Used for grid map placement &amp; regional liquidity attribution. Coordinates
-                      remain session-scoped and are never shared with counterparties.
+                      {t("Used for grid map placement & regional liquidity attribution. Coordinates remain session-scoped and are never shared with counterparties.")}
                     </div>
                     {coords && (
                       <div className="mt-2 font-mono text-[10px] text-success">
@@ -841,7 +840,7 @@ useEffect(() => {
                     onClick={applyManual}
                     className="h-9 font-mono text-[10px] uppercase tracking-widest"
                   >
-                    Apply Region
+                    {t("Apply Region")}
                   </Button>
                 </div>
               </div>
@@ -851,14 +850,14 @@ useEffect(() => {
               <div>
                 <div className="flex items-center justify-between">
                   <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                    § 03 · Market Participant Roles
+                    {t("§ 03 · Market Participant Roles")}
                   </div>
                   <button
                     type="button"
                     onClick={selectAll}
                     className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition hover:text-primary"
                   >
-                    Enable all capabilities →
+                    {t("Enable all capabilities →")}
                   </button>
                 </div>
                 <div data-tour="reg-roles" className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -923,9 +922,9 @@ useEffect(() => {
                     })}
                 </div>
                 <div className="mt-1.5 font-mono text-[10px] text-muted-foreground">
-                  {roles.length === 0 && "Select one or more market participant roles."}
-                  {roles.length === 1 && `${roles.length} capability scoped to identity.`}
-                  {roles.length > 1 && `${roles.length} capabilities scoped to identity.`}
+                  {roles.length === 0 && t("Select one or more market participant roles.")}
+                  {roles.length === 1 && `${roles.length} ${t("capability scoped to identity.")}`}
+                  {roles.length > 1 && `${roles.length} ${t("capabilities scoped to identity.")}`}
                 </div>
               </div>
 
@@ -933,7 +932,7 @@ useEffect(() => {
               {roles.includes("GENERATOR") && (
                 <div>
                   <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                    § 03b · Generation Source
+                    {t("§ 03b · Generation Source")}
                   </div>
                   <div className="mt-2 grid grid-cols-3 gap-2">
                     {(
@@ -969,7 +968,7 @@ useEffect(() => {
                         >
                           <Icon className="h-5 w-5" />
                           <span className="font-mono text-[10px] uppercase tracking-widest leading-tight">
-                            {label}
+                            {t(label)}
                           </span>
                           <Check className={`h-3 w-3 transition-opacity ${active ? "opacity-100" : "opacity-0"}`} />
                         </button>
@@ -977,7 +976,7 @@ useEffect(() => {
                     })}
                   </div>
                   <div className="mt-1.5 font-mono text-[10px] text-muted-foreground">
-                    Select every generation source you operate — choose as many as apply.
+                    {t("Select every generation source you operate — choose as many as apply.")}
                   </div>
                 </div>
               )}
@@ -993,10 +992,10 @@ useEffect(() => {
                 />
                 <span>
                   <span className="block font-mono uppercase tracking-widest text-foreground">
-                    Fund settlement account on {STELLAR_NETWORK_LABEL}
+                    {t("Fund settlement account on")} {STELLAR_NETWORK_LABEL}
                   </span>
                   <span className="block text-[11px] text-muted-foreground">
-                    {"Provisions a Stellar Mainnet account for institutional settlement operations."}
+                    {t("Provisions a Stellar Mainnet account for institutional settlement operations.")}
                   </span>
                 </span>
               </label>
@@ -1006,7 +1005,7 @@ useEffect(() => {
               {/* § 04b · Settlement Wallet */}
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                  § 04b · Settlement Wallet
+                  {t("§ 04b · Settlement Wallet")}
                 </div>
                 <div data-tour="reg-wallet" className="mt-2 grid grid-cols-2 gap-2">
                   {(
@@ -1051,7 +1050,7 @@ useEffect(() => {
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
                               <div className="font-mono text-[11px] uppercase tracking-widest text-foreground">
-                                {opt.label}
+                                {t(opt.label)}
                               </div>
                               <div
                                 className={`flex h-4 w-4 items-center justify-center rounded-full border transition ${
@@ -1064,7 +1063,7 @@ useEffect(() => {
                               </div>
                             </div>
                             <div className="mt-0.5 text-[10px] text-muted-foreground">
-                              {opt.desc}
+                              {t(opt.desc)}
                             </div>
                           </div>
                         </div>
@@ -1076,8 +1075,7 @@ useEffect(() => {
                 {walletMode === "generate" && (
                   <div className="mt-2 rounded-md border border-border bg-background/40 p-2.5">
                     <p className="font-mono text-[10px] text-muted-foreground">
-                      A new ed25519 keypair will be generated server-side, encrypted with AES-256 and stored securely by EnergyPay.
-                      Your public key is always visible in your profile. The secret key is never transmitted to or stored in the frontend.
+                      {t("A new ed25519 keypair will be generated server-side, encrypted with AES-256 and stored securely by EnergyPay. Your public key is always visible in your profile. The secret key is never transmitted to or stored in the frontend.")}
                     </p>
                   </div>
                 )}
@@ -1085,10 +1083,10 @@ useEffect(() => {
                 {walletMode === "link" && (
                   <div className="mt-3 space-y-3 rounded-md border border-border bg-background/40 p-3">
                     <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                      Existing Wallet — Public Key Only
+                      {t("Existing Wallet — Public Key Only")}
                     </div>
                     <Field
-                      label="Stellar Public Key (G…)"
+                      label={t("Stellar Public Key (G…)")}
                       icon={<KeyRound className="h-3.5 w-3.5" />}
                     >
                       <Input
@@ -1104,18 +1102,15 @@ useEffect(() => {
                     {existingPublicKey &&
                       (existingPublicKey.length !== 56 || !existingPublicKey.startsWith("G")) && (
                         <p className="-mt-1 font-mono text-[10px] text-destructive">
-                          Must be a 56-character Stellar public key starting with G
+                          {t("Must be a 56-character Stellar public key starting with G")}
                         </p>
                       )}
                     <div className="rounded-md border border-primary/20 bg-primary/5 p-2.5">
                       <p className="font-mono text-[10px] uppercase tracking-widest text-primary">
-                        Self-Custody · Zero Secret Storage
+                        {t("Self-Custody · Zero Secret Storage")}
                       </p>
                       <p className="mt-1 text-[10px] text-muted-foreground">
-                        EnergyPay never stores, requests or transmits your secret key.
-                        When a transaction requires your signature, an unsigned XDR will be presented
-                        in a local signing modal — you enter your secret key, it signs in memory, and the
-                        signed transaction is sent directly to Stellar. Your secret never leaves your device.
+                        {t("EnergyPay never stores, requests or transmits your secret key. When a transaction requires your signature, an unsigned XDR will be presented in a local signing modal — you enter your secret key, it signs in memory, and the signed transaction is sent directly to Stellar. Your secret never leaves your device.")}
                       </p>
                     </div>
                   </div>
@@ -1123,8 +1118,8 @@ useEffect(() => {
 
                 <div className="mt-1.5 font-mono text-[10px] text-muted-foreground">
                   {walletMode === "generate"
-                    ? "EnergyPay managed · AES-256 encrypted at rest · ed25519 · Stellar Mainnet"
-                    : "User-controlled · public key only · local signing modal for every transaction"}
+                    ? t("EnergyPay managed · AES-256 encrypted at rest · ed25519 · Stellar Mainnet")
+                    : t("User-controlled · public key only · local signing modal for every transaction")}
                 </div>
               </div>
               </>)}
@@ -1138,7 +1133,7 @@ useEffect(() => {
                     onClick={goBack}
                     className="h-10 shrink-0 font-mono text-xs uppercase tracking-widest"
                   >
-                    <ArrowLeft className="h-3.5 w-3.5" /> Back
+                    <ArrowLeft className="h-3.5 w-3.5" /> {t("Back")}
                   </Button>
                 )}
                 <Button
@@ -1147,15 +1142,15 @@ useEffect(() => {
                   disabled={formStep === FORM_STEPS.length - 1 ? !formValid : !stepValid[formStep]}
                   className="h-10 flex-1 font-mono text-xs uppercase tracking-widest"
                 >
-                  {formStep === FORM_STEPS.length - 1 ? "Provision Settlement Identity" : "Continue"}
+                  {formStep === FORM_STEPS.length - 1 ? t("Provision Settlement Identity") : t("Continue")}
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </div>
 
               <div className="flex items-center justify-between border-t border-border pt-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                <span>Already provisioned?</span>
+                <span>{t("Already provisioned?")}</span>
                 <Link to="/login" className="text-foreground hover:text-primary">
-                  Operator Access →
+                  {t("Operator Access →")}
                 </Link>
               </div>
             </form>
@@ -1165,7 +1160,7 @@ useEffect(() => {
             <div className="space-y-4 p-5">
               <div className="flex items-center justify-between">
                 <div className="font-mono text-[11px] uppercase tracking-widest text-foreground">
-                  Provisioning Settlement Identity
+                  {t("Provisioning Settlement Identity")}
                 </div>
                 <div className="font-mono text-[10px] text-muted-foreground">
                   {progress}/{provisioningSteps.length}
@@ -1202,18 +1197,18 @@ useEffect(() => {
                               : "text-muted-foreground"
                         }
                       >
-                        {s}
+                        {t(s)}
                       </span>
-                      {done && <span className="ml-auto text-[10px] text-success">OK</span>}
+                      {done && <span className="ml-auto text-[10px] text-success">{t("OK")}</span>}
                     </div>
                   );
                 })}
               </div>
               <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                <span>Network: {STELLAR_NETWORK_LABEL}</span>
+                <span>{t("Network:")} {STELLAR_NETWORK_LABEL}</span>
                 <span className="flex items-center gap-1.5 text-success">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />{" "}
-                  Provisioning
+                  {t("Provisioning")}
                 </span>
               </div>
             </div>
@@ -1240,7 +1235,7 @@ useEffect(() => {
                 </div>
                 <div>
                   <div className="font-mono text-[11px] uppercase tracking-widest text-success">
-                    Settlement Identity Active
+                    {t("Settlement Identity Active")}
                   </div>
                   <div className="text-[10px] text-muted-foreground">
                     {operator.operatorId} · {operator.organization}
@@ -1250,49 +1245,49 @@ useEffect(() => {
 
               <div className="rounded-md border border-border bg-background/60 p-3">
                 <KeyRow
-                  label="Public Key"
+                  label={t("Public Key")}
                   value={operator.wallet.publicKey}
                   icon={<ShieldCheck className="h-3 w-3" />}
                 />
                 <Separator className="my-2 bg-border/60" />
                 <div className="rounded-md border border-border bg-background/40 px-2 py-1.5">
                   <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                    Signer custody
+                    {t("Signer custody")}
                   </div>
                   <div className="mt-0.5 font-mono text-[11px] text-foreground">
-                    {operator.wallet.walletMode === "USER_CONTROLLED" ? "User-controlled wallet" : "EnergyPay managed wallet"} · ed25519 ·{" "}
+                    {operator.wallet.walletMode === "USER_CONTROLLED" ? t("User-controlled wallet") : t("EnergyPay managed wallet")} · ed25519 ·{" "}
                     {operator.wallet.status}
                   </div>
                   <div className="mt-1 font-mono text-[10px] text-muted-foreground">
                     {operator.wallet.walletMode === "USER_CONTROLLED"
-                      ? "Your public key is registered. Secret key never stored by EnergyPay — you sign each transaction locally."
-                      : "Secret key is encrypted with AES-256 and stored by EnergyPay. The frontend never receives or transmits the secret key."}
+                      ? t("Your public key is registered. Secret key never stored by EnergyPay — you sign each transaction locally.")
+                      : t("Secret key is encrypted with AES-256 and stored by EnergyPay. The frontend never receives or transmits the secret key.")}
                   </div>
                 </div>
               </div>
 
               <div className="rounded-md border border-border bg-background/60 p-3">
                 <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Network Settlement Receipt
+                  {t("Network Settlement Receipt")}
                 </div>
                 <div className="mt-2 grid gap-2">
                   <KeyRow
-                    label="Provisioning Tx Hash"
-                    value={operator.provisioningTxHash || "PENDING · awaiting backend confirmation"}
+                    label={t("Provisioning Tx Hash")}
+                    value={operator.provisioningTxHash || t("PENDING · awaiting backend confirmation")}
                     icon={<Terminal className="h-3 w-3" />}
                   />
                   <div className="grid grid-cols-2 gap-2 font-mono text-[10px] uppercase tracking-widest">
                     <Mini
-                      label="Ledger Sequence"
+                      label={t("Ledger Sequence")}
                       value={
                         operator.provisioningLedger != null
                           ? `#${operator.provisioningLedger}`
-                          : "PENDING"
+                          : t("PENDING")
                       }
                       tone={operator.provisioningLedger != null ? "success" : undefined}
                     />
                     <Mini
-                      label="Settlement Status"
+                      label={t("Settlement Status")}
                       value={(
                         operator.settlementStatus ||
                         operator.wallet.status ||
@@ -1306,22 +1301,22 @@ useEffect(() => {
 
               <div className="grid grid-cols-2 gap-2 font-mono text-[10px] uppercase tracking-widest">
                 <Mini
-                  label="Network"
+                  label={t("Network")}
                   value={operator.network || STELLAR_NETWORK_LABEL}
                   tone="success"
                 />
                 <Mini
-                  label="Funded"
-                  value={operator.wallet.funded ? "Yes" : "No · Pending"}
+                  label={t("Funded")}
+                  value={operator.wallet.funded ? t("Yes") : t("No · Pending")}
                   tone={operator.wallet.funded ? "success" : undefined}
                 />
-                <Mini label="Roles" value={operator.roles.length.toString()} />
-                <Mini label="Address" value={maskAddress(operator.wallet.publicKey)} />
+                <Mini label={t("Roles")} value={operator.roles.length.toString()} />
+                <Mini label={t("Address")} value={maskAddress(operator.wallet.publicKey)} />
               </div>
 
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                  Provisioned Capabilities
+                  {t("Provisioned Capabilities")}
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {operator.roles.map((r) => (
@@ -1341,7 +1336,7 @@ useEffect(() => {
                 rel="noreferrer"
                 className="flex items-center justify-between rounded-md border border-border bg-background/40 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-foreground transition hover:border-primary/50 hover:text-primary"
               >
-                <span>Audit account on Stellar Expert</span>
+                <span>{t("Audit account on Stellar Expert")}</span>
                 <ArrowRight className="h-3 w-3" />
               </a>
 
@@ -1349,7 +1344,7 @@ useEffect(() => {
                 onClick={() => navigate({ to: "/" })}
                 className="h-10 w-full font-mono text-xs uppercase tracking-widest"
               >
-                Enter Settlement Control Room
+                {t("Enter Settlement Control Room")}
                 <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             </div>
@@ -1362,6 +1357,7 @@ useEffect(() => {
 
 /* ─── Verify Email Step ─── */
 function VerifyEmailStep({ onVerified }: { onVerified: () => void }) {
+  const t = useT();
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [devVerifyUrl, setDevVerifyUrl] = useState<string | null>(null);
@@ -1374,7 +1370,7 @@ function VerifyEmailStep({ onVerified }: { onVerified: () => void }) {
       if (result.dev_verify_url) {
         setDevVerifyUrl(result.dev_verify_url);
       } else {
-        toast.success("Verification email sent — check your inbox.");
+        toast.success(t("Verification email sent — check your inbox."));
       }
     } catch (e) {
       toast.error(safeErrorMessage(e));
@@ -1391,10 +1387,10 @@ function VerifyEmailStep({ onVerified }: { onVerified: () => void }) {
         </div>
         <div>
           <div className="font-mono text-[11px] uppercase tracking-widest text-foreground">
-            Verify Your Email
+            {t("Verify Your Email")}
           </div>
           <div className="text-[10px] text-muted-foreground">
-            We sent a verification link to your email address.
+            {t("We sent a verification link to your email address.")}
           </div>
         </div>
       </div>
@@ -1402,10 +1398,10 @@ function VerifyEmailStep({ onVerified }: { onVerified: () => void }) {
       {devVerifyUrl && (
         <div className="rounded-md border border-warning/40 bg-warning/5 p-3">
           <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-warning">
-            ⚠ Dev mode — email not configured
+            {t("⚠ Dev mode — email not configured")}
           </p>
           <p className="mb-2 text-[11px] text-muted-foreground">
-            Resend blocked the email. Open this link directly to verify:
+            {t("Resend blocked the email. Open this link directly to verify:")}
           </p>
           <a
             href={devVerifyUrl}
@@ -1421,16 +1417,16 @@ function VerifyEmailStep({ onVerified }: { onVerified: () => void }) {
 
       <div className="rounded-md border border-border bg-background/40 p-4 text-center space-y-3">
         <p className="text-xs text-muted-foreground">
-          Click the link in your email to verify your account. After verifying, click the button below to continue.
+          {t("Click the link in your email to verify your account. After verifying, click the button below to continue.")}
         </p>
         <div className="flex flex-col gap-2">
           <Button size="sm" onClick={onVerified}>
             <Check className="mr-1.5 h-3.5 w-3.5" />
-            I've Verified My Email
+            {t("I've Verified My Email")}
           </Button>
           <Button variant="ghost" size="sm" onClick={resend} disabled={sending || sent}>
             {sending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Mail className="mr-1.5 h-3.5 w-3.5" />}
-            {sent ? "Email Sent" : "Resend Verification Email"}
+            {sent ? t("Email Sent") : t("Resend Verification Email")}
           </Button>
         </div>
       </div>
@@ -1446,6 +1442,7 @@ function VerifyPhoneStep({
   hasPhone: boolean;
   onVerified: () => void;
 }) {
+  const t = useT();
   const [phoneInput, setPhoneInput] = useState("");
   const [codeSent, setCodeSent] = useState(false);
   const [devCode, setDevCode] = useState<string | null>(null);
@@ -1466,9 +1463,9 @@ function VerifyPhoneStep({
         },
         body: JSON.stringify({ phone: phoneInput.trim() }),
       });
-      if (!res.ok) throw new Error((await res.json()).error || "Failed to save phone");
+      if (!res.ok) throw new Error((await res.json()).error || t("Failed to save phone"));
       setPhoneSaved(true);
-      toast.success("Phone number saved.");
+      toast.success(t("Phone number saved."));
     } catch (e) {
       toast.error(safeErrorMessage(e));
     } finally {
@@ -1485,7 +1482,7 @@ function VerifyPhoneStep({
       if (result.dev_code) {
         setDevCode(result.dev_code);
       } else {
-        toast.success("Verification code sent to your phone.");
+        toast.success(t("Verification code sent to your phone."));
       }
     } catch (e) {
       toast.error(safeErrorMessage(e));
@@ -1499,7 +1496,7 @@ function VerifyPhoneStep({
     setVerifying(true);
     try {
       await apiVerifyPhoneCode(code);
-      toast.success("Phone verified!");
+      toast.success(t("Phone verified!"));
       onVerified();
     } catch (e) {
       toast.error(safeErrorMessage(e));
@@ -1516,10 +1513,10 @@ function VerifyPhoneStep({
         </div>
         <div>
           <div className="font-mono text-[11px] uppercase tracking-widest text-foreground">
-            Verify Your Phone
+            {t("Verify Your Phone")}
           </div>
           <div className="text-[10px] text-muted-foreground">
-            We'll send a 6-digit code to your phone.
+            {t("We'll send a 6-digit code to your phone.")}
           </div>
         </div>
       </div>
@@ -1527,7 +1524,7 @@ function VerifyPhoneStep({
       <div className="rounded-md border border-border bg-background/40 p-4 space-y-3">
         {!phoneSaved ? (
           <div className="space-y-2">
-            <Label className="text-xs">Phone Number (with country code)</Label>
+            <Label className="text-xs">{t("Phone Number (with country code)")}</Label>
             <div className="flex gap-2">
               <Input
                 placeholder="+55 11 99999-9999"
@@ -1536,18 +1533,18 @@ function VerifyPhoneStep({
                 className="flex-1 font-mono text-xs"
               />
               <Button size="sm" onClick={savePhone} disabled={sending || !phoneInput.trim()}>
-                {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
+                {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t("Save")}
               </Button>
             </div>
           </div>
         ) : !codeSent ? (
           <div className="text-center space-y-2">
             <p className="text-xs text-muted-foreground">
-              Click below to receive a verification code on your WhatsApp.
+              {t("Click below to receive a verification code on your WhatsApp.")}
             </p>
             <Button size="sm" onClick={sendCode} disabled={sending}>
               {sending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Phone className="mr-1.5 h-3.5 w-3.5" />}
-              Send WhatsApp Code
+              {t("Send WhatsApp Code")}
             </Button>
           </div>
         ) : (
@@ -1555,15 +1552,15 @@ function VerifyPhoneStep({
             {devCode && (
               <div className="rounded-md border border-warning/40 bg-warning/5 p-2.5">
                 <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-warning">
-                  ⚠ Dev mode — Twilio not configured
+                  {t("⚠ Dev mode — Twilio not configured")}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  Your code is:{" "}
+                  {t("Your code is:")}{" "}
                   <span className="font-mono font-bold text-foreground">{devCode}</span>
                 </p>
               </div>
             )}
-            <Label className="text-xs">Enter 6-digit code</Label>
+            <Label className="text-xs">{t("Enter 6-digit code")}</Label>
             <div className="flex gap-2">
               <Input
                 placeholder="000000"
@@ -1578,7 +1575,7 @@ function VerifyPhoneStep({
               </Button>
             </div>
             <Button variant="ghost" size="sm" className="w-full" onClick={sendCode} disabled={sending}>
-              {sending ? "Sending…" : "Resend Code"}
+              {sending ? t("Sending…") : t("Resend Code")}
             </Button>
           </div>
         )}
@@ -1652,12 +1649,13 @@ function KeyRow({
   icon: React.ReactNode;
   trailing?: React.ReactNode;
 }) {
+  const t = useT();
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(value);
-      toast.success(`${label} copied`);
+      toast.success(`${label} ${t("copied")}`);
     } catch {
-      toast.error("Clipboard unavailable");
+      toast.error(t("Clipboard unavailable"));
     }
   };
   return (
@@ -1699,13 +1697,14 @@ function Mini({ label, value, tone }: { label: string; value: string; tone?: "su
 }
 
 function ThemeSelector() {
+  const t = useT();
   const theme = useUiStore((s) => s.theme);
   const setTheme = useUiStore((s) => s.setTheme);
 
   return (
     <div>
       <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-        § 04 · Interface Theme
+        {t("§ 04 · Interface Theme")}
       </div>
       <div className="mt-2 grid grid-cols-2 gap-2">
         {(
@@ -1740,7 +1739,7 @@ function ThemeSelector() {
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
                     <div className="font-mono text-[11px] uppercase tracking-widest text-foreground">
-                      {opt.label}
+                      {t(opt.label)}
                     </div>
                     <div
                       className={`flex h-4 w-4 items-center justify-center rounded-full border transition ${
@@ -1753,7 +1752,7 @@ function ThemeSelector() {
                     </div>
                   </div>
                   <div className="mt-0.5 text-[10px] text-muted-foreground">
-                    {opt.desc}
+                    {t(opt.desc)}
                   </div>
                 </div>
               </div>
@@ -1762,7 +1761,7 @@ function ThemeSelector() {
         })}
       </div>
       <div className="mt-1.5 font-mono text-[10px] text-muted-foreground">
-        You can change the theme anytime from the Operator Profile menu.
+        {t("You can change the theme anytime from the Operator Profile menu.")}
       </div>
     </div>
   );

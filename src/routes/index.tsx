@@ -31,6 +31,7 @@ import { useDashboard } from "@/hooks/useDashboard";
 import { useNetworkStore } from "@/store/network";
 import { stellarExpertTx, STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import { useOperator, type ParticipantRole } from "@/store/operator";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -71,6 +72,7 @@ const timeAgo = (iso: string) => {
 };
 
 function OperationsPage() {
+  const t = useT();
   const { stats, settlements, horizon, loading, error, refresh } = useDashboard();
   const operator = useOperator((s) => s.operator);
   // Primary role drives the contextual panel (first role wins)
@@ -89,10 +91,10 @@ function OperationsPage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Settlement Operations
+            {t("Settlement Operations")}
           </p>
           <h1 className="font-display text-2xl font-semibold tracking-tight">
-            Operations Dashboard
+            {t("Operations Dashboard")}
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -109,11 +111,11 @@ function OperationsPage() {
             }`}
           >
             <Activity className="mr-1.5 h-3 w-3" />
-            {stellarStatus.online === false ? "HORIZON OFFLINE" : "HORIZON ONLINE"}
+            {stellarStatus.online === false ? t("HORIZON OFFLINE") : t("HORIZON ONLINE")}
           </Badge>
           <Button size="sm" variant="outline" onClick={refresh} disabled={loading}>
             <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            Refresh
+            {t("Refresh")}
           </Button>
         </div>
       </div>
@@ -125,7 +127,7 @@ function OperationsPage() {
             <AlertTriangle className="mt-0.5 h-4 w-4 text-destructive" />
             <p className="flex-1 text-sm text-muted-foreground">{error}</p>
             <Button size="sm" variant="outline" onClick={refresh}>
-              Retry
+              {t("Retry")}
             </Button>
           </div>
         </Card>
@@ -137,32 +139,32 @@ function OperationsPage() {
       {/* KPI Strip */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <KpiCard
-          label="Settlements"
+          label={t("Settlements")}
           value={String(stats?.total_settlements ?? 0)}
-          sub={`${stats?.settled_count ?? 0} confirmed`}
+          sub={`${stats?.settled_count ?? 0} ${t("confirmed")}`}
           loading={loading && !stats}
         />
         <KpiCard
-          label="Failed"
+          label={t("Failed")}
           value={String(stats?.failed_count ?? 0)}
-          sub="rejected / reverted"
+          sub={t("rejected / reverted")}
           loading={loading && !stats}
           tone={stats?.failed_count ? "warn" : "ok"}
         />
         <KpiCard
-          label="Cleared Volume"
+          label={t("Cleared Volume")}
           value={fmtBRL(stats?.total_value_brl ?? 0)}
-          sub="total BRL settled"
+          sub={t("total BRL settled")}
           loading={loading && !stats}
         />
         <KpiCard
-          label="Users"
+          label={t("Users")}
           value={String(stats?.total_users ?? 0)}
-          sub="counterparties"
+          sub={t("counterparties")}
           loading={loading && !stats}
         />
         <KpiCard
-          label="Avg. Finality"
+          label={t("Avg. Finality")}
           value={finalityMs ? `${(finalityMs / 1000).toFixed(2)}s` : "—"}
           sub={`Horizon · ${horizonLatency} ms`}
           loading={loading && !stats}
@@ -170,8 +172,8 @@ function OperationsPage() {
         />
         <KpiCard
           label="Horizon"
-          value={stellarStatus.online === false ? "OFFLINE" : "ONLINE"}
-          sub={`${horizonLatency} ms latency`}
+          value={stellarStatus.online === false ? t("OFFLINE") : t("ONLINE")}
+          sub={`${horizonLatency} ms ${t("latency")}`}
           loading={stellarStatus.online === null}
           tone={stellarStatus.online === false ? "warn" : "ok"}
           led
@@ -182,22 +184,22 @@ function OperationsPage() {
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <Card className="border-border bg-card p-4 lg:col-span-2">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Platform Treasury · Live Balances
+            {t("Platform Treasury · Live Balances")}
           </p>
           <div className="mt-3 grid grid-cols-3 gap-3">
-            <BalanceMini label="Operator" value={horizon?.operator_balance?.xlm} symbol="XLM" />
-            <BalanceMini label="Distribution" value={horizon?.distribution_balance?.xlm} symbol="XLM" />
-            <BalanceMini label="EPWR Supply" value={horizon?.distribution_balance?.epwr} symbol="EPWR" compact />
+            <BalanceMini label={t("Operator")} value={horizon?.operator_balance?.xlm} symbol="XLM" />
+            <BalanceMini label={t("Distribution")} value={horizon?.distribution_balance?.xlm} symbol="XLM" />
+            <BalanceMini label={t("EPWR Supply")} value={horizon?.distribution_balance?.epwr} symbol="EPWR" compact />
           </div>
         </Card>
 
         <Card className="border-border bg-card p-4">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Operational Telemetry
+            {t("Operational Telemetry")}
           </p>
           <div className="mt-3 space-y-2">
-            <TelRow icon={<Gauge className="h-3.5 w-3.5" />} label="Horizon latency" value={`${horizonLatency} ms`} tone={horizonLatency < 1000 ? "ok" : "warn"} />
-            <TelRow icon={<Activity className="h-3.5 w-3.5" />} label="Backend API" value={backendOnline === false ? "OFFLINE" : "ONLINE"} tone={backendOnline === false ? "warn" : "ok"} />
+            <TelRow icon={<Gauge className="h-3.5 w-3.5" />} label={t("Horizon latency")} value={`${horizonLatency} ms`} tone={horizonLatency < 1000 ? "ok" : "warn"} />
+            <TelRow icon={<Activity className="h-3.5 w-3.5" />} label={t("Backend API")} value={backendOnline === false ? t("OFFLINE") : t("ONLINE")} tone={backendOnline === false ? "warn" : "ok"} />
           </div>
         </Card>
       </div>
@@ -207,19 +209,19 @@ function OperationsPage() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Settlement Feed · Live
+              {t("Settlement Feed · Live")}
             </p>
-            <p className="font-display text-lg font-semibold">Recent Transactions</p>
+            <p className="font-display text-lg font-semibold">{t("Recent Transactions")}</p>
           </div>
           <div className="flex gap-2">
             <Button asChild variant="ghost" size="sm" className="text-xs">
               <Link to="/contracts">
-                Contracts <ArrowUpRight className="ml-1 h-3 w-3" />
+                {t("Contracts")} <ArrowUpRight className="ml-1 h-3 w-3" />
               </Link>
             </Button>
             <Button asChild variant="ghost" size="sm" className="text-xs">
               <Link to="/p2p">
-                Direct Settlement <ExternalLink className="ml-1 h-3 w-3" />
+                {t("Direct Settlement")} <ExternalLink className="ml-1 h-3 w-3" />
               </Link>
             </Button>
           </div>
@@ -234,18 +236,18 @@ function OperationsPage() {
         ) : settlements.length === 0 ? (
           <div className="py-10 text-center">
             <Activity className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
-            <p className="font-mono text-sm text-muted-foreground">No settlements recorded yet.</p>
+            <p className="font-mono text-sm text-muted-foreground">{t("No settlements recorded yet.")}</p>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-[11px] uppercase tracking-wider">ID</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Seller</TableHead>
-                <TableHead className="text-right text-[11px] uppercase tracking-wider">Amount</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Tx Hash</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">Status</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">When</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("ID")}</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("Seller")}</TableHead>
+                <TableHead className="text-right text-[11px] uppercase tracking-wider">{t("Amount")}</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("Tx Hash")}</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("Status")}</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider">{t("When")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -499,6 +501,7 @@ const ROLE_CONTEXT = {
 } as const;
 
 function RoleContextPanel({ role }: { role: ParticipantRole }) {
+  const t = useT();
   const ctx = ROLE_CONTEXT[role as keyof typeof ROLE_CONTEXT];
   if (!ctx?.actions?.length) return null;
 
@@ -514,7 +517,7 @@ function RoleContextPanel({ role }: { role: ParticipantRole }) {
           className="h-7 font-mono text-[10px] uppercase tracking-widest"
         >
           <Link to={a.to}>
-            {a.label}
+            {t(a.label)}
             <ArrowRight className="ml-1.5 h-3 w-3" />
           </Link>
         </Button>

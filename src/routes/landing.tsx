@@ -48,6 +48,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { BrandBadge, BrandName } from "@/components/BrandLogo";
 import { STELLAR_NETWORK_LABEL } from "@/lib/stellar";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/landing")({
   head: () => ({
@@ -99,6 +100,7 @@ function FeatureCard({
   tag?: string;
   roadmap?: boolean;
 }) {
+  const t = useT();
   return (
     <Card className="flex h-full flex-col border-border bg-card/60 p-5 transition-colors hover:border-primary/30">
       <div className="mb-3 flex items-center justify-between">
@@ -107,7 +109,7 @@ function FeatureCard({
         </div>
         {roadmap ? (
           <span className="rounded-full border border-border px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.2em] text-muted-foreground/70">
-            Roadmap
+            {t("Roadmap")}
           </span>
         ) : tag ? (
           <span className="font-mono text-[8px] uppercase tracking-[0.2em] text-muted-foreground/60">{tag}</span>
@@ -122,6 +124,7 @@ function FeatureCard({
 // ── page ───────────────────────────────────────────────────────────────────────
 
 function LandingPage() {
+  const t = useT();
   return (
     <div className="min-h-screen w-full text-foreground">
       {/* Fixed background image — stays behind the page while the content scrolls over it */}
@@ -139,7 +142,7 @@ function LandingPage() {
             <div className="leading-tight">
               <BrandName size="md" />
               <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
-                Programmable Pre-Clearing &amp; Settlement Infrastructure
+                {t("Programmable Pre-Clearing & Settlement Infrastructure")}
               </div>
             </div>
           </div>
@@ -151,7 +154,7 @@ function LandingPage() {
               </span>
             </span>
             <Link to={PLATFORM_URL} className={PRIMARY_CTA}>
-              Launch Mainnet Platform <ArrowUpRight className="h-3.5 w-3.5" />
+              {t("Launch Mainnet Platform")} <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
@@ -172,37 +175,35 @@ function LandingPage() {
             variant="outline"
             className="mb-6 border-success/40 bg-success/10 font-mono text-[10px] uppercase tracking-widest text-success"
           >
-            <Activity className="mr-1.5 h-3 w-3" /> Live on {STELLAR_NETWORK_LABEL}
+            <Activity className="mr-1.5 h-3 w-3" /> {t("Live on")} {STELLAR_NETWORK_LABEL}
           </Badge>
 
           <h1 className="mx-auto max-w-4xl font-display text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl">
-            Programmable financial rail
+            {t("Programmable financial rail")}
             <br />
-            <span className="text-primary">for electricity markets</span>
+            <span className="text-primary">{t("for electricity markets")}</span>
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
-            EnergyPay is a programmable settlement and reconciliation infrastructure for electricity
-            markets. It helps generators, sellers, utilities, investors and consumers register
-            bilateral energy obligations, manage counterparty risk, and execute auditable settlements
-            on {STELLAR_NETWORK_LABEL}.
+            {t("EnergyPay is a programmable settlement and reconciliation infrastructure for electricity markets. It helps generators, sellers, utilities, investors and consumers register bilateral energy obligations, manage counterparty risk, and execute auditable settlements on")}{" "}
+            {STELLAR_NETWORK_LABEL}.
           </p>
 
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link to={PLATFORM_URL} className={PRIMARY_CTA}>
-              Launch Mainnet Platform <ArrowRight className="h-3.5 w-3.5" />
+              {t("Launch Mainnet Platform")} <ArrowRight className="h-3.5 w-3.5" />
             </Link>
             <Link to="/register" className={OUTLINE_CTA}>
-              Provision settlement identity
+              {t("Provision settlement identity")}
             </Link>
           </div>
 
           <div className="mx-auto mt-14 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-4">
             {[
-              { k: "Finality", v: "~5s", s: "Stellar ledger close" },
-              { k: "Network", v: "PUBLIC", s: "Mainnet · Horizon" },
-              { k: "Settlement asset", v: "EPWR", s: "Tokenized energy" },
-              { k: "Audit", v: "txHash", s: "Publicly verifiable" },
+              { k: t("Finality"), v: "~5s", s: t("Stellar ledger close") },
+              { k: t("Network"), v: "PUBLIC", s: "Mainnet · Horizon" },
+              { k: t("Settlement asset"), v: "EPWR", s: t("Tokenized energy") },
+              { k: t("Audit"), v: "txHash", s: t("Publicly verifiable") },
             ].map((m) => (
               <div key={m.k} className="bg-card px-4 py-5">
                 <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">{m.k}</p>
@@ -219,21 +220,21 @@ function LandingPage() {
         <div className="mx-auto max-w-5xl px-5 py-20">
           <div className="text-center">
             <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70">
-              Demo
+              {t("Demo")}
             </p>
             <h2 className="mt-2 font-display text-2xl font-semibold md:text-3xl">
-              See EnergyPay in action
+              {t("See EnergyPay in action")}
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              A walkthrough of programmable pre-clearing and settlement of bilateral
-              energy contracts on {STELLAR_NETWORK_LABEL}.
+              {t("A walkthrough of programmable pre-clearing and settlement of bilateral energy contracts on")}{" "}
+              {STELLAR_NETWORK_LABEL}.
             </p>
           </div>
           <div className="mx-auto mt-8 max-w-4xl overflow-hidden rounded-xl border border-border bg-background/40 shadow-lg">
             <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
               <iframe
                 src="https://drive.google.com/file/d/1LT8rV_N1KavR8iABE1BbxantPwqP-DHv/preview"
-                title="EnergyPay — Product Video"
+                title={t("EnergyPay — Product Video")}
                 allow="autoplay; fullscreen"
                 allowFullScreen
                 className="absolute inset-0 h-full w-full"
@@ -247,28 +248,27 @@ function LandingPage() {
       <section className="border-b border-border">
         <div className="mx-auto max-w-6xl px-5 py-20">
           <div className="max-w-2xl">
-            <SectionLabel>The Problem</SectionLabel>
+            <SectionLabel>{t("The Problem")}</SectionLabel>
             <h2 className="mt-2 font-display text-2xl font-semibold md:text-3xl">
-              Energy settlement is fragmented, manual and hard to audit.
+              {t("Energy settlement is fragmented, manual and hard to audit.")}
             </h2>
             <p className="mt-3 text-sm text-muted-foreground">
-              Bilateral power contracts are reconciled across disconnected systems, with no shared,
-              verifiable source of truth between counterparties and regulators.
+              {t("Bilateral power contracts are reconciled across disconnected systems, with no shared, verifiable source of truth between counterparties and regulators.")}
             </p>
           </div>
 
           <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <FeatureCard icon={Layers} title="Fragmented reconciliation">
-              Obligations live across spreadsheets, ERPs and bank statements that rarely agree.
+            <FeatureCard icon={Layers} title={t("Fragmented reconciliation")}>
+              {t("Obligations live across spreadsheets, ERPs and bank statements that rarely agree.")}
             </FeatureCard>
-            <FeatureCard icon={ShieldOff} title="Counterparty risk">
-              Bilateral exposure and default risk with no common ledger between parties.
+            <FeatureCard icon={ShieldOff} title={t("Counterparty risk")}>
+              {t("Bilateral exposure and default risk with no common ledger between parties.")}
             </FeatureCard>
-            <FeatureCard icon={Clock} title="Slow, manual settlement">
-              Clearing cycles take days, with manual transfers and opaque status.
+            <FeatureCard icon={Clock} title={t("Slow, manual settlement")}>
+              {t("Clearing cycles take days, with manual transfers and opaque status.")}
             </FeatureCard>
-            <FeatureCard icon={AlertTriangle} title="No verifiable audit trail">
-              Auditors and regulators cannot independently confirm who settled what, and when.
+            <FeatureCard icon={AlertTriangle} title={t("No verifiable audit trail")}>
+              {t("Auditors and regulators cannot independently confirm who settled what, and when.")}
             </FeatureCard>
           </div>
         </div>
@@ -278,9 +278,9 @@ function LandingPage() {
       <section className="border-b border-border bg-card/20">
         <div className="mx-auto grid max-w-6xl gap-10 px-5 py-20 lg:grid-cols-[1fr_1.1fr] lg:items-center">
           <div>
-            <SectionLabel>The Solution</SectionLabel>
+            <SectionLabel>{t("The Solution")}</SectionLabel>
             <h2 className="mt-2 font-display text-2xl font-semibold md:text-3xl">
-              One programmable rail from obligation to on-chain finality.
+              {t("One programmable rail from obligation to on-chain finality.")}
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               EnergyPay turns bilateral energy obligations into programmable settlement instructions,
@@ -290,17 +290,17 @@ function LandingPage() {
 
             <div className="mt-7 flex flex-wrap gap-3">
               <Link to={PLATFORM_URL} className={PRIMARY_CTA}>
-                Launch Mainnet Platform <ArrowRight className="h-3.5 w-3.5" />
+                {t("Launch Mainnet Platform")} <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             {[
-              { icon: Layers, t: "Register obligations", d: "Capture bilateral energy contracts as structured, programmable settlement terms." },
-              { icon: Scale, t: "Manage counterparty risk", d: "Counterparty exposure and risk visibility across market roles." },
-              { icon: Send, t: "Execute on Stellar", d: "Deterministic settlement with ~5s finality on the public network." },
-              { icon: ShieldCheck, t: "Reconcile & audit", d: "Auto-match settlements to on-chain receipts with an immutable trail." },
+              { icon: Layers, t: t("Register obligations"), d: t("Capture bilateral energy contracts as structured, programmable settlement terms.") },
+              { icon: Scale, t: t("Manage counterparty risk"), d: t("Counterparty exposure and risk visibility across market roles.") },
+              { icon: Send, t: t("Execute on Stellar"), d: t("Deterministic settlement with ~5s finality on the public network.") },
+              { icon: ShieldCheck, t: t("Reconcile & audit"), d: t("Auto-match settlements to on-chain receipts with an immutable trail.") },
             ].map((x) => (
               <Card key={x.t} className="border-border bg-card/60 p-4">
                 <x.icon className="h-4 w-4 text-primary" />
@@ -316,43 +316,42 @@ function LandingPage() {
       <section className="border-b border-border">
         <div className="mx-auto max-w-6xl px-5 py-20">
           <div className="max-w-2xl">
-            <SectionLabel>Product Modules</SectionLabel>
+            <SectionLabel>{t("Product Modules")}</SectionLabel>
             <h2 className="mt-2 font-display text-2xl font-semibold md:text-3xl">
-              A full clearing &amp; settlement operating system.
+              {t("A full clearing & settlement operating system.")}
             </h2>
             <p className="mt-3 text-sm text-muted-foreground">
-              Composable modules covering treasury, settlement execution, custody, clearing,
-              market data and audit.
+              {t("Composable modules covering treasury, settlement execution, custody, clearing, market data and audit.")}
             </p>
           </div>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <FeatureCard icon={Landmark} title="Treasury & Rails" tag="STL-01">
-              Treasury balances, settlement rails and liquidity routing.
+            <FeatureCard icon={Landmark} title={t("Treasury & Rails")} tag="STL-01">
+              {t("Treasury balances, settlement rails and liquidity routing.")}
             </FeatureCard>
-            <FeatureCard icon={Terminal} title="Settlement Console" tag="STL-02">
-              Operate, monitor and reconcile settlement batches in real time.
+            <FeatureCard icon={Terminal} title={t("Settlement Console")} tag="STL-02">
+              {t("Operate, monitor and reconcile settlement batches in real time.")}
             </FeatureCard>
-            <FeatureCard icon={Send} title="Direct Settlement" tag="STL-03">
-              Execute bilateral transfers with ~5s Stellar finality.
+            <FeatureCard icon={Send} title={t("Direct Settlement")} tag="STL-03">
+              {t("Execute bilateral transfers with ~5s Stellar finality.")}
             </FeatureCard>
-            <FeatureCard icon={Code2} title="x402 API Access" tag="STL-04">
-              Machine-to-machine payments (x402) for metered, pay-per-call access to market-data and oracle APIs.
+            <FeatureCard icon={Code2} title={t("x402 API Access")} tag="STL-04">
+              {t("Machine-to-machine payments (x402) for metered, pay-per-call access to market-data and oracle APIs.")}
             </FeatureCard>
-            <FeatureCard icon={Wallet} title="Custody Wallet" tag="STL-05">
-              Platform-managed or user-controlled Stellar settlement accounts.
+            <FeatureCard icon={Wallet} title={t("Custody Wallet")} tag="STL-05">
+              {t("Platform-managed or user-controlled Stellar settlement accounts.")}
             </FeatureCard>
-            <FeatureCard icon={Scale} title="Clearing & Risk" roadmap>
-              Counterparty netting, exposure limits and clearing supervision.
+            <FeatureCard icon={Scale} title={t("Clearing & Risk")} roadmap>
+              {t("Counterparty netting, exposure limits and clearing supervision.")}
             </FeatureCard>
-            <FeatureCard icon={Radio} title="Oracle & Market Data" tag="RSK-02">
-              Reference price feeds (PLD / market rates) for settlement.
+            <FeatureCard icon={Radio} title={t("Oracle & Market Data")} tag="RSK-02">
+              {t("Reference price feeds (PLD / market rates) for settlement.")}
             </FeatureCard>
-            <FeatureCard icon={FileSearch} title="Audit & Compliance" tag="EXE-02">
-              Immutable audit trail and regulatory reporting readiness.
+            <FeatureCard icon={FileSearch} title={t("Audit & Compliance")} tag="EXE-02">
+              {t("Immutable audit trail and regulatory reporting readiness.")}
             </FeatureCard>
-            <FeatureCard icon={Coins} title="Billing & Subscriptions">
-              Plan billing via PIX, card and crypto (XLM / USDC), isolated from settlement.
+            <FeatureCard icon={Coins} title={t("Billing & Subscriptions")}>
+              {t("Plan billing via PIX, card and crypto (XLM / USDC), isolated from settlement.")}
             </FeatureCard>
           </div>
         </div>
@@ -362,9 +361,9 @@ function LandingPage() {
       <section className="border-b border-border bg-card/20">
         <div className="mx-auto grid max-w-6xl gap-10 px-5 py-20 lg:grid-cols-[1.1fr_1fr] lg:items-center">
           <div>
-            <SectionLabel>Stellar Mainnet Integration</SectionLabel>
+            <SectionLabel>{t("Stellar Mainnet Integration")}</SectionLabel>
             <h2 className="mt-2 font-display text-2xl font-semibold md:text-3xl">
-              Anchored to the public Stellar network.
+              {t("Anchored to the public Stellar network.")}
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               Settlement is executed on {STELLAR_NETWORK_LABEL} (PUBLIC) through Horizon. Energy
@@ -376,10 +375,10 @@ function LandingPage() {
 
             <div className="mt-6 grid grid-cols-2 gap-3">
               {[
-                { icon: Globe, k: "Network", v: "STELLAR_MAINNET" },
+                { icon: Globe, k: t("Network"), v: "STELLAR_MAINNET" },
                 { icon: Link2, k: "Horizon", v: "horizon.stellar.org" },
-                { icon: Zap, k: "Finality", v: "~5 seconds" },
-                { icon: Coins, k: "Assets", v: "EPWR · XLM" },
+                { icon: Zap, k: t("Finality"), v: t("~5 seconds") },
+                { icon: Coins, k: t("Assets"), v: "EPWR · XLM" },
               ].map((x) => (
                 <div key={x.k} className="flex items-center gap-2.5 rounded-md border border-border bg-card/60 px-3 py-2.5">
                   <x.icon className="h-4 w-4 shrink-0 text-primary" />
@@ -396,17 +395,17 @@ function LandingPage() {
           <Card className="overflow-hidden border-border bg-card/70">
             <div className="flex items-center justify-between border-b border-border bg-background/40 px-4 py-2.5">
               <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> Settlement Rail · Connected
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> {t("Settlement Rail · Connected")}
               </div>
-              <span className="font-mono text-[10px] text-success">ONLINE</span>
+              <span className="font-mono text-[10px] text-success">{t("ONLINE")}</span>
             </div>
             <div className="space-y-3 p-5">
               {[
-                { k: "Active network", v: STELLAR_NETWORK_LABEL },
-                { k: "Settlement asset", v: "EPWR · tokenized energy receivable" },
-                { k: "Network reserve / gas", v: "XLM" },
-                { k: "Machine payments", v: "x402 (pay-per-call API)" },
-                { k: "Receipt", v: "txHash + ledger + Stellar Expert" },
+                { k: t("Active network"), v: STELLAR_NETWORK_LABEL },
+                { k: t("Settlement asset"), v: t("EPWR · tokenized energy receivable") },
+                { k: t("Network reserve / gas"), v: "XLM" },
+                { k: t("Machine payments"), v: t("x402 (pay-per-call API)") },
+                { k: t("Receipt"), v: "txHash + ledger + Stellar Expert" },
               ].map((r) => (
                 <div key={r.k} className="flex items-center justify-between gap-4 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
                   <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{r.k}</span>
@@ -422,27 +421,27 @@ function LandingPage() {
       <section className="border-b border-border">
         <div className="mx-auto max-w-6xl px-5 py-20">
           <div className="max-w-2xl">
-            <SectionLabel>Target Users</SectionLabel>
+            <SectionLabel>{t("Target Users")}</SectionLabel>
             <h2 className="mt-2 font-display text-2xl font-semibold md:text-3xl">
-              Built for every role in the power market.
+              {t("Built for every role in the power market.")}
             </h2>
           </div>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <FeatureCard icon={Factory} title="Generators">
-              Distribute generated energy assets and settle production obligations.
+            <FeatureCard icon={Factory} title={t("Generators")}>
+              {t("Distribute generated energy assets and settle production obligations.")}
             </FeatureCard>
-            <FeatureCard icon={ShoppingCart} title="Sellers / Traders">
-              Register sell-side contracts and clear positions with auditable finality.
+            <FeatureCard icon={ShoppingCart} title={t("Sellers / Traders")}>
+              {t("Register sell-side contracts and clear positions with auditable finality.")}
             </FeatureCard>
-            <FeatureCard icon={Building2} title="Utilities">
-              Reconcile distribution obligations, connections and consumption units.
+            <FeatureCard icon={Building2} title={t("Utilities")}>
+              {t("Reconcile distribution obligations, connections and consumption units.")}
             </FeatureCard>
-            <FeatureCard icon={LineChart} title="Investors">
-              Track tokenized energy receivables and settlement-backed positions.
+            <FeatureCard icon={LineChart} title={t("Investors")}>
+              {t("Track tokenized energy receivables and settlement-backed positions.")}
             </FeatureCard>
-            <FeatureCard icon={Plug} title="Consumers">
-              Settle consumption obligations against transparent on-chain receipts.
+            <FeatureCard icon={Plug} title={t("Consumers")}>
+              {t("Settle consumption obligations against transparent on-chain receipts.")}
             </FeatureCard>
           </div>
         </div>
@@ -452,9 +451,9 @@ function LandingPage() {
       <section className="border-b border-border bg-card/20">
         <div className="mx-auto grid max-w-6xl gap-10 px-5 py-20 lg:grid-cols-[1fr_1fr] lg:items-center">
           <div>
-            <SectionLabel>Auditability</SectionLabel>
+            <SectionLabel>{t("Auditability")}</SectionLabel>
             <h2 className="mt-2 font-display text-2xl font-semibold md:text-3xl">
-              Every settlement is independently verifiable.
+              {t("Every settlement is independently verifiable.")}
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               EnergyPay does not ask anyone to trust its books. Each settlement produces a Stellar{" "}
@@ -465,14 +464,14 @@ function LandingPage() {
 
             <ul className="mt-6 space-y-2.5">
               {[
-                "Deterministic txHash for each executed settlement",
-                "Confirmed ledger sequence on the public network",
-                "Source / destination accounts and asset amounts",
-                "One-click verification on Stellar Expert (public / mainnet)",
-              ].map((t) => (
-                <li key={t} className="flex items-start gap-2 text-[12px] text-muted-foreground">
+                t("Deterministic txHash for each executed settlement"),
+                t("Confirmed ledger sequence on the public network"),
+                t("Source / destination accounts and asset amounts"),
+                t("One-click verification on Stellar Expert (public / mainnet)"),
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2 text-[12px] text-muted-foreground">
                   <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
-                  <span>{t}</span>
+                  <span>{item}</span>
                 </li>
               ))}
             </ul>
@@ -482,21 +481,21 @@ function LandingPage() {
           <Card className="overflow-hidden border-border bg-card/70">
             <div className="flex items-center justify-between border-b border-border bg-background/40 px-4 py-2.5">
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Settlement Receipt · Mainnet
+                {t("Settlement Receipt · Mainnet")}
               </span>
               <Badge
                 variant="outline"
                 className="border-success/40 bg-success/10 font-mono text-[8px] uppercase tracking-widest text-success"
               >
-                Settled
+                {t("Settled")}
               </Badge>
             </div>
             <div className="space-y-3 p-5 font-mono">
               {[
-                { icon: Coins, k: "Asset", v: "100 EPWR" },
-                { icon: Hash, k: "Tx Hash", v: "2ae6f9a6…40d4c2" },
+                { icon: Coins, k: t("Asset"), v: "100 EPWR" },
+                { icon: Hash, k: t("Tx Hash"), v: "2ae6f9a6…40d4c2" },
                 { icon: Layers, k: "Ledger", v: "#62,865,799" },
-                { icon: Globe, k: "Network", v: STELLAR_NETWORK_LABEL },
+                { icon: Globe, k: t("Network"), v: STELLAR_NETWORK_LABEL },
               ].map((r) => (
                 <div key={r.k} className="flex items-center justify-between gap-4 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
                   <span className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -511,7 +510,7 @@ function LandingPage() {
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-1.5 rounded-md border border-border bg-background/40 py-2 text-[10px] uppercase tracking-widest text-primary transition hover:border-primary/40 hover:bg-primary/5"
               >
-                Verify on Stellar Expert <ExternalLink className="h-3 w-3" />
+                {t("Verify on Stellar Expert")} <ExternalLink className="h-3 w-3" />
               </a>
             </div>
           </Card>
@@ -531,18 +530,18 @@ function LandingPage() {
         <div className="relative mx-auto max-w-3xl px-5 py-24 text-center">
           <BrandBadge size="lg" style={{ width: 72, height: 72, margin: "0 auto" }} />
           <h2 className="mt-6 font-display text-3xl font-bold leading-tight md:text-4xl">
-            Settle energy markets on a rail you can audit.
+            {t("Settle energy markets on a rail you can audit.")}
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground">
-            Launch the live EnergyPay platform running on {STELLAR_NETWORK_LABEL} and execute your
-            first auditable settlement.
+            {t("Launch the live EnergyPay platform running on")} {STELLAR_NETWORK_LABEL}{" "}
+            {t("and execute your first auditable settlement.")}
           </p>
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link to={PLATFORM_URL} className={PRIMARY_CTA}>
-              Launch Mainnet Platform <ArrowRight className="h-3.5 w-3.5" />
+              {t("Launch Mainnet Platform")} <ArrowRight className="h-3.5 w-3.5" />
             </Link>
             <Link to="/register" className={OUTLINE_CTA}>
-              Provision settlement identity
+              {t("Provision settlement identity")}
             </Link>
           </div>
         </div>
@@ -556,7 +555,7 @@ function LandingPage() {
             <div className="leading-tight">
               <BrandName size="sm" />
               <p className="font-mono text-[8px] uppercase tracking-[0.22em] text-muted-foreground">
-                Programmable financial rail for electricity markets
+                {t("Programmable financial rail for electricity markets")}
               </p>
             </div>
           </div>
@@ -566,10 +565,23 @@ function LandingPage() {
             </span>
             <Separator orientation="vertical" className="h-3 bg-border" />
             <Link to={PLATFORM_URL} className="transition hover:text-primary">
-              Platform
+              {t("Platform")}
             </Link>
             <a href={EXPLORER_PUBLIC} target="_blank" rel="noopener noreferrer" className="transition hover:text-primary">
-              Explorer
+              {t("Explorer")}
+            </a>
+            <Separator orientation="vertical" className="h-3 bg-border" />
+            <a
+              href="https://x.com/energy_pay_"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="EnergyPay on X"
+              className="inline-flex items-center gap-1.5 transition hover:text-primary"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="h-3 w-3">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+              X
             </a>
           </div>
         </div>
