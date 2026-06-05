@@ -177,6 +177,33 @@ function LandingPage() {
     };
   }, [api]);
 
+  // ── Auto-advance on first visit ─────────────────────────────────────────
+  // When the landing page loads, the carousel auto-cycles through every slide
+  // (6s per slide, looping back to slide 1 after the last) — same effect as
+  // if the user were pressing the right arrow at a steady pace. The autoplay
+  // stops the first time the user interacts (click on a dot/arrow, key press,
+  // or pointer/touch on the slide track) so it never fights manual control.
+  useEffect(() => {
+    if (!api) return;
+    let stopped = false;
+    const stop = () => {
+      stopped = true;
+      window.clearInterval(timer);
+      api.off("pointerDown", stop);
+    };
+    const timer = window.setInterval(() => {
+      if (stopped) return;
+      api.scrollNext();
+    }, 6000);
+    api.on("pointerDown", stop);
+    window.addEventListener("keydown", stop, { once: true });
+    return () => {
+      window.clearInterval(timer);
+      api.off("pointerDown", stop);
+      window.removeEventListener("keydown", stop);
+    };
+  }, [api]);
+
   return (
     <div className="flex h-svh w-full flex-col overflow-hidden text-foreground">
       {/* Fixed background image — stays behind the page while the content scrolls over it */}
@@ -216,7 +243,7 @@ function LandingPage() {
       {/* ── Carousel (the body of the landing) ─────────────────────────────── */}
       <Carousel
         setApi={setApi}
-        opts={{ loop: false, align: "start" }}
+        opts={{ loop: true, align: "start" }}
         className="relative min-h-0 flex-1"
       >
         <CarouselContent className="-ml-0 h-full">
@@ -296,8 +323,11 @@ function LandingPage() {
                       {STELLAR_NETWORK_LABEL}.
                     </p>
                   </div>
-                  <div className="mx-auto mt-8 max-w-4xl overflow-hidden rounded-xl border border-border bg-background/40 shadow-lg">
-                    <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+                  <div className="mx-auto mt-6 w-full max-w-3xl overflow-hidden rounded-xl border border-border bg-background/40 shadow-lg">
+                    {/* aspect-ratio + max-height keeps the video fully visible
+                        on shorter viewports — it shrinks before it overflows
+                        into the bottom dot-indicator strip. */}
+                    <div className="relative mx-auto w-full" style={{ aspectRatio: "16 / 9", maxHeight: "55vh" }}>
                       <iframe
                         src="https://drive.google.com/file/d/1LT8rV_N1KavR8iABE1BbxantPwqP-DHv/preview"
                         title={t("EnergyPay — Product Video")}
