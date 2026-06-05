@@ -30,6 +30,23 @@ export const PT: Record<string, string> = {
   "Forgot password →": "Esqueceu a senha →",
   "Operator email and password are required.": "E-mail e senha do operador são obrigatórios.",
   "Authentication failed": "Falha na autenticação",
+  "Email verified successfully! You can now log in.":
+    "E-mail verificado com sucesso! Agora você pode entrar.",
+  "Operator connected:": "Operador conectado:",
+  "Operator access connects an existing settlement identity to the EnergyPay clearing network, anchored to":
+    "O acesso de operador conecta uma identidade de settlement existente à rede de clearing da EnergyPay, ancorada na",
+  "for institutional reconciliation.": "para reconciliação institucional.",
+  "Operational credentials": "Credenciais operacionais",
+  "· scoped to clearing desk & reconciliation": "· restritas à mesa de clearing e reconciliação",
+  "Settlement identity": "Identidade de settlement",
+  "· ed25519 keypair bound to operator": "· keypair ed25519 vinculado ao operador",
+  "Network status": "Status da rede",
+  "· Settlement Network": "· Settlement Network",
+  "Settlement Network · Access Terminal": "Settlement Network · Terminal de Acesso",
+  "Network nominal": "Rede nominal",
+  "Email address": "Endereço de e-mail",
+  "Light mode": "Modo claro",
+  "Dark mode": "Modo escuro",
 
   // register
   "Tax / Registration ID": "Documento fiscal / de registro",

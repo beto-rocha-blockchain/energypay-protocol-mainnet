@@ -50,7 +50,7 @@ function LoginPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("verified") === "true") {
-      toast.success("Email verified successfully! You can now log in.");
+      toast.success(t("Email verified successfully! You can now log in."));
       // Clean URL
       window.history.replaceState({}, "", "/login");
     }
@@ -73,7 +73,7 @@ function LoginPage() {
     setBusy(true);
     try {
       const id = await login({ email, password });
-      toast.success(`Operator ${id.operatorId} connected · ${STELLAR_NETWORK_LABEL} active`);
+      toast.success(`${t("Operator connected:")} ${id.operatorId} · ${STELLAR_NETWORK_LABEL}`);
       navigate({ to: "/" });
     } catch (err) {
       toast.error(safeErrorMessage(err, t("Authentication failed")));
@@ -99,7 +99,7 @@ function LoginPage() {
               <div className="leading-tight" style={{ gap: 3, display: "flex", flexDirection: "column" }}>
                 <BrandName size="md" />
                 <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Clearing &amp; Settlement Infrastructure
+                  {t("Clearing & Settlement Infrastructure")}
                 </div>
               </div>
             </div>
@@ -114,8 +114,8 @@ function LoginPage() {
                 {t("for energy markets.")}
               </h1>
               <p className="mt-2 max-w-sm text-xs text-muted-foreground">
-                Operator access connects an existing settlement identity to the EnergyPay clearing
-                network, anchored to {STELLAR_NETWORK_LABEL} for institutional reconciliation.
+                {t("Operator access connects an existing settlement identity to the EnergyPay clearing network, anchored to")}{" "}
+                {STELLAR_NETWORK_LABEL} {t("for institutional reconciliation.")}
               </p>
             </div>
 
@@ -125,22 +125,22 @@ function LoginPage() {
               <li className="flex items-start gap-2">
                 <ShieldCheck className="mt-0.5 h-3.5 w-3.5 text-success" />
                 <span>
-                  <span className="font-mono text-foreground">Operational credentials</span> ·
-                  scoped to clearing desk &amp; reconciliation
+                  <span className="font-mono text-foreground">{t("Operational credentials")}</span>{" "}
+                  {t("· scoped to clearing desk & reconciliation")}
                 </span>
               </li>
               <li className="flex items-start gap-2">
                 <Terminal className="mt-0.5 h-3.5 w-3.5 text-accent" />
                 <span>
-                  <span className="font-mono text-foreground">Settlement identity</span> · ed25519
-                  keypair bound to operator
+                  <span className="font-mono text-foreground">{t("Settlement identity")}</span>{" "}
+                  {t("· ed25519 keypair bound to operator")}
                 </span>
               </li>
               <li className="flex items-start gap-2">
                 <Activity className="mt-0.5 h-3.5 w-3.5 text-success" />
                 <span>
-                  <span className="font-mono text-foreground">Network status</span> ·{" "}
-                  {STELLAR_NETWORK_LABEL} · Settlement Network
+                  <span className="font-mono text-foreground">{t("Network status")}</span> ·{" "}
+                  {STELLAR_NETWORK_LABEL} {t("· Settlement Network")}
                 </span>
               </li>
             </ul>
@@ -149,7 +149,7 @@ function LoginPage() {
           <div className="mt-6 flex items-center justify-between border-t border-border pt-4 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
             <span>EnergyPay Clearing · v0.4.2</span>
             <span className="flex items-center gap-1.5 text-success">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> Network nominal
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> {t("Network nominal")}
             </span>
           </div>
         </Card>
@@ -157,8 +157,7 @@ function LoginPage() {
         <Card className="overflow-hidden border-border bg-card/70">
           <div className="flex items-center justify-between border-b border-border bg-background/40 px-4 py-2.5">
             <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-              <span className="h-1.5 w-1.5 rounded-full bg-success" /> Settlement Network · Access
-              Terminal
+              <span className="h-1.5 w-1.5 rounded-full bg-success" /> {t("Settlement Network · Access Terminal")}
             </div>
             <div className="font-mono text-[10px] text-muted-foreground">SECURE · TLS</div>
           </div>
@@ -180,7 +179,7 @@ function LoginPage() {
                   autoComplete="off"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email address"
+                  placeholder={t("Email address")}
                   className="h-9 pl-8 font-mono text-xs"
                 />
               </div>
@@ -271,6 +270,7 @@ function LoginPage() {
 function LoginThemeToggle() {
   const theme = useUiStore((s) => s.theme);
   const setTheme = useUiStore((s) => s.setTheme);
+  const t = useT();
   const next: Theme = theme === "dark" ? "light" : "dark";
   return (
     <button
@@ -279,7 +279,7 @@ function LoginThemeToggle() {
       className="flex items-center gap-1.5 text-muted-foreground transition hover:text-primary"
     >
       {theme === "dark" ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
-      {next} mode
+      {next === "light" ? t("Light mode") : t("Dark mode")}
     </button>
   );
 }
