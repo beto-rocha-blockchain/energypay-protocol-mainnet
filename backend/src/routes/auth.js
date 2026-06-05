@@ -122,23 +122,22 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ success: false, error: `invalid roles: ${invalidRoles.join(", ")}` });
     }
 
-    // Identity document — number required. Brazil must be a valid CPF (11) or CNPJ (14);
-    // other countries accept a generic tax/registration ID (free-form).
+    // Identity document — OPTIONAL. If provided, Brazil must be a valid CPF (11)
+    // or CNPJ (14); other countries accept a generic tax/registration ID (free-form).
     const rawDoc = String(cpf_cnpj ?? "").trim();
     const isBrazil = ["brasil", "brazil", "br"].includes(String(country ?? "").trim().toLowerCase());
-    if (!rawDoc) {
-      return res.status(400).json({ success: false, error: "A tax/identity document number is required." });
-    }
     const docDigits = rawDoc.replace(/\D/g, "");
-    if (isBrazil) {
-      if (docDigits.length !== 11 && docDigits.length !== 14) {
-        return res.status(400).json({ success: false, error: "Brazilian document must be a CPF (11 digits) or CNPJ (14 digits)." });
+    if (rawDoc) {
+      if (isBrazil) {
+        if (docDigits.length !== 11 && docDigits.length !== 14) {
+          return res.status(400).json({ success: false, error: "Brazilian document must be a CPF (11 digits) or CNPJ (14 digits)." });
+        }
+      } else if (rawDoc.length < 4) {
+        return res.status(400).json({ success: false, error: "Document / tax ID is too short." });
       }
-    } else if (rawDoc.length < 4) {
-      return res.status(400).json({ success: false, error: "Document / tax ID is too short." });
     }
-    // Brazil stores digits (Asaas needs them); other countries keep the raw value.
-    const docNumberToStore = isBrazil ? docDigits : rawDoc;
+    // Brazil stores digits (Asaas needs them); other countries keep the raw value. Null when omitted.
+    const docNumberToStore = rawDoc ? (isBrazil ? docDigits : rawDoc) : null;
     const resolvedDocType =
       document_type === "INDIVIDUAL" || document_type === "COMPANY"
         ? document_type
