@@ -559,7 +559,7 @@ function LandingPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             <span className="flex items-center gap-1.5 text-success">
               <span className="h-1.5 w-1.5 rounded-full bg-success" /> {STELLAR_NETWORK_LABEL}
             </span>
