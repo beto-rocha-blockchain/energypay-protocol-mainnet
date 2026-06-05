@@ -70,6 +70,10 @@ function OperationsPage() {
   const operator = useOperator((s) => s.operator);
   // Primary role drives the contextual panel (first role wins)
   const primaryRole = operator?.roles?.[0] ?? null;
+  // Network-wide counts (e.g. total participants) are administrative — only
+  // platform owners/admins see them.
+  const isAdmin =
+    operator?.platformRole === "PLATFORM_OWNER" || operator?.platformRole === "PLATFORM_ADMIN";
 
   // Live connection status — from the shared store, independent of this page's fetch.
   const stellarStatus = useNetworkStore((s) => s.stellar);
@@ -130,7 +134,7 @@ function OperationsPage() {
       {primaryRole && <RoleContextPanel role={primaryRole} />}
 
       {/* KPI Strip */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+      <div className={`grid grid-cols-2 gap-3 md:grid-cols-3 ${isAdmin ? "lg:grid-cols-6" : "lg:grid-cols-5"}`}>
         <KpiCard
           label={t("Settlements")}
           value={String(stats?.total_settlements ?? 0)}
@@ -150,12 +154,14 @@ function OperationsPage() {
           sub={t("total BRL settled")}
           loading={loading && !stats}
         />
-        <KpiCard
-          label={t("Users")}
-          value={String(stats?.total_users ?? 0)}
-          sub={t("counterparties")}
-          loading={loading && !stats}
-        />
+        {isAdmin && (
+          <KpiCard
+            label={t("Users")}
+            value={String(stats?.total_users ?? 0)}
+            sub={t("counterparties")}
+            loading={loading && !stats}
+          />
+        )}
         <KpiCard
           label={t("Avg. Finality")}
           value={finalityMs ? `${(finalityMs / 1000).toFixed(2)}s` : "—"}

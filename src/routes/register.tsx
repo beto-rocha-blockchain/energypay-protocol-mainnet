@@ -605,13 +605,16 @@ useEffect(() => {
                     />
                   </Field>
 
+                  {/* Location — country, state and city grouped so the guided
+                      tour spotlights all three fields together. */}
+                  <div data-tour="reg-location" className="grid gap-3 md:col-span-3 md:grid-cols-3">
                   {/* Country */}
                   <GeoSelectField label={t("Country")} icon={<Globe2 className="h-3.5 w-3.5" />}>
                     <Select
                       value={country}
                       onValueChange={(v) => { setCountry(v); setState(""); setCity(""); }}
                     >
-                      <SelectTrigger data-tour="reg-country" className="h-9 bg-input font-mono text-xs">
+                      <SelectTrigger className="h-9 bg-input font-mono text-xs">
                         <SelectValue placeholder={t("Select country…")} />
                       </SelectTrigger>
                       <SelectContent className="max-h-60">
@@ -696,6 +699,7 @@ useEffect(() => {
                       />
                     )}
                   </GeoSelectField>
+                  </div>
                 </div>
               </div>
 

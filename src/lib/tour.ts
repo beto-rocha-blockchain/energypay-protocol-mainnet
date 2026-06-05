@@ -205,14 +205,16 @@ const REGISTER_STEPS: { page: number; element: string; en: PopoverText; pt: Popo
   },
   {
     page: 1,
-    element: '[data-tour="reg-country"]',
+    element: '[data-tour="reg-location"]',
     en: {
       title: "Location",
-      description: "Select country, state and city. The options appear based on the country you choose.",
+      description:
+        "Choose your country first, then the state and city. The state and city options load automatically based on the country you pick — pick each one in order.",
     },
     pt: {
       title: "Localização",
-      description: "Selecione país, estado e cidade. As opções aparecem conforme o país escolhido.",
+      description:
+        "Escolha primeiro o país e, em seguida, o estado e a cidade. As opções de estado e cidade carregam automaticamente conforme o país escolhido — selecione cada um na ordem.",
     },
   },
   {
@@ -245,26 +247,30 @@ const REGISTER_STEPS: { page: number; element: string; en: PopoverText; pt: Popo
   // ── Step 4 · Settlement setup ──
   {
     page: 3,
-    element: '[data-tour="reg-wallet"]',
+    element: '[data-tour="reg-fund"]',
     en: {
-      title: "Step 4 · Settlement wallet",
-      description: '"Managed" = EnergyPay handles the wallet for you (recommended). "Link" = use your own Stellar wallet.',
+      title: "Step 4 · Activate your wallet",
+      description:
+        "A settlement wallet is your account on the Stellar network — it holds EPWR (each token = 1 MWh) and sends/receives your energy settlements. Keep this checked so EnergyPay provisions (activates) the account on-chain. Without provisioning the wallet can't hold tokens or settle contracts.",
     },
     pt: {
-      title: "Etapa 4 · Carteira de liquidação",
-      description: "“Managed” = a EnergyPay cuida da carteira para você (recomendado). “Link” = você usa sua própria carteira Stellar.",
+      title: "Etapa 4 · Ative sua carteira",
+      description:
+        "A carteira de liquidação é a sua conta na rede Stellar — ela guarda EPWR (cada token = 1 MWh) e envia/recebe suas liquidações de energia. Deixe marcado para que a EnergyPay provisione (ative) a conta on-chain. Sem o provisionamento, a carteira não guarda tokens nem liquida contratos.",
     },
   },
   {
     page: 3,
-    element: '[data-tour="reg-fund"]',
+    element: '[data-tour="reg-wallet"]',
     en: {
-      title: "Fund the account",
-      description: "Keep this checked to provision your account on the Stellar network — required to operate.",
+      title: "Who holds the keys",
+      description:
+        'Choose "Managed" and EnergyPay creates and safeguards the wallet for you, encrypting the secret key — recommended if you\'re just starting. Choose "Link" only if you already have your own Stellar wallet: you provide just the public key and sign each transaction yourself, locally.',
     },
     pt: {
-      title: "Financiar a conta",
-      description: "Deixe marcado para provisionar sua conta na rede Stellar — necessário para operar.",
+      title: "Quem guarda as chaves",
+      description:
+        "Escolha “Managed” e a EnergyPay cria e protege a carteira para você, criptografando a chave secreta — recomendado para quem está começando. Escolha “Link” apenas se você já tem sua própria carteira Stellar: você informa só a chave pública e assina cada transação localmente, por conta própria.",
     },
   },
   {
@@ -272,11 +278,11 @@ const REGISTER_STEPS: { page: number; element: string; en: PopoverText; pt: Popo
     element: '[data-tour="reg-continue"]',
     en: {
       title: "Finish sign-up",
-      description: "Review the fields and click here to provision your identity. Then confirm your email and you're done!",
+      description: "Review the fields and click here to provision your identity and wallet. Then confirm your email and you're done!",
     },
     pt: {
       title: "Concluir cadastro",
-      description: "Revise os campos e clique aqui para provisionar sua identidade. Depois, confirme seu e-mail e pronto!",
+      description: "Revise os campos e clique aqui para provisionar sua identidade e carteira. Depois, confirme seu e-mail e pronto!",
     },
   },
 ];

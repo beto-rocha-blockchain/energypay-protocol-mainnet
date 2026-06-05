@@ -736,15 +736,34 @@ function ContractsList() {
             {t("Bilateral PPAs under settlement supervision · counterparty exposure, PLD reference and transaction finality.")}
           </p>
         </div>
-        {canCreateContract && (
-          <Link to="/contracts/new">
-            <Button className="h-9 shrink-0 gap-2 font-mono text-xs uppercase tracking-widest">
-              <Plus className="h-3.5 w-3.5" />
-              {t("New Contract")}
-            </Button>
-          </Link>
-        )}
       </div>
+
+      {/* Prominent, explanatory entry point for registering a contract */}
+      {canCreateContract && (
+        <Card className="border-primary/30 bg-primary/5 p-4 sm:p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary/40 bg-primary/10 text-primary">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-display text-base font-semibold tracking-tight">
+                  {t("Register a bilateral energy contract")}
+                </h2>
+                <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+                  {t("Define the counterparties, the volume in MWh, the price and the delivery period. Once every party approves, EnergyPay tokenizes the energy as EPWR and settles it automatically on Stellar — with no manual reconciliation.")}
+                </p>
+              </div>
+            </div>
+            <Link to="/contracts/new" className="w-full sm:w-auto sm:shrink-0">
+              <Button size="lg" className="w-full gap-2 font-mono text-xs uppercase tracking-widest sm:w-auto">
+                <Plus className="h-4 w-4" />
+                {t("Register Contract")}
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      )}
 
       <Card className="overflow-hidden border-border bg-card/60 p-0 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]">
         <div className="flex items-center justify-between gap-3 border-b border-border bg-background/40 px-4 py-2.5">

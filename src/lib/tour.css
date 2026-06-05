@@ -98,3 +98,13 @@
     0 0 0 3px var(--primary),
     0 0 28px 8px color-mix(in srgb, var(--primary) 50%, transparent) !important;
 }
+
+/* While the tour is running, Radix dropdown / select menus (portaled to <body>)
+   must sit ABOVE the driver.js overlay so the spotlighted field's options —
+   e.g. the Country / State / City selects — are never hidden behind the
+   darkened layer. driver.js uses z-index 1000000000 for its overlay/popover,
+   so the menus need to clear that. */
+body.driver-active [data-radix-popper-content-wrapper],
+body.driver-active [data-radix-popper-content-wrapper] > * {
+  z-index: 1000000001 !important;
+}
