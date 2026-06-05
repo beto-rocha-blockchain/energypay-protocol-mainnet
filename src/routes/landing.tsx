@@ -53,17 +53,17 @@ import { useT } from "@/lib/i18n";
 export const Route = createFileRoute("/landing")({
   head: () => ({
     meta: [
-      { title: "EnergyPay — Programmable financial rail for electricity markets" },
+      { title: "EnergyPay — On-chain settlement for energy markets" },
       {
         name: "description",
         content:
-          "EnergyPay is a programmable settlement and reconciliation infrastructure for electricity markets, executing auditable settlements on Stellar Mainnet.",
+          "EnergyPay is a programmable settlement and reconciliation infrastructure for energy markets, executing auditable settlements on Stellar Mainnet.",
       },
-      { property: "og:title", content: "EnergyPay — Programmable financial rail for electricity markets" },
+      { property: "og:title", content: "EnergyPay — On-chain settlement for energy markets" },
       {
         property: "og:description",
         content:
-          "Programmable settlement and reconciliation infrastructure for electricity markets on Stellar Mainnet.",
+          "Programmable settlement and reconciliation infrastructure for energy markets on Stellar Mainnet.",
       },
     ],
   }),
@@ -179,9 +179,9 @@ function LandingPage() {
           </Badge>
 
           <h1 className="mx-auto max-w-4xl font-display text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl">
-            {t("Programmable financial rail")}
+            {t("Settle energy contracts")}
             <br />
-            <span className="text-primary">{t("for electricity markets")}</span>
+            <span className="text-primary">{t("on-chain, in seconds")}</span>
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
@@ -555,7 +555,7 @@ function LandingPage() {
             <div className="leading-tight">
               <BrandName size="sm" />
               <p className="font-mono text-[8px] uppercase tracking-[0.22em] text-muted-foreground">
-                {t("Programmable financial rail for electricity markets")}
+                {t("Clearing & settlement for energy markets")}
               </p>
             </div>
           </div>

@@ -273,8 +273,11 @@ export const PT: Record<string, string> = {
   "Live on": "Ao vivo na",
   "Programmable financial rail": "Trilho financeiro programável",
   "for electricity markets": "para mercados de eletricidade",
+  "Settle energy contracts": "Liquide contratos de energia",
+  "on-chain, in seconds": "on-chain, em segundos",
+  "Clearing & settlement for energy markets": "Clearing & settlement para o mercado de energia",
   "EnergyPay is a programmable settlement and reconciliation infrastructure for electricity markets. It helps generators, sellers, utilities, investors and consumers register bilateral energy obligations, manage counterparty risk, and execute auditable settlements on":
-    "A EnergyPay é uma infraestrutura programável de settlement e reconciliação para mercados de eletricidade. Ela ajuda geradores, vendedores, distribuidoras, investidores e consumidores a registrar obrigações bilaterais de energia, gerenciar risco de contraparte e executar settlements auditáveis na",
+    "A EnergyPay é uma infraestrutura programável de settlement e reconciliação para o mercado de energia. Ela ajuda geradores, vendedores, distribuidoras, investidores e consumidores a registrar obrigações bilaterais de energia, gerenciar risco de contraparte e executar settlements auditáveis na",
   "Provision settlement identity": "Provisionar identidade de settlement",
   Finality: "Finalização",
   "Stellar ledger close": "Fechamento de ledger da Stellar",
