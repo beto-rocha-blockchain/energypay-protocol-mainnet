@@ -1047,6 +1047,12 @@ function DatePickerField({
           selected={value}
           onSelect={onChange}
           disabled={disabled}
+          defaultMonth={value}
+          // Month + year dropdowns (and prev/next arrows) so the user can jump
+          // straight to any month/year instead of clicking month-by-month.
+          captionLayout="dropdown"
+          startMonth={new Date(new Date().getFullYear() - 5, 0)}
+          endMonth={new Date(new Date().getFullYear() + 20, 11)}
           initialFocus
           className="p-3 pointer-events-auto"
         />
