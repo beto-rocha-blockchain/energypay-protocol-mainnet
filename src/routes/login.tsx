@@ -184,8 +184,14 @@ function LoginPage() {
                 <Input
                   id="email"
                   data-tour="login-email"
-                  type="email"
+                  /* text (not email) so operator identifiers without an "@"
+                     — e.g. the demo "admin" login — are accepted; auth matches
+                     the value exactly against the stored email. */
+                  type="text"
+                  inputMode="email"
                   autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={t("Email address")}

@@ -431,7 +431,7 @@ router.post("/", requireAuth, async (req, res) => {
         const { data: _owners } = await supabase
           .from("users")
           .select("id")
-          .eq("platform_role", "PLATFORM_OWNER");
+          .or("platform_role.eq.PLATFORM_OWNER,demo_approver.eq.true");
         for (const _owner of _owners ?? []) {
           await addNotification(_owner.id, {
             contractId: contract.id,
@@ -872,7 +872,7 @@ router.post("/:id/approve", requireAuth, async (req, res) => {
     // Get the user's stellar public key
     const { data: userRow } = await supabase
       .from("users")
-      .select("stellar_public_key, display_name, email, platform_role")
+      .select("stellar_public_key, full_name, email, platform_role, demo_approver")
       .eq("id", userId)
       .single();
 
@@ -905,9 +905,11 @@ router.post("/:id/approve", requireAuth, async (req, res) => {
         (userRow?.stellar_public_key && a.party_public_key === userRow.stellar_public_key),
     );
 
-    // The platform owner ("Deus") may approve ANY contract, even without being a
-    // party — so a missing/absent counterparty never stalls a demonstration.
-    const isMaster = userRow?.platform_role === "PLATFORM_OWNER";
+    // The platform owner ("Deus") — or a scoped demo account (demo_approver) —
+    // may approve ANY contract, even without being a party, so a missing/absent
+    // counterparty never stalls a live demonstration.
+    const isMaster =
+      userRow?.platform_role === "PLATFORM_OWNER" || userRow?.demo_approver === true;
 
     if (!myApproval && !isMaster) {
       return res.status(403).json({
@@ -939,7 +941,7 @@ router.post("/:id/approve", requireAuth, async (req, res) => {
     }
 
     const contractRef = contract.contract_number || contract.id.slice(0, 8).toUpperCase();
-    const approverLabel = userRow?.display_name || userRow?.email || userId;
+    const approverLabel = userRow?.full_name || userRow?.email || userId;
 
     // Notify all other parties
     const otherApprovals = (approvals ?? []).filter((a) => a.id !== myApproval?.id);
@@ -1152,7 +1154,7 @@ router.post("/:id/reject", requireAuth, async (req, res) => {
 
     const { data: userRow } = await supabase
       .from("users")
-      .select("stellar_public_key, display_name, email")
+      .select("stellar_public_key, full_name, email")
       .eq("id", userId)
       .single();
 
@@ -1208,7 +1210,7 @@ router.post("/:id/reject", requireAuth, async (req, res) => {
       .eq("id", req.params.id);
 
     const contractRef = contract.contract_number || contract.id.slice(0, 8).toUpperCase();
-    const rejecterLabel = userRow?.display_name || userRow?.email || userId;
+    const rejecterLabel = userRow?.full_name || userRow?.email || userId;
 
     await addMovement(req.params.id, {
       fromState: contract.state,
