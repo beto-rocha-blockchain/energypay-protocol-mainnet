@@ -37,3 +37,16 @@ backend/.env.*
 *.njsproj
 *.sln
 *.sw?
+
+# Pitch decks / private keys — keep out of the source repo
+*.pptx
+*.key
+
+# Local REST-client scratch (commit the backend/test.http.example template instead)
+backend/test.http
+*.local.http
+
+# Keep the generated Stellar Testnet settlement evidence (SCF Deliverable 2),
+# overriding the broad *.log rule above so the rail logs are reviewable in-repo.
+!scripts/testnet-evidence/
+!scripts/testnet-evidence/*.log

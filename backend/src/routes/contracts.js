@@ -908,8 +908,14 @@ router.post("/:id/approve", requireAuth, async (req, res) => {
     // The platform owner ("Deus") — or a scoped demo account (demo_approver) —
     // may approve ANY contract, even without being a party, so a missing/absent
     // counterparty never stalls a live demonstration.
+    //
+    // The demo_approver capability is a DEMO/EVENT-ONLY override. It can be killed
+    // globally without a DB change by setting DEMO_MODE=false in the backend env
+    // (runtime kill switch); the platform-owner override is unaffected.
+    const demoModeEnabled = process.env.DEMO_MODE !== "false";
     const isMaster =
-      userRow?.platform_role === "PLATFORM_OWNER" || userRow?.demo_approver === true;
+      userRow?.platform_role === "PLATFORM_OWNER" ||
+      (demoModeEnabled && userRow?.demo_approver === true);
 
     if (!myApproval && !isMaster) {
       return res.status(403).json({

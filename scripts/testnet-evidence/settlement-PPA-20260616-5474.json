@@ -1,0 +1,35 @@
+{
+  "deliverable": "D2 · Stellar Testnet Programmable Settlement Rail",
+  "network": "Stellar Testnet",
+  "network_passphrase": "Test SDF Network ; September 2015",
+  "generated_at": "2026-06-16T16:41:24.451Z",
+  "contract": {
+    "reference": "PPA-20260616-5474",
+    "energy_volume_mwh": 100,
+    "reference_price_brl_per_mwh": 225,
+    "settlement_asset": "EPWR (1 EPWR = 1 MWh)"
+  },
+  "parties": {
+    "issuer": "GBOHUEINY3OXKZIDOCOW4GR4NR5JTX7Q5LKBHVPFVQR56YFZ4HVRXHTH",
+    "distribution": "GDUWACKBNMJII4M2TGP57NSOFTSCLENKO23SMEH2VDUJIW727LAHBHT4",
+    "buyer_destination_wallet": "GA3K22ZQREYJBPSWYYBEAE7WVCR4SIBCJUF3RWS3XZDXI6M36SS6W5V2"
+  },
+  "token_issuance_tx": {
+    "hash": "f32e96bd5c253d1ed887f1ecfdecbb3d54f3ca67546468a92d6ac78fc8b732aa",
+    "ledger": 3123026,
+    "stellar_expert": "https://stellar.expert/explorer/testnet/tx/f32e96bd5c253d1ed887f1ecfdecbb3d54f3ca67546468a92d6ac78fc8b732aa"
+  },
+  "settlement_tx": {
+    "hash": "e883469c6ff5c1553700415c25c9e75021b1e84000f8a72bd29f692655241c17",
+    "ledger": 3123027,
+    "memo": "CTR-PPA-20260616-5474",
+    "destination_wallet": "GA3K22ZQREYJBPSWYYBEAE7WVCR4SIBCJUF3RWS3XZDXI6M36SS6W5V2",
+    "status": "SETTLED",
+    "stellar_expert": "https://stellar.expert/explorer/testnet/tx/e883469c6ff5c1553700415c25c9e75021b1e84000f8a72bd29f692655241c17"
+  },
+  "explorer_accounts": {
+    "issuer": "https://stellar.expert/explorer/testnet/account/GBOHUEINY3OXKZIDOCOW4GR4NR5JTX7Q5LKBHVPFVQR56YFZ4HVRXHTH",
+    "distribution": "https://stellar.expert/explorer/testnet/account/GDUWACKBNMJII4M2TGP57NSOFTSCLENKO23SMEH2VDUJIW727LAHBHT4",
+    "buyer": "https://stellar.expert/explorer/testnet/account/GA3K22ZQREYJBPSWYYBEAE7WVCR4SIBCJUF3RWS3XZDXI6M36SS6W5V2"
+  }
+}

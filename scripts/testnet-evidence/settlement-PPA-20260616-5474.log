@@ -1,0 +1,31 @@
+══════════════════════════════════════════════════════════════════════
+ EnergyPay · Stellar Testnet Programmable Settlement Rail
+ Network: Stellar Testnet (Test SDF Network ; September 2015)
+ Contract reference: PPA-20260616-5474 · Volume: 100 MWh · PLD R$ 225/MWh
+══════════════════════════════════════════════════════════════════════
+
+[1] Provisioning testnet accounts (Friendbot)…
+  ✓ funded issuer       GBOHUEINY3OXKZIDOCOW4GR4NR5JTX7Q5LKBHVPFVQR56YFZ4HVRXHTH
+  ✓ funded distribution GDUWACKBNMJII4M2TGP57NSOFTSCLENKO23SMEH2VDUJIW727LAHBHT4
+  ✓ funded buyer        GA3K22ZQREYJBPSWYYBEAE7WVCR4SIBCJUF3RWS3XZDXI6M36SS6W5V2
+
+[2] Establishing EPWR trustlines…
+  ✓ trustline:dist     hash=9eff054fd9783471d042acdcbe1353c31a3bc5ecde5a02772a650090ea4fc2d5 ledger=3123024
+  ✓ trustline:buyer    hash=39664321c3901aefcd8524d43e43b12c19a3b6508ce925a7f093029e36f6be8e ledger=3123025
+
+[3] Token issuance (issuer → distribution)…
+  ✓ token_issuance     hash=f32e96bd5c253d1ed887f1ecfdecbb3d54f3ca67546468a92d6ac78fc8b732aa ledger=3123026
+
+[4] Settlement lock (distribution → buyer)…
+  ✓ settlement         hash=e883469c6ff5c1553700415c25c9e75021b1e84000f8a72bd29f692655241c17 ledger=3123027
+
+══════════════════════════════════════════════════════════════════════
+ SETTLEMENT EVIDENCE (Deliverable 2)
+══════════════════════════════════════════════════════════════════════
+ Status:             SETTLED
+ Tx Hash:            e883469c6ff5c1553700415c25c9e75021b1e84000f8a72bd29f692655241c17
+ Ledger:             3123027
+ Memo:               CTR-PPA-20260616-5474
+ Destination wallet: GA3K22ZQREYJBPSWYYBEAE7WVCR4SIBCJUF3RWS3XZDXI6M36SS6W5V2
+ Stellar Expert:     https://stellar.expert/explorer/testnet/tx/e883469c6ff5c1553700415c25c9e75021b1e84000f8a72bd29f692655241c17
+══════════════════════════════════════════════════════════════════════

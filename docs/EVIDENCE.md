@@ -1,468 +1,181 @@
-# EnergyPay Evidence Package
+# EnergyPay — Evidence Package (SCF Instawards)
 
 ## Overview
 
-This document provides the evidence package for the current EnergyPay MVP.
+EnergyPay is a programmable settlement and reconciliation infrastructure for bilateral
+energy contracts. It connects a digital energy-contract obligation (buyer, seller, energy
+volume, reference price, settlement date) to a **verifiable financial execution rail on the
+Stellar network**, and reconciles the resulting on-chain receipts into an audit trail.
 
-EnergyPay is a programmable settlement and reconciliation infrastructure for energy contracts, using Stellar Testnet as a verifiable financial execution rail for MVP validation.
+This document lets reviewers verify what is implemented against each SCF deliverable, with
+**real, independently verifiable transaction evidence**.
 
-The purpose of this document is to help reviewers, judges, mentors, grant evaluators and stakeholders verify what has already been implemented, what is currently simulated, and what remains part of the future roadmap.
+> **Network note.** The SCF deliverable scope targets **Stellar Testnet**. The programmable
+> settlement rail is demonstrated on Testnet below via a reproducible script with real
+> testnet transactions. **Beyond the grant scope**, the platform has also been deployed and
+> exercised on **Stellar Mainnet** (a real 100 MWh settlement, publicly verifiable) — see
+> "Beyond scope: Mainnet" under Deliverable 2.
 
 ---
 
 ## Project Links
 
-### Live Demo
+| | |
+|---|---|
+| **GitHub repository** | https://github.com/beto-rocha-blockchain/energypay-protocol-mainnet |
+| **Live demo** | https://energypay-protocol-mainnet.vercel.app |
+| **Demo video** | https://drive.google.com/file/d/1LT8rV_N1KavR8iABE1BbxantPwqP-DHv/view *(confirm/replace with the final walkthrough)* |
 
-[EnergyPay Live Demo](https://energypay-protocol.vercel.app/)
+---
 
-### GitHub Repository
+## Deliverable 1 — Digital Energy Contract Registry MVP
 
-[energypay-protocol](https://github.com/beto-rocha-blockchain/energypay-protocol)
+**A web module to register and visualize a bilateral energy settlement obligation** (buyer,
+seller, energy volume, reference price, settlement date, status, contract reference).
 
-### Demo Video
+**Implemented — status: COMPLETE.**
 
-Add demo video link here:
+| Capability | Where |
+|---|---|
+| Register a bilateral contract (buyer, seller, MWh volume, price, period, parties) | `src/routes/contracts.new.tsx` → `POST /api/contracts` (`backend/src/routes/contracts.js`) |
+| Contract listing with status / state / PLD / exposure / tx hash | `src/routes/contracts.index.tsx` |
+| Contract detail + settlement state machine + movements/audit trail | `src/routes/contracts.index.tsx` (detail modal) |
+| Schema (buyer/seller, volume_mwh, price_brl, pld_brl, settlement_date, status, state, tx_hash, ledger) | `backend/src/migrations/002_contract_lifecycle.sql` |
 
-```txt
-PASTE_LOOM_OR_DRIVE_LINK_HERE
+**Evidence to attach (operator):**
+- Screenshot — contract registration form: `/contracts/new`
+- Screenshot — contract listing: `/contracts`
+- Live demo + GitHub repo links above.
+
+---
+
+## Deliverable 2 — Stellar Testnet Programmable Settlement Rail
+
+**A Stellar Testnet settlement flow that executes a simulated energy-contract settlement and
+records transaction hash, ledger number, memo, destination wallet, status, and Stellar Expert
+link.**
+
+**Implemented — status: COMPLETE (real testnet transactions below).**
+
+The rail mirrors the production atomic flow: **token issuance** (issuer mints EPWR, where
+1 EPWR = 1 MWh) → **settlement lock** (distribution transfers the contracted volume to the
+buyer, anchoring the bilateral contract reference in the transaction memo). It is reproducible
+from a clean checkout via [`scripts/testnet-settlement-evidence.mjs`](../scripts/testnet-settlement-evidence.mjs).
+
+### Settlement transaction (Stellar Testnet)
+
+| Field | Value |
+|---|---|
+| **Network** | Stellar Testnet (`Test SDF Network ; September 2015`) |
+| **Contract reference** | `PPA-20260616-5474` |
+| **Energy volume** | 100 MWh |
+| **Reference price (PLD)** | R$ 225.00 / MWh |
+| **Settlement asset** | EPWR (1 EPWR = 1 MWh) |
+| **Source wallet** (distribution) | `GDUWACKBNMJII4M2TGP57NSOFTSCLENKO23SMEH2VDUJIW727LAHBHT4` |
+| **Destination wallet** (buyer) | `GA3K22ZQREYJBPSWYYBEAE7WVCR4SIBCJUF3RWS3XZDXI6M36SS6W5V2` |
+| **Memo** | `CTR-PPA-20260616-5474` |
+| **Transaction hash** | `e883469c6ff5c1553700415c25c9e75021b1e84000f8a72bd29f692655241c17` |
+| **Ledger** | `3123027` |
+| **Status** | SETTLED (confirmed `2026-06-16T16:41:23Z`) |
+| **Stellar Expert** | https://stellar.expert/explorer/testnet/tx/e883469c6ff5c1553700415c25c9e75021b1e84000f8a72bd29f692655241c17 |
+
+### Supporting transactions (same run)
+
+| Step | Tx hash | Ledger |
+|---|---|---|
+| EPWR trustline (distribution) | `9eff054fd9783471d042acdcbe1353c31a3bc5ecde5a02772a650090ea4fc2d5` | 3123024 |
+| EPWR trustline (buyer) | `39664321c3901aefcd8524d43e43b12c19a3b6508ce925a7f093029e36f6be8e` | 3123025 |
+| Token issuance (issuer → distribution, 100 EPWR) | `f32e96bd5c253d1ed887f1ecfdecbb3d54f3ca67546468a92d6ac78fc8b732aa` | 3123026 |
+
+- Issuer (EPWR): `GBOHUEINY3OXKZIDOCOW4GR4NR5JTX7Q5LKBHVPFVQR56YFZ4HVRXHTH`
+- **Settlement rail logs:** [`scripts/testnet-evidence/settlement-PPA-20260616-5474.log`](../scripts/testnet-evidence/settlement-PPA-20260616-5474.log)
+- **Machine-readable evidence:** [`scripts/testnet-evidence/settlement-PPA-20260616-5474.json`](../scripts/testnet-evidence/settlement-PPA-20260616-5474.json)
+
+### Beyond scope: Mainnet (over-delivery)
+
+The same architecture has executed a **real settlement on Stellar Mainnet** (not required by the
+grant, which is testnet-scoped):
+
+| Field | Value |
+|---|---|
+| Asset / volume | 100 EPWR (100 MWh) |
+| Transaction hash | `2ae6f9a67bbab0fa121ddaf704948e5bea68fdb0395093e68522a67abb40d4c2` |
+| Ledger | 62,865,799 |
+| Stellar Expert | https://stellar.expert/explorer/public/tx/2ae6f9a67bbab0fa121ddaf704948e5bea68fdb0395093e68522a67abb40d4c2 |
+
+**Evidence to attach (operator):** screenshot of a settlement execution / receipt in the app.
+
+---
+
+## Deliverable 3 — Settlement Dashboard & Audit Evidence Package
+
+**A dashboard + evidence package showing settlement lifecycle states (registered, pending,
+executed, confirmed, failed, canceled) with logs, screenshots, demo video, GitHub repo, and
+testnet transaction evidence.**
+
+**Implemented — status: COMPLETE (docs + screenshots to attach).**
+
+| Capability | Where |
+|---|---|
+| Operations dashboard (KPIs, live settlement feed, treasury, telemetry) | `src/routes/index.tsx` |
+| Audit & compliance view (immutable trail, explorer links) | `src/routes/audit.tsx` |
+| Settlement lifecycle state machine + movements per contract | `src/routes/contracts.index.tsx`, `backend/src/routes/contracts.js` |
+| Evidence package (this document) + testnet artifacts | `docs/EVIDENCE.md`, `scripts/testnet-evidence/` |
+
+### Settlement lifecycle states
+
+```
+CREATED → VALIDATED → PENDING_SIGNATURE → BROADCASTING → CONFIRMED → SETTLED
+                                                        ↘ FAILED
+DRAFT → (all parties approve) → ACTIVE → PENDING → SETTLED | FAILED | CANCELED
 ```
 
-### Institutional Video
+Each settlement record carries: settlement ID, contract reference, source/destination,
+asset, amount, transaction hash, ledger, status, timestamp, memo, and a Stellar Expert link —
+connecting an in-platform event to an externally verifiable on-chain transaction.
 
-Add institutional video link here:
+**Evidence to attach (operator):** demo video link, screenshot of the dashboard/audit view,
+this README/EVIDENCE doc, and the transaction logs above.
 
-```txt
-PASTE_VIDEO_LINK_HERE
+---
+
+## Reproduce the testnet evidence yourself
+
+```bash
+# From the repo root (Node 18+). Testnet only — no real funds.
+node scripts/testnet-settlement-evidence.mjs
+# Prints the settlement hash/ledger/memo/destination/Stellar Expert link and
+# writes scripts/testnet-evidence/settlement-<ref>.{json,log}
 ```
 
----
-
-## Evidence Summary
-
-The current EnergyPay MVP demonstrates:
-
-- digital representation of bilateral energy settlement obligations;
-- settlement execution through Stellar Testnet;
-- transaction hash generation;
-- ledger number confirmation;
-- memo-based settlement identification;
-- Stellar Expert transaction verification;
-- audit-oriented settlement history;
-- x402-compatible API payment proof flow;
-- institutional frontend deployed on Vercel;
-- backend settlement execution using Stellar SDK and Horizon Testnet.
+Each run provisions fresh Friendbot-funded testnet accounts, establishes EPWR trustlines,
+issues the tokenized energy, and executes the settlement — so reviewers can regenerate
+independent evidence on demand.
 
 ---
 
-## What Is Real in the Current MVP
+## What is real vs. simulated
 
-The following components are implemented and demonstrable in the current MVP:
+**Real / implemented:** contract registry (register + list + detail), settlement rail on
+Stellar (testnet evidence above; mainnet over-delivery), tx hash / ledger / memo / Stellar
+Expert verification, audit-oriented settlement records, role-based authorization, Supabase
+persistence, deployed frontend.
 
-### 1. Live Frontend
+**Simulated / out of production scope:** regulated clearing-house activity, production custody,
+bank/PIX/ERP integration, KYC/KYB, and regulated market-operator integration. Some market-data
+values (e.g. PLD reference) are illustrative.
 
-EnergyPay has a deployed institutional frontend showing operational modules such as:
-
-- settlement operations;
-- direct settlement;
-- contract-related screens;
-- x402-compatible API access;
-- audit-oriented views;
-- treasury/operations interface concepts.
-
-Evidence:
-
-```txt
-https://energypay-protocol.vercel.app/
-```
+**Not claimed:** EnergyPay is not a licensed clearing house, regulated payment institution, or
+live energy-market operator. The testnet rail is for technical validation; the mainnet activity
+is controlled-value over-delivery, not a regulated production service.
 
 ---
 
-### 2. Stellar Testnet Settlement Execution
-
-The backend submits settlement transactions to Stellar Testnet.
-
-Each successful settlement can return:
-
-- transaction hash;
-- ledger number;
-- source public key;
-- destination public key;
-- asset;
-- amount;
-- memo;
-- finality time;
-- status;
-- Stellar Expert explorer link.
-
-Evidence to include:
-
-```txt
-Example txHash:
-PASTE_TX_HASH_HERE
-
-Example ledger:
-PASTE_LEDGER_NUMBER_HERE
-
-Stellar Expert link:
-PASTE_STELLAR_EXPERT_LINK_HERE
-```
-
----
-
-### 3. Direct Settlement Flow
-
-The Direct Settlement module demonstrates a payment execution flow where a user can submit settlement information and receive verifiable transaction evidence.
-
-The current MVP supports:
-
-- destination wallet input;
-- settlement amount;
-- memo;
-- Stellar Testnet transaction submission;
-- txHash return;
-- ledger confirmation;
-- explorer link generation;
-- audit-style receipt.
-
-Evidence to include:
-
-```txt
-Direct Settlement demo timestamp:
-PASTE_VIDEO_TIMESTAMP_HERE
-
-Example destination wallet:
-PASTE_TESTNET_PUBLIC_KEY_HERE
-
-Example memo:
-PASTE_MEMO_HERE
-
-Example txHash:
-PASTE_TX_HASH_HERE
-```
-
----
-
-### 4. Stellar Expert Verification
-
-EnergyPay settlement transactions can be independently verified through Stellar Expert on Testnet.
-
-Reviewers can inspect:
-
-- transaction status;
-- ledger;
-- source account;
-- destination account;
-- asset;
-- amount;
-- memo;
-- operation details.
-
-Evidence to include:
-
-```txt
-Stellar Expert transaction URL:
-PASTE_STELLAR_EXPERT_TRANSACTION_URL_HERE
-```
-
----
-
-### 5. Audit-Oriented Settlement Evidence
-
-The MVP includes an audit-oriented workflow designed to help users inspect settlement lifecycle information.
-
-The current evidence model includes:
-
-- settlement ID;
-- contract reference;
-- buyer/seller or source/destination;
-- amount;
-- transaction hash;
-- ledger;
-- status;
-- timestamp;
-- memo;
-- explorer link.
-
-This supports operational reconciliation by connecting a settlement event inside EnergyPay with an externally verifiable Stellar transaction.
-
----
-
-### 6. x402-Compatible API Access Flow
-
-EnergyPay includes an experimental x402-compatible flow for paid energy market API access.
-
-The current x402-compatible flow demonstrates:
-
-1. a protected API resource;
-2. HTTP 402 Payment Required response;
-3. payment requirement metadata;
-4. Stellar Testnet payment proof using txHash;
-5. backend verification through Horizon;
-6. access granted after payment proof validation.
-
-Evidence to include:
-
-```txt
-x402 demo timestamp:
-PASTE_VIDEO_TIMESTAMP_HERE
-
-Protected API resource:
-/api/x402/pld
-
-Payment proof format:
-PAYMENT-SIGNATURE: stellar-testnet:<txHash>
-
-Example txHash used for x402 verification:
-PASTE_TX_HASH_HERE
-```
-
----
-
-## What Is Simulated in the Current MVP
-
-The current MVP uses simulated or testnet-based data for demonstration purposes.
-
-The following items are not production operations:
-
-- real-money energy settlement;
-- mainnet financial settlement;
-- regulated clearing house activity;
-- production custody;
-- live bank integration;
-- PIX integration;
-- ERP integration;
-- regulated market operator integration;
-- production energy market settlement.
-
-Some operational dashboards and market data views may include simulated values to demonstrate the intended user experience and workflow.
-
----
-
-## What Is Not Claimed
-
-EnergyPay does not currently claim to be:
-
-- a licensed clearing house;
-- a regulated payment institution;
-- a production financial intermediary;
-- a live energy market operator;
-- a mainnet settlement platform;
-- a banking or PIX provider;
-- a substitute for legal, regulatory or compliance infrastructure.
-
-The current implementation is a Stellar Testnet MVP intended for technical validation, market discovery and grant/hackathon evaluation.
-
----
-
-## Testnet Evidence Checklist
-
-Before submitting this evidence package, include at least one complete settlement example.
-
-### Settlement Example 1
-
-```txt
-Settlement ID:
-PASTE_SETTLEMENT_ID_HERE
-
-Contract Reference:
-PASTE_CONTRACT_REFERENCE_HERE
-
-Source Public Key:
-PASTE_SOURCE_PUBLIC_KEY_HERE
-
-Destination Public Key:
-PASTE_DESTINATION_PUBLIC_KEY_HERE
-
-Asset:
-XLM or EPWR
-
-Amount:
-PASTE_AMOUNT_HERE
-
-Memo:
-PASTE_MEMO_HERE
-
-Transaction Hash:
-PASTE_TX_HASH_HERE
-
-Ledger:
-PASTE_LEDGER_NUMBER_HERE
-
-Status:
-FINALIZED / SETTLED
-
-Stellar Expert Link:
-PASTE_STELLAR_EXPERT_LINK_HERE
-```
-
----
-
-### Settlement Example 2
-
-```txt
-Settlement ID:
-PASTE_SETTLEMENT_ID_HERE
-
-Contract Reference:
-PASTE_CONTRACT_REFERENCE_HERE
-
-Source Public Key:
-PASTE_SOURCE_PUBLIC_KEY_HERE
-
-Destination Public Key:
-PASTE_DESTINATION_PUBLIC_KEY_HERE
-
-Asset:
-XLM or EPWR
-
-Amount:
-PASTE_AMOUNT_HERE
-
-Memo:
-PASTE_MEMO_HERE
-
-Transaction Hash:
-PASTE_TX_HASH_HERE
-
-Ledger:
-PASTE_LEDGER_NUMBER_HERE
-
-Status:
-FINALIZED / SETTLED
-
-Stellar Expert Link:
-PASTE_STELLAR_EXPERT_LINK_HERE
-```
-
----
-
-## Suggested Reviewer Flow
-
-A reviewer can validate the current MVP by following this flow:
-
-1. Open the live demo.
-2. Access the Direct Settlement module.
-3. Execute or inspect a settlement flow.
-4. Capture the returned txHash and ledger number.
-5. Open the Stellar Expert transaction link.
-6. Verify the transaction on Stellar Testnet.
-7. Confirm memo, amount, source, destination and transaction status.
-8. Review the audit-oriented settlement evidence in the platform.
-9. Open the x402-compatible page.
-10. Request the protected API resource.
-11. Verify the HTTP 402 payment flow.
-12. Submit a valid Stellar Testnet txHash as payment proof.
-13. Confirm access is granted after Horizon validation.
-
----
-
-## Technical Evidence
-
-The implementation includes the following technical components:
-
-### Backend
-
-- Node.js;
-- Express;
-- Stellar SDK;
-- Horizon Testnet;
-- settlement execution route;
-- role-based settlement authorization;
-- controlled server-side signing for Stellar Testnet MVP validation;
-- transaction submission;
-- error handling;
-- txHash and ledger return;
-- Supabase persistence.
-
-### Frontend
-
-- React;
-- TypeScript;
-- Vite;
-- TanStack Router / TanStack Start;
-- Zustand;
-- Tailwind CSS;
-- operational dashboard UI;
-- Direct Settlement flow;
-- x402-compatible API access page;
-- transaction evidence display.
-
-### Blockchain Layer
-
-- Stellar Testnet;
-- Horizon;
-- Stellar Expert;
-- XLM testnet settlement;
-- EPWR testnet asset support.
-
----
-
-## Security and Compliance Boundaries
-
-The MVP is intentionally limited to testnet validation.
-
-Current security-oriented design choices include:
-
-- no production funds;
-- no mainnet settlement;
-- no regulated financial activity;
-- no client-side private key exposure in the demonstrated execution flow;
-- controlled server-side signing for Stellar Testnet MVP validation;
-- environment-based secret management;
-- destination public key validation;
-- amount validation;
-- role-based authorization for settlement execution.
-
-Future production versions would require:
-
-- formal security audit;
-- production-grade custody architecture;
-- key management review;
-- legal and regulatory review;
-- KYC/KYB processes;
-- mainnet deployment strategy;
-- banking or payment partner integration;
-- compliance framework for the target jurisdiction.
-
----
-
-## Current Status
-
-EnergyPay currently has:
-
-- MVP operational;
-- live frontend deployed on Vercel;
-- Stellar Testnet settlement working;
-- Direct Settlement flow implemented;
-- x402-compatible API access flow implemented;
-- audit-oriented workflow in place;
-- stakeholder validation initiated with energy market participants;
-- Instawards SOW and pilot documentation in progress.
-
----
-
-## Evidence To Add Before Final Submission
-
-Before using this document in a grant or hackathon submission, replace all placeholder values with real evidence:
-
-- demo video link;
-- institutional video link;
-- txHash examples;
-- ledger numbers;
-- Stellar Expert links;
-- screenshots, if available;
-- relevant demo timestamps;
-- wallet addresses used in Testnet;
-- settlement memo examples;
-- x402 payment proof example.
-
----
-
-## Final Note
-
-EnergyPay is currently an experimental MVP running on Stellar Testnet.
-
-The project demonstrates how programmable financial infrastructure can improve the way bilateral energy settlement obligations are executed, verified and reconciled.
-
-The current evidence package is intended to support transparent technical review and distinguish implemented functionality from future roadmap items.
+## Reviewer verification flow
+
+1. Open the GitHub repo and the live demo (links above).
+2. Register a bilateral contract (`/contracts/new`) and view it in the registry (`/contracts`).
+3. Open the testnet settlement Stellar Expert link and confirm hash, ledger, memo, destination,
+   amount and status — or run `node scripts/testnet-settlement-evidence.mjs` to generate your own.
+4. Review the dashboard/audit views and the lifecycle states.
+5. (Optional) Verify the mainnet over-delivery transaction on Stellar Expert.

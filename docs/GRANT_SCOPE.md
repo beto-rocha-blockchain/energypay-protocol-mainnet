@@ -8,6 +8,14 @@ EnergyPay is a programmable settlement and reconciliation infrastructure for ene
 
 The current grant scope focuses on a clear, reviewable and execution-oriented MVP that demonstrates how bilateral energy settlement obligations can be represented, executed, verified and audited through a Stellar-based workflow.
 
+> **Status update.** The three deliverables are implemented. Verifiable evidence — including a
+> real Stellar **Testnet** settlement (transaction hash, ledger, memo, destination wallet,
+> Stellar Expert link) reproducible via `scripts/testnet-settlement-evidence.mjs` — is
+> consolidated in [`docs/EVIDENCE.md`](./EVIDENCE.md). Beyond this testnet grant scope, the
+> platform has also been deployed and exercised on **Stellar Mainnet** (a real settlement,
+> publicly verifiable). The testnet framing below remains the committed grant scope; the
+> mainnet deployment is over-delivery and does not imply regulated production status.
+
 ---
 
 ## Grant Objective
@@ -282,8 +290,8 @@ A reviewer should be able to validate the project by following this path:
 7. Verify the transaction on Stellar Testnet.
 8. Confirm the ledger, memo, amount and destination.
 9. Review `docs/EVIDENCE.md`.
-10. Review `docs/ARCHITECTURE.md`.
-11. Review `docs/STELLAR_TESTNET_FLOW.md`.
+10. Review `docs/architecture.md`.
+11. Review `docs/STELLAR_MAINNET_FLOW.md`.
 12. Review the x402-compatible API flow if applicable.
 
 ---
@@ -436,8 +444,8 @@ The current documentation package should include:
 
 - `README.md`;
 - `docs/EVIDENCE.md`;
-- `docs/ARCHITECTURE.md`;
-- `docs/STELLAR_TESTNET_FLOW.md`;
+- `docs/architecture.md`;
+- `docs/STELLAR_MAINNET_FLOW.md`;
 - `docs/X402_FLOW.md`;
 - `docs/SECURITY.md`;
 - `docs/GRANT_SCOPE.md`.

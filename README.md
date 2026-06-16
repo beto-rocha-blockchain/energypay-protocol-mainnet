@@ -1,5 +1,7 @@
 # EnergyPay ⚡
 
+> **Live on Stellar Mainnet** · programmable settlement & reconciliation for energy markets · [live demo](https://energypay-protocol-mainnet.vercel.app) · on-chain settlement evidence in [`docs/EVIDENCE.md`](./docs/EVIDENCE.md)
+
 ## Programmable Settlement Infrastructure for Energy Markets
 
 EnergyPay is a programmable settlement and reconciliation infrastructure for energy contracts, using Stellar Mainnet as a verifiable financial rail for contract execution, audit evidence, and energy API monetization.
@@ -67,6 +69,42 @@ The platform executes a complete mainnet workflow:
 
 **GitHub Repository:**  
 [energypay-protocol-mainnet](https://github.com/beto-rocha-blockchain/energypay-protocol-mainnet)
+
+---
+
+## Getting Started
+
+> Requires **Node.js 18+**. The frontend (repo root) is a Vite + TanStack Start app; the backend (`backend/`) is an Express API.
+
+```bash
+# 1 · Frontend (repo root)
+npm install
+npm run dev            # Vite dev server → http://localhost:5173
+
+# 2 · Backend (separate terminal)
+cd backend
+npm install
+cp .env.example .env   # then fill in the values (see table below)
+npm run dev            # Express API → http://localhost:3000
+```
+
+### Environment variables (`backend/.env`)
+
+All secrets are environment-based — see [`backend/.env.example`](./backend/.env.example) for the full, commented list. The key ones:
+
+| Variable | Purpose |
+|---|---|
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Postgres persistence |
+| `JWT_SECRET` | session token signing |
+| `MASTER_ENCRYPTION_KEY` | AES encryption of PLATFORM_MANAGED wallet secrets |
+| `STELLAR_NETWORK` | `mainnet` (default) — set `testnet` only for local development |
+| `STELLAR_SECRET` / `ISSUER_SECRET` / `DISTRIBUTION_SECRET` | Stellar custody & EPWR settlement accounts |
+| `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | transactional email (verification / reset) |
+| `OTP_CHANNEL`, `TWILIO_*` | phone OTP (optional) |
+| `PAYMENT_GATEWAY_KEY`, `PAYMENT_GATEWAY_SANDBOX` | subscription billing (Asaas; sandbox by default) |
+| `DEMO_MODE` | set `false` to disable the demo approval override (see [Demo & Testing](#demo--testing)) |
+
+The frontend reads `VITE_STELLAR_NETWORK` at build time (defaults to mainnet).
 
 ---
 
@@ -303,6 +341,26 @@ Future production versions would require:
 - production-grade key management vault;
 - banking/fiat integration assessment;
 - legal and regulatory validation.
+
+---
+
+## Demo & Testing
+
+For live demonstrations and grant review the platform ships with a **scoped demo harness**. These are intentional conveniences — **disable them before any production use**.
+
+- **Demo login:** `admin` / `admin`. A regular market-participant account (`platform_role = USER`) with **no platform-admin access**. The login field accepts a plain identifier (no `@` required) for convenience on stage.
+- **`demo_approver` capability:** a per-user flag (migration [`025_add_demo_approver_flag.sql`](./backend/src/migrations/025_add_demo_approver_flag.sql)) that lets the flagged account approve **any** contract — force-approving every pending party so a live demo never stalls waiting on a counterparty. It is **not** a platform role.
+- **Runtime kill switch:** disable the capability globally by setting `DEMO_MODE=false` in the backend environment, or at the data level with `UPDATE users SET demo_approver = false;`.
+
+### Reproducible Testnet settlement evidence
+
+```bash
+node scripts/testnet-settlement-evidence.mjs
+```
+
+Executes a full **Stellar Testnet** energy-contract settlement (token issuance → settlement lock with a contract-reference memo) using fresh Friendbot-funded accounts, and writes the transaction hash, ledger, memo, destination wallet, status and Stellar Expert link to `scripts/testnet-evidence/`. See [`docs/EVIDENCE.md`](./docs/EVIDENCE.md) for the consolidated evidence package and the settlement lifecycle states.
+
+> ⚠️ **Before production:** set `DEMO_MODE=false`, clear demo flags (`UPDATE users SET demo_approver = false;`), and remove or re-credential the `admin` demo account.
 
 ---
 
