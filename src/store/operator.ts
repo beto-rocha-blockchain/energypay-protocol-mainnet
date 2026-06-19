@@ -455,7 +455,11 @@ const identityFromSession = (session: AuthSession): OperatorIdentity => {
     settlementAddress: u.stellar_public_key,
     wallet,
     roles,
-    pendingRoles: normalizeRoles(u.pending_roles),
+    // A role that is already active can never also be "awaiting approval".
+    // Filter any pending role that's already granted so a stale session or a
+    // roles/pending_roles overlap in the data can't surface a phantom
+    // "AWAITING ADMIN APPROVAL" banner for an approved role.
+    pendingRoles: normalizeRoles(u.pending_roles).filter((r) => !roles.includes(r)),
     accessLevel: "OPERATOR",
     permissions: buildPermissions(roles),
     network: u.network ?? STELLAR_NETWORK,
