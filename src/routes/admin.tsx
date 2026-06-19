@@ -653,6 +653,7 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
   const [total, setTotal]       = useState(0);
   const [page, setPage]         = useState(1);
   const [search, setSearch]     = useState("");
+  const [verifiedFilter, setVerifiedFilter] = useState<"all" | "full" | "incomplete">("all");
   const [loading, setLoading]   = useState(true);
   const [editUser, setEditUser] = useState<AdminUser | null>(null);
   const [pwdUser, setPwdUser]   = useState<AdminUser | null>(null);
@@ -665,7 +666,10 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiAdminListUsers({ search, page, limit });
+      const res = await apiAdminListUsers({
+        search, page, limit,
+        verified: verifiedFilter === "all" ? undefined : verifiedFilter,
+      });
       setUsers(res.users);
       setTotal(res.total);
     } catch (err) {
@@ -673,7 +677,7 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
     } finally {
       setLoading(false);
     }
-  }, [search, page]);
+  }, [search, page, verifiedFilter]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -701,6 +705,21 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
             onChange={e => { setSearch(e.target.value); setPage(1); }}
             className="h-8 pl-8 text-sm"
           />
+        </div>
+        {/* Verification filter — find unverified (hidden) participants to approve */}
+        <div className="flex items-center gap-1">
+          {(["all", "full", "incomplete"] as const).map((v) => (
+            <Button
+              key={v}
+              variant={verifiedFilter === v ? "default" : "outline"}
+              size="sm"
+              className="h-8 px-2 text-[11px]"
+              onClick={() => { setVerifiedFilter(v); setPage(1); }}
+              title={v === "incomplete" ? t("Missing email or phone — hidden from other participants") : undefined}
+            >
+              {v === "all" ? t("All") : v === "full" ? t("Verified") : t("Unverified")}
+            </Button>
+          ))}
         </div>
         <Button variant="outline" size="sm" onClick={load} className="h-8 w-8 p-0">
           <RefreshCw className="h-3.5 w-3.5" />

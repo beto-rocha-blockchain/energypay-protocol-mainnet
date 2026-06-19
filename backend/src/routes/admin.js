@@ -373,7 +373,7 @@ router.get(
   requirePlatformRole("PLATFORM_OWNER", "PLATFORM_ADMIN", "ACCOUNT_RECOVERY"),
   async (req, res) => {
     try {
-      const { search = "", page = "1", limit = "50", platform_role: roleFilter } = req.query;
+      const { search = "", page = "1", limit = "50", platform_role: roleFilter, verified } = req.query;
       const pageNum  = Math.max(1, parseInt(page, 10));
       const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
       const offset   = (pageNum - 1) * limitNum;
@@ -391,6 +391,14 @@ router.get(
       }
       if (roleFilter) {
         query = query.eq("platform_role", roleFilter);
+      }
+      // Verification filter: "full" = email AND phone verified (visible to other
+      // participants); "incomplete" = missing email or phone (hidden from
+      // counterparty/grid listings until an admin approves verification).
+      if (verified === "full") {
+        query = query.eq("email_verified", true).eq("phone_verified", true);
+      } else if (verified === "incomplete") {
+        query = query.or("email_verified.eq.false,phone_verified.eq.false");
       }
 
       const { data, count, error } = await query;

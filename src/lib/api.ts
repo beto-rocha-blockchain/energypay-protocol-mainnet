@@ -848,12 +848,13 @@ export type RecoveryLink = {
   recovery: { id: string; email: string; full_name: string | null; platform_role: PlatformRole };
 };
 
-export const apiAdminListUsers = (params?: { search?: string; page?: number; limit?: number; platform_role?: PlatformRole }) => {
+export const apiAdminListUsers = (params?: { search?: string; page?: number; limit?: number; platform_role?: PlatformRole; verified?: "full" | "incomplete" }) => {
   const qs = new URLSearchParams();
   if (params?.search)          qs.set("search", params.search);
   if (params?.page)            qs.set("page", String(params.page));
   if (params?.limit)           qs.set("limit", String(params.limit));
   if (params?.platform_role)   qs.set("platform_role", params.platform_role);
+  if (params?.verified)        qs.set("verified", params.verified);
   return apiRequest<{ success: boolean; users: AdminUser[]; total: number; page: number; limit: number }>(
     `/api/admin/users${qs.toString() ? `?${qs}` : ""}`,
   );
