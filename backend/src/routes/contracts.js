@@ -244,7 +244,7 @@ router.post("/", requireAuth, async (req, res) => {
     // Resolve creator's public key to validate they are a contract party
     const { data: creatorRow } = await supabase
       .from("users")
-      .select("stellar_public_key")
+      .select("stellar_public_key, platform_role")
       .eq("id", userId)
       .single();
     const creatorPK = creatorRow?.stellar_public_key ?? null;
@@ -261,8 +261,14 @@ router.post("/", requireAuth, async (req, res) => {
 
     const isCreatorBuyer = creatorPK && buyer_public_key && creatorPK === buyer_public_key;
     const isCreatorSeller = creatorPK && sellerPKs.includes(creatorPK);
+    // Only the platform owner may record a contract on behalf of others (e.g.
+    // back-filling an externally-executed settlement). Everyone else MUST be a
+    // party. This is enforced even for pre-settled (tx_hash) contracts, so a
+    // client-supplied tx_hash can NEVER bypass the "creator is a party"
+    // invariant — previously `!alreadySettled` short-circuited this check.
+    const isPlatformOwner = creatorRow?.platform_role === "PLATFORM_OWNER";
 
-    if (!alreadySettled && !isCreatorBuyer && !isCreatorSeller) {
+    if (!isCreatorBuyer && !isCreatorSeller && !isPlatformOwner) {
       return res.status(403).json({
         success: false,
         error:
