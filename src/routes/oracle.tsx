@@ -392,7 +392,7 @@ function OraclePage() {
                 />
                 <Line type="monotone" dataKey="SE" stroke={SM_COLORS.SE} strokeWidth={1.5} dot={false} name="SE" />
                 <Line type="monotone" dataKey="S"  stroke={SM_COLORS.S}  strokeWidth={1.5} dot={false} name="S" />
-                <Line type="monotone" dataKey="NE" stroke={SM_COLORS.NE} strokeWidth={1.5} dot={false} strokeDasharray="3 3" name="NE" />
+                <Line type="monotone" dataKey="NE" stroke={SM_COLORS.NE} strokeWidth={1.5} dot={false} name="NE" />
                 <Line type="monotone" dataKey="N"  stroke={SM_COLORS.N}  strokeWidth={1.5} dot={false} name="N" />
               </LineChart>
             </ResponsiveContainer>
