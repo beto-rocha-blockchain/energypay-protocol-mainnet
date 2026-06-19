@@ -205,6 +205,17 @@ function ClearingPage() {
         </div>
       </div>
 
+      {/* Counterparty Risk Assessment — surfaced at the top of the page */}
+      {isVerified && (
+        <CounterpartyRiskPanel
+          profiles={cpRisk.profiles}
+          loading={cpRisk.loading}
+          error={cpRisk.error}
+          fetched={cpRisk.fetched}
+          onLoad={cpRisk.fetch}
+        />
+      )}
+
       {/* KPI Strip — row 1: settlement counts */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <KpiCard
@@ -446,17 +457,6 @@ function ClearingPage() {
             </div>
           )}
         </Card>
-      )}
-
-      {/* Counterparty Risk Assessment */}
-      {isVerified && (
-        <CounterpartyRiskPanel
-          profiles={cpRisk.profiles}
-          loading={cpRisk.loading}
-          error={cpRisk.error}
-          fetched={cpRisk.fetched}
-          onLoad={cpRisk.fetch}
-        />
       )}
 
       {/* Recent Cleared Settlements */}
