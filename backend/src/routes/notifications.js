@@ -27,11 +27,39 @@ router.get("/", requireAuth, async (req, res) => {
 
     if (error) throw error;
 
-    const unread_count = (data ?? []).filter((n) => !n.read).length;
+    let notifications = data ?? [];
+
+    // Drop stale approval notifications: once a contract leaves DRAFT (approved /
+    // settled / rejected / failed) it can no longer be approved, so it must
+    // disappear from the approval queue — including the master/owner's.
+    const approvalContractIds = [
+      ...new Set(
+        notifications
+          .filter((n) => n.type === "APPROVAL_REQUIRED" && n.contract_id)
+          .map((n) => n.contract_id),
+      ),
+    ];
+    if (approvalContractIds.length > 0) {
+      const { data: contracts } = await supabase
+        .from("contracts")
+        .select("id, status")
+        .in("id", approvalContractIds);
+      const draftIds = new Set(
+        (contracts ?? []).filter((c) => c.status === "DRAFT").map((c) => c.id),
+      );
+      notifications = notifications.filter(
+        (n) =>
+          n.type !== "APPROVAL_REQUIRED" ||
+          !n.contract_id ||
+          draftIds.has(n.contract_id),
+      );
+    }
+
+    const unread_count = notifications.filter((n) => !n.read).length;
 
     return res.json({
       success: true,
-      notifications: data ?? [],
+      notifications,
       unread_count,
     });
   } catch (err) {
