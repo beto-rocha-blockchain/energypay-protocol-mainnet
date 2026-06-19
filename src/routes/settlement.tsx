@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Calculator, RefreshCw, ShieldCheck, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,12 @@ import { API_BASE_URL } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/settlement")({
+  // This settlement engine is a PLD-scenario simulator backed by local mock data;
+  // real settlement happens in the contract flow (register → approve → atomic
+  // on-chain). Redirect to the contract registry to avoid an empty/confusing page.
+  beforeLoad: () => {
+    throw redirect({ to: "/contracts" });
+  },
   head: () => ({
     meta: [
       { title: "Settlement Engine — EnergyPay" },

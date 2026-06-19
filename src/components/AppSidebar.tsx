@@ -3,7 +3,6 @@ import { useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   ChevronDown,
   LayoutDashboard,
-  Calculator,
   ListChecks,
   Radio,
   Wallet,
@@ -118,13 +117,6 @@ const SETTLEMENT: Item[] = [
     icon: Banknote,
     code: "STL-01",
     roles: ["GENERATOR", "SELLER", "INVESTOR", "UTILITY"],
-  },
-  {
-    title: "Settlement Console",
-    url: "/settlement",
-    icon: Calculator,
-    code: "STL-02",
-    roles: ["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY", "REGULATORY_AUTHORITY"],
   },
   {
     title: "x402 API Access",
