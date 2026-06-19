@@ -86,6 +86,8 @@ Três planos (já no banco): **Free**, **Operator**, **Enterprise**.
 
 *(Remover "P2P contract access" das features do Operator — P2P foi descontinuado.)*
 
+**Cortesia:** usuários **administrativos** (PLATFORM_OWNER / PLATFORM_ADMIN) recebem **Enterprise gratuito** (sem cobrança, sem expiração) — regra aplicada no endpoint `/api/subscriptions/me`, valendo inclusive para admins futuros. A conta de demo **Power Trade** também recebe Enterprise cortesia.
+
 ### 3.2 Taxa por transação
 - **0,05% = taxa padrão, automática** sobre o nocional (`volume × price_brl`), sem compromisso
   (pay-as-you-go). É o default de quem não tem pacote.

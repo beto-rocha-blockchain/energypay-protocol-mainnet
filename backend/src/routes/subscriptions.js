@@ -111,6 +111,14 @@ router.get("/me", requireAuth, async (req, res) => {
   try {
     const userId = req.operator.sub || req.operator.id;
 
+    // Administrative users (platform owner/admin) get the Enterprise license for
+    // free, regardless of any billing record.
+    const { data: userRow } = await supabase
+      .from("users").select("platform_role").eq("id", userId).single();
+    const isAdmin =
+      userRow?.platform_role === "PLATFORM_OWNER" ||
+      userRow?.platform_role === "PLATFORM_ADMIN";
+
     const { data, error } = await supabase
       .from("user_subscriptions")
       .select("*, plan:subscription_plans(*)")
@@ -121,6 +129,23 @@ router.get("/me", requireAuth, async (req, res) => {
       .maybeSingle();
 
     if (error) return res.status(500).json({ success: false, error: error.message });
+
+    // Complimentary Enterprise for administrators (free, never expires).
+    if (isAdmin) {
+      return res.json({
+        success: true,
+        subscription: {
+          plan: "ENTERPRISE",
+          status: "ACTIVE",
+          current_period_start: data?.current_period_start ?? null,
+          current_period_end: null,
+          cancel_at_period_end: false,
+          settlements_used: data?.settlements_used ?? 0,
+          settlements_limit: null,
+          gateway: null,
+        },
+      });
+    }
 
     if (!data) {
       return res.json({
