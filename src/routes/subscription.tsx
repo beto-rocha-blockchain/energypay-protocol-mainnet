@@ -130,6 +130,12 @@ function SubscriptionPage() {
     } catch {/* silent */}
   }, [setSubscription]);
 
+  // Pull the latest plan from the backend on mount so it reflects server-side
+  // changes (e.g. complimentary Enterprise upgrades) without a re-login.
+  useEffect(() => {
+    void refreshSubscription();
+  }, [refreshSubscription]);
+
   // Fiat checkout (PIX / card). Returns false if it needs a CPF/CNPJ (so the
   // caller can prompt and retry), true on success.
   const runFiatCheckout = async (plan: SubscriptionPlan, cpfCnpj?: string) => {
