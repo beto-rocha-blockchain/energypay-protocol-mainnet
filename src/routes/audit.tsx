@@ -62,7 +62,7 @@ function AuditPage() {
   const pending = Math.max(0, total - settled - failed);
   const successRate = total > 0 ? (settled / total) * 100 : 0;
   const horizonLatency = horizon?.latency_ms ?? 0;
-  const finalityMs = stats?.avg_finality_ms ?? 0;
+  const finalitySlaPct = stats?.finality_sla_pct ?? null;
 
   return (
     <div className="space-y-4">
@@ -162,7 +162,7 @@ function AuditPage() {
             <HealthBar label={t("Settlement Compliance")} value={successRate} />
             <HealthBar label={t("Horizon Connectivity")} value={horizon?.horizon_online ? 100 : 0} />
             <HealthBar label={t("Backend Availability")} value={health?.status === "ok" ? 100 : health?.status === "degraded" ? 50 : 0} />
-            <HealthBar label={t("Finality SLA (< 6s)")} value={finalityMs > 0 ? Math.min(100, (6000 / finalityMs) * 100) : 0} noData={finalityMs <= 0} />
+            <HealthBar label={t("Finality SLA (< 6s)")} value={finalitySlaPct ?? 0} noData={finalitySlaPct === null} />
           </div>
         </Card>
 

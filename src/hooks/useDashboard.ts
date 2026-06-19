@@ -11,6 +11,8 @@ export type DashboardStats = {
   total_volume_mwh: number;
   total_value_brl: number;
   avg_finality_ms: number;
+  finality_sla_pct: number | null;
+  finality_samples: number;
   total_users: number;
   network: string;
 };

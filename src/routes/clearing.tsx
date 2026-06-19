@@ -171,6 +171,7 @@ function ClearingPage() {
   const cpRisk = useCounterpartyRisk();
 
   const finalityMs = stats?.avg_finality_ms ?? 0;
+  const finalitySlaPct = stats?.finality_sla_pct ?? null;
   const horizonLatency = horizon?.latency_ms ?? 0;
   const settledCount = stats?.settled_count ?? 0;
   const failedCount = stats?.failed_count ?? 0;
@@ -317,7 +318,7 @@ function ClearingPage() {
             <HealthBar label={t("Settlement Success")} value={successRate} />
             <HealthBar label={t("Horizon Availability")} value={horizon?.horizon_online ? 100 : 0} />
             <HealthBar label={t("Backend Availability")} value={health?.status === "ok" ? 100 : health?.status === "degraded" ? 50 : 0} />
-            <HealthBar label={t("Finality SLA (< 6s)")} value={finalityMs > 0 ? Math.min(100, (6000 / finalityMs) * 100) : 0} noData={finalityMs <= 0} />
+            <HealthBar label={t("Finality SLA (< 6s)")} value={finalitySlaPct ?? 0} noData={finalitySlaPct === null} />
           </div>
         </Card>
 

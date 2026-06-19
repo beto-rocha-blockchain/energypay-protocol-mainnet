@@ -81,6 +81,17 @@ router.get("/stats", optionalAuth, async (req, res) => {
         ? Math.round(finalityValues.reduce((a, b) => a + b, 0) / finalityValues.length)
         : 0;
 
+    // Finality SLA — the REAL metric the label promises: the share of settlements
+    // that finalized on-chain in under 6s (not a target/average ratio).
+    // null when there are no finality samples yet, so the UI can show "no data".
+    const FINALITY_SLA_MS = 6000;
+    const finalitySamples = finalityValues.length;
+    const finalityUnder6s = finalityValues.filter((v) => v < FINALITY_SLA_MS).length;
+    const finalitySlaPct =
+      finalitySamples > 0
+        ? Math.round((finalityUnder6s / finalitySamples) * 1000) / 10
+        : null;
+
     // Users count
     const { count: totalUsers } = await supabase
       .from("users")
@@ -97,6 +108,8 @@ router.get("/stats", optionalAuth, async (req, res) => {
         total_volume_mwh: totalVolumeMWh,
         total_value_brl: totalValueBRL,
         avg_finality_ms: avgFinalityMs,
+        finality_sla_pct: finalitySlaPct,
+        finality_samples: finalitySamples,
         total_users: totalUsers || 0,
         network: NETWORK_LABEL,
       },
