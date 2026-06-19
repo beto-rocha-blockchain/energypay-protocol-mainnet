@@ -669,6 +669,57 @@ router.post(
   }
 );
 
+// ─── POST /api/admin/users/:id/verify ────────────────────────────────────────
+// OWNER or ADMIN — manually approve a user's email and/or phone verification so
+// they become visible to other participants without waiting on the email/OTP
+// flow. Body: { email?: boolean, phone?: boolean }.
+router.post(
+  "/users/:id/verify",
+  requirePlatformRole("PLATFORM_OWNER", "PLATFORM_ADMIN"),
+  async (req, res) => {
+    try {
+      const verifyEmail = req.body.email === true;
+      const verifyPhone = req.body.phone === true;
+      if (!verifyEmail && !verifyPhone) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Specify email and/or phone to verify." });
+      }
+      const patch = {};
+      if (verifyEmail) {
+        patch.email_verified = true;
+        patch.email_verification_token = null;
+      }
+      if (verifyPhone) patch.phone_verified = true;
+
+      const { data, error } = await supabase
+        .from("users")
+        .update(patch)
+        .eq("id", req.params.id)
+        .select("id, email, email_verified, phone_verified")
+        .single();
+      if (error) throw error;
+      if (!data) return res.status(404).json({ success: false, error: "User not found." });
+
+      await logAudit({
+        actorId: req.adminUser.id,
+        targetId: req.params.id,
+        action: "MANUAL_VERIFY",
+        details: { email: verifyEmail, phone: verifyPhone },
+        ip: req.ip,
+      });
+      res.json({
+        success: true,
+        email_verified: data.email_verified,
+        phone_verified: data.phone_verified,
+      });
+    } catch (err) {
+      console.error("[admin/verify]", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
+
 // ─── POST /api/admin/users/:id/set-platform-role ─────────────────────────────
 // PLATFORM_OWNER only — promote or demote a user's platform role.
 // Elevated platform roles are restricted to specific accounts (allowlist by email).

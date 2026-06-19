@@ -895,6 +895,14 @@ export const apiAdminSetEmail = (id: string, email: string) =>
     body: { email },
   });
 
+// Manually approve a user's email and/or phone verification (OWNER or ADMIN), so
+// they become visible to other participants without the email/OTP round-trip.
+export const apiAdminVerifyUser = (id: string, fields: { email?: boolean; phone?: boolean }) =>
+  apiRequest<{ success: boolean; email_verified: boolean; phone_verified: boolean }>(
+    `/api/admin/users/${id}/verify`,
+    { method: "POST", body: fields },
+  );
+
 export const apiAdminBlockUser = (id: string, reason?: string) =>
   apiRequest<{ success: boolean }>(`/api/admin/users/${id}/block`, {
     method: "POST",

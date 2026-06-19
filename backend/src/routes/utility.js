@@ -24,6 +24,7 @@ router.get("/uc", requireAuth, async (req, res) => {
         "id, full_name, organization, city, country, roles, stellar_public_key, email_verified, phone_verified, created_at",
       )
       .eq("email_verified", true)
+      .eq("phone_verified", true)
       .or("roles.cs.{USER},roles.cs.{UTILITY}")
       .order("created_at", { ascending: false });
 
@@ -91,7 +92,7 @@ router.get("/participants", requireAuth, async (req, res) => {
         "id, full_name, organization, city, country, coords, stellar_public_key",
       )
       .eq("email_verified", true)
-      // Phone verification is optional (event policy): email-verified users included.
+      .eq("phone_verified", true)
       .contains("roles", ["UTILITY"])
       .order("full_name", { ascending: true });
 

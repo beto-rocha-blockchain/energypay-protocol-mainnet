@@ -19,6 +19,7 @@ import {
   Ban,
   Layers,
   Activity,
+  BadgeCheck,
 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
@@ -55,6 +56,7 @@ import {
   apiAdminSetRoles,
   apiAdminApproveRoles,
   apiAdminSetEmail,
+  apiAdminVerifyUser,
   apiAdminBlockUser,
   apiAdminUnblockUser,
   apiAdminAuditLog,
@@ -767,6 +769,13 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
                           }
                           <span className="font-mono text-[9px] text-muted-foreground/60">{t("email")}</span>
                         </div>
+                        <div className="flex gap-1">
+                          {u.phone_verified
+                            ? <CheckCircle2 className="h-3 w-3 text-green-400" />
+                            : <XCircle className="h-3 w-3 text-red-400/60" />
+                          }
+                          <span className="font-mono text-[9px] text-muted-foreground/60">{t("phone")}</span>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="font-mono text-[10px] text-muted-foreground">
@@ -784,6 +793,21 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
                           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
                             onClick={() => setMarketRolesUser(u)} title={t("Market roles")}>
                             <Layers className="h-3 w-3" />
+                          </Button>
+                        )}
+                        {isAdmin && !(u.email_verified && u.phone_verified) && (
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-green-400"
+                            onClick={async () => {
+                              try {
+                                const r = await apiAdminVerifyUser(u.id, { email: true, phone: true });
+                                setUsers(us => us.map(x => x.id === u.id ? { ...x, email_verified: r.email_verified, phone_verified: r.phone_verified } : x));
+                                toast.success(t("Verification approved — participant is now visible."));
+                              } catch (err) {
+                                toast.error((err as Error).message || t("Failed to approve verification."));
+                              }
+                            }}
+                            title={t("Approve email + phone verification")}>
+                            <BadgeCheck className="h-3 w-3" />
                           </Button>
                         )}
                         {uiCanRecover(operatorEmail, operatorRole, u) && (
