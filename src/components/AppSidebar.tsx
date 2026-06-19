@@ -10,10 +10,8 @@ import {
   BookLock,
   Banknote,
   PlugZap,
-  Building2,
   Cable,
   MapPinned,
-  FileCheck2,
   Shield,
   CreditCard,
   Zap,
@@ -179,20 +177,6 @@ const UTILITY_OPS: Item[] = [
     url: "/utility/tusd",
     icon: Banknote,
     code: "UTL-03",
-    roles: ["UTILITY"],
-  },
-  {
-    title: "Connection Certificates",
-    url: "/utility/certificates",
-    icon: FileCheck2,
-    code: "UTL-04",
-    roles: ["UTILITY"],
-  },
-  {
-    title: "Concession Area",
-    url: "/utility/area",
-    icon: Building2,
-    code: "UTL-05",
     roles: ["UTILITY"],
   },
 ];
@@ -427,8 +411,6 @@ export function AppSidebar() {
     setOpenMobile(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path]);
-
-  const buildHash = "b9f4c2e";
 
   // Width is controlled via the --sidebar-width CSS variable (18rem) set on
   // SidebarProvider in __root.tsx — do NOT add a w-* class here, it would

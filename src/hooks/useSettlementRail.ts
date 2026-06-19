@@ -29,7 +29,6 @@ export type TelemetryCounters = {
   finalized_count: number;
   failed_count: number;
   avg_finality_ms: number;
-  avg_horizon_ms: number;
   last_updated_at: string | null;
 };
 

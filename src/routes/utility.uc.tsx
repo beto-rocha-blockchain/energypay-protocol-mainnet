@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MapPinned, CheckCircle, Clock, Loader2 } from "lucide-react";
+import { MapPinned, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { apiGetUtilityUC } from "@/lib/api";
@@ -37,9 +36,6 @@ function UtilityUCPage() {
     return () => controller.abort();
   }, []);
 
-  const verified = users.filter((u) => u.emailVerified || u.email_verified).length;
-  const pending = users.length - verified;
-
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
       {/* Header */}
@@ -51,18 +47,10 @@ function UtilityUCPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <Card className="border-orange-400/20 bg-orange-400/5 p-4">
           <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Total UCs")}</p>
           <p className="mt-1 font-mono text-2xl text-orange-400">{loading ? "—" : users.length}</p>
-        </Card>
-        <Card className="border-green-400/20 bg-green-400/5 p-4">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Verified")}</p>
-          <p className="mt-1 font-mono text-2xl text-green-400">{loading ? "—" : verified}</p>
-        </Card>
-        <Card className="border-yellow-400/20 bg-yellow-400/5 p-4">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Pending")}</p>
-          <p className="mt-1 font-mono text-2xl text-yellow-400">{loading ? "—" : pending}</p>
         </Card>
       </div>
 
@@ -87,14 +75,12 @@ function UtilityUCPage() {
                 <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("City")}</th>
                 <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Country")}</th>
                 <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Roles")}</th>
-                <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Status")}</th>
                 <th className="px-4 py-3 text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">{t("Wallet")}</th>
               </tr>
             </thead>
             <tbody>
               {users.map((user, i) => {
                 const roles: ParticipantRole[] = sortRoles(Array.isArray(user.roles) ? user.roles : []) as ParticipantRole[];
-                const isVerified = user.emailVerified || user.email_verified || user.phoneVerified || user.phone_verified;
                 return (
                   <tr key={user.id ?? i} className="border-b border-border/50 hover:bg-orange-400/5">
                     <td className="px-4 py-3 font-mono text-xs text-foreground">{user.organization || "—"}</td>
@@ -118,17 +104,6 @@ function UtilityUCPage() {
                           })
                         )}
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {isVerified ? (
-                        <span className="inline-flex items-center gap-1 font-mono text-xs text-green-400">
-                          <CheckCircle className="h-3 w-3" /> {t("Verified")}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 font-mono text-xs text-yellow-400">
-                          <Clock className="h-3 w-3" /> {t("Pending")}
-                        </span>
-                      )}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                       {maskAddress(user.stellar_public_key || user.settlementAddress || "")}

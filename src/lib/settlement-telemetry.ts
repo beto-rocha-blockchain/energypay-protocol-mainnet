@@ -45,15 +45,10 @@ export const snapshot = () => {
     counters.finalized_count > 0
       ? Math.round(counters.total_latency_ms / counters.finalized_count)
       : 0;
-  const avgHorizon =
-    counters.horizon_samples > 0
-      ? Math.round(counters.total_horizon_ms / counters.horizon_samples)
-      : 0;
   return {
     finalized_count: counters.finalized_count,
     failed_count: counters.failed_count,
     avg_finality_ms: avgFinality,
-    avg_horizon_ms: avgHorizon,
     last_updated_at: counters.last_updated_at,
   };
 };

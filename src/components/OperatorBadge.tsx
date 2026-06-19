@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { useOperator, maskAddress, ROLE_META } from "@/store/operator";
 import { useNotifications } from "@/hooks/useNotifications";
 import { type Notification } from "@/lib/api";
+import { useNetworkStore } from "@/store/network";
 import { STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import { apiResendVerification, apiSendPhoneCode, apiVerifyPhoneCode, apiUpdatePhone, apiUpdateProfile, apiGetContractDocumentUrl } from "@/lib/api";
 import {
@@ -61,6 +62,8 @@ export function OperatorBadge() {
   const logout   = useOperator((s) => s.logout);
   const navigate = useNavigate();
   const t = useT();
+  // Live Horizon reachability — shared app-wide poller (started at the root).
+  const horizonOnline = useNetworkStore((s) => s.stellar.online);
   const [copied, setCopied]     = useState(false);
   const [approving, setApproving]   = useState<string | null>(null);
   const [rejecting, setRejecting]   = useState<string | null>(null);
@@ -262,7 +265,17 @@ export function OperatorBadge() {
             <Mini label={t("Access Level")}  value={operator.accessLevel.replace("_", " ")} />
             <Mini label={t("Network")}       value={operator.network || "Stellar"} />
             <Mini label={t("Funded")}        value={operator.funded ? t("Yes") : t("No")} />
-            <Mini label={t("Connectivity")}  value="Horizon · OK" tone="success" />
+            <Mini
+              label={t("Connectivity")}
+              value={
+                horizonOnline === null
+                  ? t("Checking…")
+                  : horizonOnline
+                    ? "Horizon · OK"
+                    : "Horizon · Down"
+              }
+              tone={horizonOnline ? "success" : undefined}
+            />
           </div>
 
           {/* Permissions */}

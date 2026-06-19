@@ -50,13 +50,6 @@ function UtilityTusdPage() {
         </h1>
       </div>
 
-      {/* Description */}
-      <Card className="border-orange-400/20 bg-orange-400/5 p-4">
-        <p className="font-mono text-xs text-muted-foreground">
-          <span className="text-orange-400">TUSD</span> {t("— Tarifa de Uso do Sistema de Distribuição — distribution grid access tariff settled on-chain. Each settlement represents a UTILITY operator receiving payment for physical grid usage by an energy consumer.")}
-        </p>
-      </Card>
-
       {/* Summary */}
       <div className="grid grid-cols-2 gap-4">
         <Card className="border-orange-400/20 bg-orange-400/5 p-4">

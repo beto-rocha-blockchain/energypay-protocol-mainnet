@@ -80,6 +80,7 @@ function OperationsPage() {
   const backendOnline = useNetworkStore((s) => s.backend.online);
 
   const finalityMs = stats?.avg_finality_ms ?? 0;
+  const finalitySamples = stats?.finality_samples ?? 0;
   const horizonLatency = stellarStatus.latencyMs ?? 0;
 
   return (
@@ -162,13 +163,15 @@ function OperationsPage() {
             loading={loading && !stats}
           />
         )}
-        <KpiCard
-          label={t("Avg. Finality")}
-          value={finalityMs ? `${(finalityMs / 1000).toFixed(2)}s` : "—"}
-          sub={`Horizon · ${horizonLatency} ms`}
-          loading={loading && !stats}
-          tone={finalityMs && finalityMs < 6000 ? "ok" : "muted"}
-        />
+        {finalitySamples > 0 && (
+          <KpiCard
+            label={t("Avg. Finality")}
+            value={`${(finalityMs / 1000).toFixed(2)}s`}
+            sub={`Horizon · ${horizonLatency} ms`}
+            loading={loading && !stats}
+            tone={finalityMs && finalityMs < 6000 ? "ok" : "muted"}
+          />
+        )}
         <KpiCard
           label="Horizon"
           value={stellarStatus.online === false ? t("OFFLINE") : t("ONLINE")}

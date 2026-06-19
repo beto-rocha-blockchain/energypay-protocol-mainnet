@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   Activity,
-  CheckCircle2,
   ChevronDown,
   ChevronUp,
   ExternalLink,
@@ -302,39 +301,24 @@ function ClearingPage() {
           <div className="mt-3 space-y-2">
             <TelRow label={t("Horizon latency")} value={`${horizonLatency} ms`} tone={horizonLatency < 1000 ? "ok" : "warn"} />
             <TelRow label={t("Backend status")} value={health?.status === "ok" ? t("ONLINE") : t("OFFLINE")} tone={health?.status === "ok" ? "ok" : "warn"} />
-            <TelRow label={t("Avg finality")} value={finalityMs ? `${(finalityMs / 1000).toFixed(2)}s` : "—"} tone={finalityMs && finalityMs < 6000 ? "ok" : "warn"} />
             <TelRow label={t("Pending confirms")} value={String(telemetry?.pending_confirmations ?? 0)} tone="ok" />
+            <TelRow label={t("Counterparties")} value={String(stats?.total_users ?? 0)} tone="muted" />
           </div>
         </Card>
       </div>
 
-      {/* Settlement Health Indicators + Risk Telemetry */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-        <Card className="border-border bg-card p-4 lg:col-span-2">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            {t("Settlement Health Indicators")}
-          </p>
-          <div className="mt-3 space-y-3">
-            <HealthBar label={t("Settlement Success")} value={successRate} />
-            <HealthBar label={t("Horizon Availability")} value={horizon?.horizon_online ? 100 : 0} />
-            <HealthBar label={t("Backend Availability")} value={health?.status === "ok" ? 100 : health?.status === "degraded" ? 50 : 0} />
-            <HealthBar label={t("Finality SLA (< 6s)")} value={finalitySlaPct ?? 0} noData={finalitySlaPct === null} />
-          </div>
-        </Card>
-
-        <Card className="border-border bg-card p-4">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            {t("Risk Telemetry")}
-          </p>
-          <div className="mt-3 space-y-2">
-            <TelRowIcon icon={<ShieldCheck className="h-3.5 w-3.5" />} label={t("Success rate")} value={totalSettlements > 0 ? `${successRate.toFixed(1)}%` : "—"} tone={successRate >= 95 ? "ok" : "warn"} />
-            <TelRowIcon icon={<CheckCircle2 className="h-3.5 w-3.5" />} label={t("Settled")} value={String(settledCount)} tone="ok" />
-            <TelRowIcon icon={<XCircle className="h-3.5 w-3.5" />} label={t("Failed")} value={String(failedCount)} tone={failedCount > 0 ? "warn" : "ok"} />
-            <TelRowIcon icon={<Activity className="h-3.5 w-3.5" />} label={t("Horizon latency")} value={`${horizonLatency} ms`} tone={horizonLatency < 1000 ? "ok" : "warn"} />
-            <TelRowIcon icon={<Activity className="h-3.5 w-3.5" />} label={t("Counterparties")} value={String(stats?.total_users ?? 0)} tone="muted" />
-          </div>
-        </Card>
-      </div>
+      {/* Settlement Health Indicators */}
+      <Card className="border-border bg-card p-4">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          {t("Settlement Health Indicators")}
+        </p>
+        <div className="mt-3 space-y-3">
+          <HealthBar label={t("Settlement Success")} value={successRate} />
+          <HealthBar label={t("Horizon Availability")} value={horizon?.horizon_online ? 100 : 0} />
+          <HealthBar label={t("Backend Availability")} value={health?.status === "ok" ? 100 : health?.status === "degraded" ? 50 : 0} />
+          <HealthBar label={t("Finality SLA (< 6s)")} value={finalitySlaPct ?? 0} noData={finalitySlaPct === null} />
+        </div>
+      </Card>
 
       {/* Participant Risk Snapshot — only for verified operators */}
       {isVerified && (
@@ -405,46 +389,11 @@ function ClearingPage() {
                   }
                   tone={risk.netting_eligible_participants !== null && risk.netting_eligible_participants > 0 ? "ok" : "muted"}
                 />
-                {/* Collateral — no real source yet */}
-                <RiskMetric
-                  label={t("Collateral Coverage")}
-                  value="—"
-                  badge={t("PENDING DATA SOURCE")}
-                  tone="muted"
-                />
-              </div>
-
-              {/* Second row: metrics that require a risk engine */}
-              <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-5">
                 <RiskMetric
                   label={t("Active Contracts")}
                   value={String(risk.active_contracts)}
                   badge={risk.active_contracts > 0 ? t("ACTIVE") : t("NONE")}
                   tone={risk.active_contracts > 0 ? "ok" : "muted"}
-                />
-                <RiskMetric
-                  label={t("Avg Settlement Score")}
-                  value="—"
-                  badge={t("REQUIRES RISK ENGINE")}
-                  tone="muted"
-                />
-                <RiskMetric
-                  label={t("Watchlist")}
-                  value="—"
-                  badge={t("NOT AVAILABLE")}
-                  tone="muted"
-                />
-                <RiskMetric
-                  label={t("Blocked")}
-                  value="—"
-                  badge={t("NOT AVAILABLE")}
-                  tone="muted"
-                />
-                <RiskMetric
-                  label={t("Risk Tiers")}
-                  value="—"
-                  badge={t("REQUIRES RISK ENGINE")}
-                  tone="muted"
                 />
               </div>
 
@@ -630,19 +579,6 @@ function HealthBar({ label, value, noData }: { label: string; value: number; noD
           <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${pct}%` }} />
         )}
       </div>
-    </div>
-  );
-}
-
-function TelRowIcon({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value?: string; tone: "ok" | "warn" | "muted" }) {
-  const color = tone === "ok" ? "text-success" : tone === "warn" ? "text-destructive" : "text-foreground";
-  return (
-    <div className="flex items-center justify-between rounded-md border border-border bg-background/40 px-2.5 py-1.5">
-      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        {icon}
-        {label}
-      </span>
-      <span className={`font-mono text-[11px] ${color}`}>{value ?? "—"}</span>
     </div>
   );
 }
@@ -916,28 +852,7 @@ function CounterpartyRiskPanel({
                             badge={t("VERIFIED")}
                             tone="ok"
                           />
-                          <CpMetric
-                            label={t("Collateral Coverage")}
-                            value="—"
-                            badge={t("PENDING DATA SOURCE")}
-                            tone="muted"
-                          />
-                          <CpMetric
-                            label={t("Risk Tier")}
-                            value="—"
-                            badge={t("REQUIRES RISK ENGINE")}
-                            tone="muted"
-                          />
-                          <CpMetric
-                            label={t("Credit Score")}
-                            value="—"
-                            badge={t("NOT AVAILABLE")}
-                            tone="muted"
-                          />
                         </div>
-                        <p className="mt-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50">
-                          {t("Risk data is restricted to authenticated and verified clearing participants.")}
-                        </p>
                       </div>
                     )}
                   </div>

@@ -1,8 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  Activity,
-  ArrowRight,
-  ExternalLink,
   Radio,
   RefreshCw,
 } from "lucide-react";
@@ -10,20 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useDashboard } from "@/hooks/useDashboard";
 import { useSettlementRail } from "@/hooks/useSettlementRail";
 import { StellarRailMonitor } from "@/components/generator/StellarRailMonitor";
-import { stellarExpertTx, STELLAR_NETWORK_LABEL } from "@/lib/stellar";
+import { STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import { useT } from "@/lib/i18n";
-import { relativeTime } from "@/lib/relative-time";
 
 export const Route = createFileRoute("/treasury")({
   head: () => ({
@@ -42,9 +30,6 @@ export const Route = createFileRoute("/treasury")({
 const fmtBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
-const shortHash = (h: string) =>
-  h && h.length > 12 ? `${h.slice(0, 6)}…${h.slice(-6)}` : h || "—";
-
 const fmtNum = (n: number | string | undefined | null) => {
   const num = Number(n);
   return Number.isFinite(num)
@@ -62,10 +47,8 @@ const fmtCompact = (n: number | string | undefined | null) => {
     : num.toLocaleString("en-US", { maximumFractionDigits: 4 });
 };
 
-const timeAgo = (iso: string) => relativeTime(iso);
-
 function TreasuryPage() {
-  const { stats, settlements, horizon, loading, refresh } = useDashboard();
+  const { stats, horizon, loading, refresh } = useDashboard();
   const { health } = useSettlementRail();
   const t = useT();
 
@@ -153,36 +136,6 @@ function TreasuryPage() {
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
         <div className="space-y-3 xl:col-span-2">
           <StellarRailMonitor />
-
-          {/* Payment Routing Pipeline */}
-          <Card className="border-border bg-card p-4">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              {t("Generator → Clearing → Counterparty · Programmable Leg")}
-            </p>
-            <p className="mt-0.5 font-display text-base font-semibold">{t("Payment Routing")}</p>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-sm border border-border bg-background/40 p-4">
-              {[
-                { l: "Generator", s: "EPWR issued" },
-                { l: "Clearing", s: "Margin verified" },
-                { l: "Settlement Rail", s: "Stellar broadcast" },
-                { l: "Counterparty", s: "EPWR delivered" },
-                { l: "BRL Leg", s: "Custody settled" },
-              ].map((n, i, arr) => (
-                <div key={n.l} className="flex items-center gap-2">
-                  <div className="flex flex-col items-center text-center">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-sm border border-primary/40 bg-primary/10">
-                      <span className="inline-block h-2 w-2 rounded-full bg-primary" />
-                    </div>
-                    <p className="mt-1 font-display text-[11px] font-medium">{t(n.l)}</p>
-                    <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                      {t(n.s)}
-                    </p>
-                  </div>
-                  {i < arr.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
-                </div>
-              ))}
-            </div>
-          </Card>
         </div>
 
         {/* Treasury Telemetry — platform accounts */}
@@ -191,101 +144,13 @@ function TreasuryPage() {
             {t("Treasury Telemetry")}
           </p>
           <div className="mt-3 space-y-2">
-            <TelRow label={t("Operator XLM")}     value={operatorXlm    ? `${Number(operatorXlm).toFixed(4)} XLM`    : "—"} tone="ok" />
-            <TelRow label={t("Distributor XLM")}  value={distributorXlm ? `${Number(distributorXlm).toFixed(4)} XLM` : "—"} tone="ok" />
-            <TelRow label={t("EPWR Supply")}       value={epwrSupply     ? `${fmtCompact(epwrSupply)} EPWR`           : "—"} title={epwrSupply ? `${fmtNum(epwrSupply)} EPWR` : undefined} tone="ok" />
             <TelRow label={t("Horizon latency")}  value={`${horizonLatency} ms`}                  tone={horizonLatency < 1000 ? "ok" : "warn"} />
             <TelRow label={t("Backend latency")}  value={`${health?.backend?.latency_ms ?? 0} ms`} tone="ok" />
-            <TelRow label={t("Settled count")}    value={String(settled)}    tone="ok" />
             <TelRow label={t("Failed count")}     value={String(failed)}     tone={failed > 0 ? "warn" : "ok"} />
-            <TelRow label={t("Total BRL")}        value={fmtBRL(totalBrl)}   tone="muted" />
-            <TelRow label={t("Counterparties")}   value={String(stats?.total_users ?? 0)} tone="muted" />
           </div>
         </Card>
       </div>
 
-      {/* Platform Settlement Activity */}
-      <Card className="border-border bg-card p-5">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              {t("Settlement Rail · Platform-wide Activity")}
-            </p>
-            <p className="font-display text-lg font-semibold">{t("Recent Settlements")}</p>
-          </div>
-          <Button size="sm" variant="outline" onClick={refresh} disabled={loading}>
-            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            {t("Refresh")}
-          </Button>
-        </div>
-
-        {loading && settlements.length === 0 ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
-          </div>
-        ) : settlements.length === 0 ? (
-          <div className="py-10 text-center">
-            <Activity className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
-            <p className="font-mono text-sm text-muted-foreground">{t("No settlement activity yet.")}</p>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-[11px] uppercase tracking-wider">{t("ID")}</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">{t("Seller")}</TableHead>
-                <TableHead className="text-right text-[11px] uppercase tracking-wider">{t("Amount")}</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">{t("Tx Hash")}</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">{t("Status")}</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wider">{t("When")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {settlements.map((s) => (
-                <TableRow key={s.id + s.created_at} className="border-border">
-                  <TableCell className="font-mono text-xs">{s.id}</TableCell>
-                  <TableCell className="max-w-[120px] truncate font-mono text-xs">
-                    {s.seller ? shortHash(s.seller) : "—"}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm text-success">
-                    {s.amount_brl ? fmtBRL(s.amount_brl) : "—"}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {s.tx_hash && s.tx_hash !== "UNAVAILABLE" ? (
-                      <a
-                        href={stellarExpertTx(s.tx_hash)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 hover:text-primary"
-                      >
-                        {shortHash(s.tx_hash)}
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    ) : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={`font-mono text-[10px] ${
-                        s.status === "SETTLED" || s.status === "CONFIRMED"
-                          ? "border-success/40 bg-success/10 text-success"
-                          : s.status === "FAILED"
-                            ? "border-destructive/40 bg-destructive/10 text-destructive"
-                            : "border-warning/40 bg-warning/10 text-warning"
-                      }`}
-                    >
-                      {s.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-[11px] text-muted-foreground">
-                    {timeAgo(s.created_at)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </Card>
     </div>
   );
 }

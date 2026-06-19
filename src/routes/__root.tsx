@@ -14,7 +14,6 @@ import { isChunkLoadError, reloadForFreshBundle } from "@/lib/chunk-reload";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { OperatorBadge } from "@/components/OperatorBadge";
-import { StatusRail } from "@/components/ops/StatusRail";
 import { StatusBar } from "@/components/StatusBar";
 import { Toaster } from "@/components/ui/sonner";
 import { useOperator, maskAddress, ROLE_COLORS, ROLE_META } from "@/store/operator";
@@ -309,11 +308,6 @@ function RootComponent() {
   const operator = useOperator((s) => s.operator);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Disabled for production demo stability.
-    // The operational ticker is visual-only and should not block routing/rendering.
-  }, []);
 
   const isPublicRoute =
     pathname === "/landing" ||

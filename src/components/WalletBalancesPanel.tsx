@@ -41,7 +41,7 @@ const sinceMs = (iso: string | null) => (iso ? Date.now() - new Date(iso).getTim
 
 export function WalletBalancesPanel({ publicKey, organization, funded }: Props) {
   const t = useT();
-  const { data, error, loading, fetchedAt, refreshCount, refresh } = useWalletBalances(publicKey);
+  const { data, error, loading, fetchedAt, refresh } = useWalletBalances(publicKey);
   const [copied, setCopied] = useState(false);
 
   const xlm = data?.balances?.xlm ?? "0";
@@ -317,18 +317,6 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
               tone={latency != null && latency < 600 ? "ok" : "warn"}
             />
             <TelemetryRow
-              icon={<RefreshCw className="h-3.5 w-3.5" />}
-              label={t("Refresh cadence")}
-              value="10 s"
-              tone="muted"
-            />
-            <TelemetryRow
-              icon={<Activity className="h-3.5 w-3.5" />}
-              label={t("Polls completed")}
-              value={String(refreshCount)}
-              tone="muted"
-            />
-            <TelemetryRow
               icon={<ShieldCheck className="h-3.5 w-3.5" />}
               label={t("Last update")}
               value={
@@ -370,33 +358,23 @@ export function WalletBalancesPanel({ publicKey, organization, funded }: Props) 
                       : t("Awaiting first sample")
               }
             />
-            <ActivityLine
-              ok={trustline}
-              text={trustline ? t("Trustline EPWR established") : t("EPWR trustline not yet detected")}
-            />
             {!trustline && data && !loading && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="ml-5 h-6 text-[10px] uppercase tracking-wider"
-                disabled={enablingTrustline}
-                onClick={handleEnableEPWR}
-              >
-                {enablingTrustline ? t("Enabling…") : t("Enable EPWR")}
-              </Button>
+              <>
+                <ActivityLine
+                  ok={trustline}
+                  text={t("EPWR trustline not yet detected")}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="ml-5 h-6 text-[10px] uppercase tracking-wider"
+                  disabled={enablingTrustline}
+                  onClick={handleEnableEPWR}
+                >
+                  {enablingTrustline ? t("Enabling…") : t("Enable EPWR")}
+                </Button>
+              </>
             )}
-            <ActivityLine
-              ok={data?.account_funded || funded || false}
-              text={data?.account_funded || funded ? t("Account funded on ledger") : t("Account funding unconfirmed")}
-            />
-            <ActivityLine
-              ok={xlmNum >= 1}
-              text={
-                xlmNum >= 1
-                  ? t("Reserve sufficient for fee submission")
-                  : t("Reserve below 1 XLM threshold")
-              }
-            />
             <ActivityLine
               ok={!error}
               text={error ? `${t("Backend rail:")} ${error}` : t("Backend settlement rail responsive")}

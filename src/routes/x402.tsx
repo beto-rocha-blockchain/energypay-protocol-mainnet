@@ -424,7 +424,7 @@ function X402Page() {
         <div className="flex flex-wrap items-center gap-3">
           <Zap className="h-5 w-5 text-primary" />
           <p className="text-sm text-muted-foreground">
-            {t("x402 does not replace EnergyPay's institutional settlement engine, and it is not how operators unlock in-app premium analytics — those are included with the Operator and Enterprise licenses. x402 is the pay-per-call rail for external machines and agents to reach EnergyPay's metered market-data and oracle APIs.")}
+            {t("Pay-per-call rail for external machines and agents to reach EnergyPay's metered market-data and oracle APIs.")}
           </p>
         </div>
       </Card>

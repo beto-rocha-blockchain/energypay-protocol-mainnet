@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { stellarExpertAccount, STELLAR_NETWORK_LABEL, HORIZON_URL, IS_MAINNET } from "@/lib/stellar";
+import { stellarExpertAccount, STELLAR_NETWORK_LABEL } from "@/lib/stellar";
 import {
   Zap,
   Building2,
@@ -18,7 +18,6 @@ import {
   User,
   Lock,
   ShieldCheck,
-  Activity,
   Terminal,
   Loader2,
   Check,
@@ -34,7 +33,6 @@ import {
   EyeOff,
   Phone,
   Sun,
-  Moon,
   ExternalLink,
   Droplets,
   Wind,
@@ -44,7 +42,6 @@ import {
   Atom,
   Recycle,
   Scale,
-  HelpCircle,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -53,13 +50,12 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useOperator, maskAddress, ROLE_META, ROLE_COLORS, type ParticipantRole } from "@/store/operator";
 import { BrandBadge, BrandName } from "@/components/BrandLogo";
-import { useUiStore, type Theme } from "@/store/ui";
+import { useUiStore } from "@/store/ui";
 import { toast } from "sonner";
 import { safeErrorMessage } from "@/lib/safe-error";
 import { apiResendVerification, apiSendPhoneCode, apiVerifyPhoneCode, apiUploadIdentityDocument } from "@/lib/api";
 import { getSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
-import { startRegisterTour } from "@/lib/tour";
 import { useT } from "@/lib/i18n";
 import { homeRouteFor } from "@/lib/home-route";
 
@@ -79,16 +75,6 @@ const ROLE_ICON: Record<ParticipantRole, React.ComponentType<{ className?: strin
   ADMIN: ShieldCheck,
 };
 
-const PROVISIONING_STEPS = [
-  "Validating institutional credentials",
-  "Allocating operator identity",
-  "Generating ed25519 keypair",
-  "Binding settlement address to operator",
-  "Verifying settlement account funding on Stellar Mainnet",
-  "Registering market participant roles",
-  "Publishing identity to Settlement Network",
-];
-
 function RegisterPage() {
   const t = useT();
   const navigate = useNavigate();
@@ -97,7 +83,6 @@ function RegisterPage() {
   const operator = useOperator((s) => s.operator);
 
   const [step, setStep] = useState<Step>("form");
-  const [progress, setProgress] = useState(0);
   const [provisionError, setProvisionError] = useState<string | null>(null);
   const [formStep, setFormStep] = useState(0);
 
@@ -112,12 +97,6 @@ function RegisterPage() {
   const [city, setCity] = useState("");
   const [roles, setRoles] = useState<ParticipantRole[]>([]);
   const [fund, setFund] = useState(true);
-  const [coords, setCoordsLocal] = useState<
-    { lat: number; lng: number; source: "GPS" | "MANUAL" } | undefined
-  >(undefined);
-  const [geoStatus, setGeoStatus] = useState<"idle" | "requesting" | "granted" | "denied">("idle");
-  const [manualLat, setManualLat] = useState("");
-  const [manualLng, setManualLng] = useState("");
   const [walletMode, setWalletMode] = useState<"generate" | "link">("generate");
   const [existingPublicKey, setExistingPublicKey] = useState("");
   const [energyTypes, setEnergyTypes] = useState<
@@ -141,9 +120,7 @@ useEffect(() => {
 }, []);
 
   // With the per-field carousel each slide is self-explanatory (big title +
-  // description), so the floating-bubble tour is no longer needed here. The
-  // `startRegisterTour` import is preserved for a possible "help" button in
-  // the future, but we intentionally do NOT auto-start it.
+  // description), so the floating-bubble tour is not used here.
   const langChosen = useUiStore((s) => s.langChosen);
   void langChosen;
 
@@ -281,16 +258,6 @@ useEffect(() => {
   };
   const goBack = () => setFormStep((s) => Math.max(s - 1, 0));
 
-  const provisioningSteps = useMemo(
-    () =>
-      PROVISIONING_STEPS.map((s) =>
-        s === "Generating ed25519 keypair" && walletMode === "link"
-          ? "Importing existing ed25519 keypair"
-          : s,
-      ),
-    [walletMode],
-  );
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     // On non-final steps the primary button just advances the wizard.
@@ -304,11 +271,6 @@ useEffect(() => {
     }
     setProvisionError(null);
     setStep("provisioning");
-    setProgress(0);
-    for (let i = 0; i < provisioningSteps.length; i++) {
-      await new Promise((r) => setTimeout(r, 500 + Math.random() * 350));
-      setProgress(i + 1);
-    }
     try {
       await register({
         email,
@@ -321,7 +283,6 @@ useEffect(() => {
         city,
         roles,
         fund,
-        coords,
         energyTypes: roles.includes("GENERATOR") ? energyTypes : undefined,
         walletMode,
         existingPublicKey: walletMode === "link" ? existingPublicKey : undefined,
@@ -344,38 +305,6 @@ useEffect(() => {
       // Do NOT clear session, do NOT redirect to /login — keep operator on
       // the form with an inline institutional error banner.
       setStep("form");
-    }
-  };
-
-  const requestGeo = () => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setGeoStatus("denied");
-      toast.error(t("Geolocation unavailable on this device."));
-      return;
-    }
-    setGeoStatus("requesting");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoordsLocal({ lat: pos.coords.latitude, lng: pos.coords.longitude, source: "GPS" });
-        setGeoStatus("granted");
-        toast.success(t("Operational coordinates bound to identity."));
-      },
-      () => {
-        setGeoStatus("denied");
-        toast.error(t("GPS denied — provide a region manually."));
-      },
-      { enableHighAccuracy: false, timeout: 8000 },
-    );
-  };
-
-  const applyManual = () => {
-    const lat = parseFloat(manualLat);
-    const lng = parseFloat(manualLng);
-    if (Number.isFinite(lat) && Number.isFinite(lng)) {
-      setCoordsLocal({ lat, lng, source: "MANUAL" });
-      toast.success(t("Manual region recorded."));
-    } else {
-      toast.error(t("Enter valid latitude/longitude."));
     }
   };
 
@@ -502,54 +431,6 @@ useEffect(() => {
                         </div>
                       </div>
 
-                      {/* Network + Required side by side */}
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="rounded-lg border border-border bg-background/40 p-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                          <div className="flex items-center justify-between gap-4">
-                            <span>{t("Network")}</span>
-                            <span className="flex items-center gap-1 text-success">
-                              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> {t("Nominal")}
-                            </span>
-                          </div>
-                          <div className="mt-2 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5 border-t border-border/40 pt-2">
-                            <span>{t("Chain")}</span>
-                            <span className="text-right text-foreground">{STELLAR_NETWORK_LABEL}</span>
-                            <span>Horizon</span>
-                            <span className="break-all text-right text-foreground">{HORIZON_URL.replace("https://", "")}</span>
-                          </div>
-                        </div>
-
-                        <div className="rounded-lg border border-border bg-background/40 p-3">
-                          <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                            {t("Required")}
-                          </div>
-                          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <Mail className="h-3 w-3 shrink-0" />
-                              <span>{t("Institutional email")}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <Phone className="h-3 w-3 shrink-0" />
-                              <span>{t("WhatsApp phone")}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <ShieldCheck className="h-3 w-3 shrink-0" />
-                              <span>{t("Participant role")}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <KeyRound className="h-3 w-3 shrink-0" />
-                              <span>{t("Backend key custody")}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between border-t border-border pt-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                        <span>{t("EnergyPay Clearing · v0.4.2")}</span>
-                        <Link to="/login" className="text-foreground hover:text-primary">
-                          {t("Operator Access →")}
-                        </Link>
-                      </div>
                     </div>
                   )}
 
@@ -1137,59 +1018,16 @@ useEffect(() => {
           )}
 
           {step === "provisioning" && (
-            <div className="space-y-4 p-5">
-              <div className="flex items-center justify-between">
-                <div className="font-mono text-[11px] uppercase tracking-widest text-foreground">
-                  {t("Provisioning Settlement Identity")}
-                </div>
-                <div className="font-mono text-[10px] text-muted-foreground">
-                  {progress}/{provisioningSteps.length}
-                </div>
+            <div className="flex flex-col items-center gap-4 p-8 text-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="font-mono text-[11px] uppercase tracking-widest text-foreground">
+                {t("Provisioning Settlement Identity")}
               </div>
-              <div className="h-1 w-full overflow-hidden rounded-full bg-border/60">
-                <div
-                  className="h-full bg-[image:var(--gradient-primary)] transition-all duration-300"
-                  style={{ width: `${(progress / provisioningSteps.length) * 100}%` }}
-                />
-              </div>
-              <div className="space-y-1.5 rounded-md border border-border bg-background/60 p-3 font-mono text-[11px]">
-                {provisioningSteps.map((s, i) => {
-                  const done = i < progress;
-                  const active = i === progress;
-                  return (
-                    <div key={s} className="flex items-center gap-2">
-                      <span className="w-7 text-muted-foreground">
-                        [{String(i + 1).padStart(2, "0")}]
-                      </span>
-                      {done ? (
-                        <Check className="h-3 w-3 text-success" />
-                      ) : active ? (
-                        <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                      ) : (
-                        <span className="h-3 w-3 rounded-full border border-border" />
-                      )}
-                      <span
-                        className={
-                          done
-                            ? "text-foreground"
-                            : active
-                              ? "text-foreground"
-                              : "text-muted-foreground"
-                        }
-                      >
-                        {t(s)}
-                      </span>
-                      {done && <span className="ml-auto text-[10px] text-success">{t("OK")}</span>}
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+              <p className="max-w-sm text-xs text-muted-foreground">
+                {t("Registering your operator identity and binding your settlement wallet. This can take a few moments.")}
+              </p>
+              <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
                 <span>{t("Network:")} {STELLAR_NETWORK_LABEL}</span>
-                <span className="flex items-center gap-1.5 text-success">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />{" "}
-                  {t("Provisioning")}
-                </span>
               </div>
             </div>
           )}
@@ -1564,60 +1402,6 @@ function VerifyPhoneStep({
   );
 }
 
-function Field({
-  label,
-  icon,
-  children,
-  className = "",
-  hint,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  className?: string;
-  hint?: string;
-}) {
-  return (
-    <div className={`space-y-1.5 ${className}`}>
-      <Label className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-        {label}
-      </Label>
-      <div className="relative">
-        <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
-          {icon}
-        </span>
-        {children}
-      </div>
-      {hint && (
-        <p className="font-mono text-[9px] text-muted-foreground/70">{hint}</p>
-      )}
-    </div>
-  );
-}
-
-/** Lightweight wrapper for Select-based geo fields (no absolute-positioned icon). */
-function GeoSelectField({
-  label,
-  icon,
-  children,
-  className = "",
-}: {
-  label: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={`space-y-1.5 ${className}`}>
-      <Label className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-        <span className="text-muted-foreground/70">{icon}</span>
-        {label}
-      </Label>
-      {children}
-    </div>
-  );
-}
-
 function KeyRow({
   label,
   value,
@@ -1671,77 +1455,6 @@ function Mini({ label, value, tone }: { label: string; value: string; tone?: "su
         className={`mt-0.5 text-[11px] ${tone === "success" ? "text-success" : "text-foreground"}`}
       >
         {value}
-      </div>
-    </div>
-  );
-}
-
-function ThemeSelector() {
-  const t = useT();
-  const theme = useUiStore((s) => s.theme);
-  const setTheme = useUiStore((s) => s.setTheme);
-
-  return (
-    <div>
-      <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-        {t("§ 04 · Interface Theme")}
-      </div>
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        {(
-          [
-            { id: "dark" as Theme, icon: Moon, label: "Dark", desc: "Institutional dark mode — reduced eye strain for control room environments" },
-            { id: "light" as Theme, icon: Sun, label: "Light", desc: "Clean light interface — high contrast for daylight and presentation use" },
-          ] as const
-        ).map((opt) => {
-          const active = theme === opt.id;
-          const Icon = opt.icon;
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setTheme(opt.id)}
-              className={`group relative overflow-hidden rounded-md border p-3 text-left transition-all duration-200 ${
-                active
-                  ? "border-primary/60 bg-primary/5 shadow-[var(--shadow-glow)]"
-                  : "border-border bg-background/40 hover:border-border/80 hover:bg-background/60"
-              }`}
-            >
-              <div className="flex items-start gap-2.5">
-                <div
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${
-                    active
-                      ? "border-primary/50 bg-primary/10 text-primary"
-                      : "border-border bg-background/60 text-muted-foreground"
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <div className="font-mono text-[11px] uppercase tracking-widest text-foreground">
-                      {t(opt.label)}
-                    </div>
-                    <div
-                      className={`flex h-4 w-4 items-center justify-center rounded-full border transition ${
-                        active
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-background/60"
-                      }`}
-                    >
-                      {active && <Check className="h-3 w-3" />}
-                    </div>
-                  </div>
-                  <div className="mt-0.5 text-[10px] text-muted-foreground">
-                    {t(opt.desc)}
-                  </div>
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-      <div className="mt-1.5 font-mono text-[10px] text-muted-foreground">
-        {t("You can change the theme anytime from the Operator Profile menu.")}
       </div>
     </div>
   );

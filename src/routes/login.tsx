@@ -5,7 +5,6 @@ import {
   KeyRound,
   Mail,
   ShieldCheck,
-  Activity,
   Terminal,
   Loader2,
   ArrowRight,
@@ -145,21 +144,7 @@ function LoginPage() {
                   {t("· ed25519 keypair bound to operator")}
                 </span>
               </li>
-              <li className="flex items-start gap-2">
-                <Activity className="mt-0.5 h-3.5 w-3.5 text-success" />
-                <span>
-                  <span className="font-mono text-foreground">{t("Network status")}</span> ·{" "}
-                  {STELLAR_NETWORK_LABEL} {t("· Settlement Network")}
-                </span>
-              </li>
             </ul>
-          </div>
-
-          <div className="mt-6 flex items-center justify-between border-t border-border pt-4 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-            <span>EnergyPay Clearing · v0.4.2</span>
-            <span className="flex items-center gap-1.5 text-success">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> {t("Network nominal")}
-            </span>
           </div>
         </Card>
 

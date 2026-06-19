@@ -2,7 +2,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Radio, Layers, Gauge, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useSettlementRail } from "@/hooks/useSettlementRail";
-import { IS_MAINNET } from "@/lib/stellar";
 
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 
@@ -16,15 +15,15 @@ export function StellarRailMonitor() {
   const avgFinality = telemetry?.counters?.avg_finality_ms ?? 0;
   const pending = telemetry?.pending_confirmations ?? 0;
 
-  const uptimePct =
-    finalized + failed > 0 ? Math.round((finalized / (finalized + failed)) * 100) : 99;
+  const hasOutcomes = finalized + failed > 0;
+  const uptimePct = hasOutcomes ? Math.round((finalized / (finalized + failed)) * 100) : 0;
 
   return (
     <Card className="border-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Settlement Rails · Stellar Mainnet Test Anchor
+            Settlement Rails · Stellar Mainnet
           </p>
           <h2 className="mt-0.5 font-display text-base font-semibold">
             Blockchain Operational Monitor
@@ -77,25 +76,33 @@ export function StellarRailMonitor() {
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-        <RailBar
-          label="Rail Uptime"
-          value={uptimePct}
-          tone={uptimePct > 95 ? "ok" : "warn"}
-          suffix="%"
-        />
-        <RailBar
-          label="Backend Probe"
-          value={Math.max(0, 100 - Math.min(100, backendMs / 20))}
-          display={`${fmt(backendMs)} ms`}
-          tone={backendMs < 400 ? "ok" : "warn"}
+        {hasOutcomes ? (
+          <RailBar
+            label="Rail Uptime"
+            value={uptimePct}
+            tone={uptimePct > 95 ? "ok" : "warn"}
+            suffix="%"
+          />
+        ) : (
+          <RailStat
+            icon={<Gauge className="h-3.5 w-3.5" />}
+            label="Rail Uptime"
+            value="—"
+            tone="ok"
+          />
+        )}
+        <RailStat
+          icon={<Radio className="h-3.5 w-3.5" />}
+          label="Backend Latency"
+          value={backendMs > 0 ? `${fmt(backendMs)} ms` : "—"}
+          tone={backendMs > 0 && backendMs < 400 ? "ok" : "warn"}
         />
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
         <NodeChip label="horizon-mainnet" status={health?.horizon?.status ?? "ok"} />
         <NodeChip label="settlement-adapter" status={health?.backend?.status ?? "ok"} />
         <NodeChip label="ledger-stream" status={isOffline ? "offline" : "ok"} />
-        <NodeChip label="trustline-monitor" status="ok" />
       </div>
     </Card>
   );
@@ -130,13 +137,11 @@ function RailBar({
   value,
   tone,
   suffix,
-  display,
 }: {
   label: string;
   value: number;
   tone: "ok" | "warn" | "bad";
   suffix?: string;
-  display?: string;
 }) {
   const bar = tone === "ok" ? "bg-success" : tone === "warn" ? "bg-amber-500" : "bg-destructive";
   return (
@@ -145,7 +150,7 @@ function RailBar({
         <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
           {label}
         </p>
-        <p className="font-mono text-[11px]">{display ?? `${Math.round(value)}${suffix ?? ""}`}</p>
+        <p className="font-mono text-[11px]">{`${Math.round(value)}${suffix ?? ""}`}</p>
       </div>
       <div className="relative mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div

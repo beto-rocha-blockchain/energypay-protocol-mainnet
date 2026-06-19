@@ -43,6 +43,12 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
 import { relativeTime } from "@/lib/relative-time";
@@ -921,9 +927,69 @@ function UsersTab({ operatorEmail, operatorRole }: { operatorEmail: string; oper
   );
 }
 
-// ─── Audit Log Tab ────────────────────────────────────────────────────────────
+// ─── Audit Log / Activity Feed (shared table) ────────────────────────────────
 
-function AuditLogTab() {
+const ADMIN_ACTION_LABEL: Record<string, string> = {
+  UPDATE_PROFILE: "Updated profile",
+  RECOVER_PASSWORD: "Reset password",
+  BLOCK_USER: "Blocked user",
+  UNBLOCK_USER: "Unblocked user",
+  SET_EMAIL: "Changed email",
+  SET_PLATFORM_ROLE: "Changed platform role",
+  SET_MARKET_ROLES: "Changed market roles",
+  APPROVE_ROLES: "Approved roles",
+  REJECT_ROLES: "Rejected roles",
+  ADD_RECOVERY_LINK: "Added recovery link",
+  REMOVE_RECOVERY_LINK: "Removed recovery link",
+  DELETE_INACTIVE_ACCOUNT: "Deleted inactive account",
+  PLD_INGEST: "Ingested PLD data",
+};
+
+/** Renders an entry's `details` as a hover tooltip instead of raw truncated JSON. */
+function LogDetails({ details }: { details: Record<string, unknown> }) {
+  const t = useT();
+  const keys = details ? Object.keys(details) : [];
+  if (keys.length === 0) return <span className="text-muted-foreground/40">—</span>;
+
+  const pretty = JSON.stringify(details, null, 2);
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="cursor-default font-mono text-[10px] text-muted-foreground/70 underline decoration-dotted underline-offset-2">
+            {keys.length} {t(keys.length === 1 ? "field" : "fields")}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-md">
+          <pre className="whitespace-pre-wrap break-all font-mono text-[10px] leading-relaxed">{pretty}</pre>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+/**
+ * Shared log table for the Audit Log and Activity Feed tabs. The two tabs differ
+ * only in their data source, copy, and how the actor/action cells render — those
+ * are passed in as props so the table/pagination/loading shell lives in one place.
+ */
+function AdminLogTable({
+  fetchPage,
+  loadErrorMsg,
+  emptyMsg,
+  actorHeader,
+  renderActor,
+  renderAction,
+  headerLeft,
+}: {
+  fetchPage: (params: { page: number; limit: number }) => Promise<{ entries: AuditLogEntry[]; total: number }>;
+  loadErrorMsg: string;
+  emptyMsg: string;
+  actorHeader: string;
+  renderActor: (e: AuditLogEntry) => React.ReactNode;
+  renderAction: (e: AuditLogEntry) => React.ReactNode;
+  headerLeft: (total: number) => React.ReactNode;
+}) {
   const t = useT();
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const [total, setTotal]     = useState(0);
@@ -934,15 +1000,15 @@ function AuditLogTab() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiAdminAuditLog({ page, limit });
+      const res = await fetchPage({ page, limit });
       setEntries(res.entries);
       setTotal(res.total);
     } catch (err) {
-      toast.error((err as Error).message || t("Failed to load audit log."));
+      toast.error((err as Error).message || loadErrorMsg);
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, fetchPage, loadErrorMsg]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -951,7 +1017,7 @@ function AuditLogTab() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-xs text-muted-foreground">{total} {t("entries")}</span>
+        {headerLeft(total)}
         <Button variant="outline" size="sm" onClick={load} className="h-7 w-7 p-0">
           <RefreshCw className="h-3 w-3" />
         </Button>
@@ -962,7 +1028,7 @@ function AuditLogTab() {
           <TableHeader>
             <TableRow className="border-border/50">
               <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("WHEN")}</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("ACTOR")}</TableHead>
+              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{actorHeader}</TableHead>
               <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("ACTION")}</TableHead>
               <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("TARGET")}</TableHead>
               <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("DETAILS")}</TableHead>
@@ -978,20 +1044,14 @@ function AuditLogTab() {
                   </TableRow>
                 ))
               : entries.length === 0
-                ? <TableRow><TableCell colSpan={5} className="py-8 text-center text-xs text-muted-foreground">{t("No audit entries yet.")}</TableCell></TableRow>
+                ? <TableRow><TableCell colSpan={5} className="py-8 text-center text-xs text-muted-foreground">{emptyMsg}</TableCell></TableRow>
                 : entries.map(e => (
                     <TableRow key={e.id} className="border-border/30 hover:bg-muted/30">
                       <TableCell className="font-mono text-[10px] text-muted-foreground whitespace-nowrap">{timeAgo(e.created_at)}</TableCell>
-                      <TableCell className="font-mono text-[10px]">{e.actor?.email ?? "—"}</TableCell>
-                      <TableCell>
-                        <span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] text-primary">
-                          {e.action}
-                        </span>
-                      </TableCell>
+                      <TableCell className="font-mono text-[10px]">{renderActor(e)}</TableCell>
+                      <TableCell>{renderAction(e)}</TableCell>
                       <TableCell className="font-mono text-[10px] text-muted-foreground">{e.target?.email ?? "—"}</TableCell>
-                      <TableCell className="font-mono text-[10px] text-muted-foreground/70 max-w-xs truncate">
-                        {JSON.stringify(e.details)}
-                      </TableCell>
+                      <TableCell><LogDetails details={e.details} /></TableCell>
                     </TableRow>
                   ))
             }
@@ -1014,124 +1074,61 @@ function AuditLogTab() {
   );
 }
 
-// ─── Activity Feed Tab (owner-only — actions by other admins) ─────────────────
+function AuditLogTab() {
+  const t = useT();
+  return (
+    <AdminLogTable
+      fetchPage={apiAdminAuditLog}
+      loadErrorMsg={t("Failed to load audit log.")}
+      emptyMsg={t("No audit entries yet.")}
+      actorHeader={t("ACTOR")}
+      headerLeft={(total) => (
+        <span className="font-mono text-xs text-muted-foreground">{total} {t("entries")}</span>
+      )}
+      renderActor={(e) => e.actor?.email ?? "—"}
+      renderAction={(e) => (
+        <span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] text-primary">
+          {e.action}
+        </span>
+      )}
+    />
+  );
+}
 
-const ADMIN_ACTION_LABEL: Record<string, string> = {
-  UPDATE_PROFILE: "Updated profile",
-  RECOVER_PASSWORD: "Reset password",
-  BLOCK_USER: "Blocked user",
-  UNBLOCK_USER: "Unblocked user",
-  SET_EMAIL: "Changed email",
-  SET_PLATFORM_ROLE: "Changed platform role",
-  SET_MARKET_ROLES: "Changed market roles",
-  APPROVE_ROLES: "Approved roles",
-  REJECT_ROLES: "Rejected roles",
-  ADD_RECOVERY_LINK: "Added recovery link",
-  REMOVE_RECOVERY_LINK: "Removed recovery link",
-  DELETE_INACTIVE_ACCOUNT: "Deleted inactive account",
-  PLD_INGEST: "Ingested PLD data",
-};
+// ─── Activity Feed Tab (owner-only — actions by other admins) ─────────────────
 
 function ActivityFeedTab() {
   const t = useT();
-  const [entries, setEntries] = useState<AuditLogEntry[]>([]);
-  const [total, setTotal]     = useState(0);
-  const [page, setPage]       = useState(1);
-  const [loading, setLoading] = useState(true);
-  const limit = 50;
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await apiAdminActivity({ page, limit });
-      setEntries(res.entries);
-      setTotal(res.total);
-    } catch (err) {
-      toast.error((err as Error).message || t("Failed to load activity feed."));
-    } finally {
-      setLoading(false);
-    }
-  }, [page]);
-
-  useEffect(() => { load(); }, [load]);
-
-  const pages = Math.ceil(total / limit);
-
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+    <AdminLogTable
+      fetchPage={apiAdminActivity}
+      loadErrorMsg={t("Failed to load activity feed.")}
+      emptyMsg={t("No actions by other admins yet.")}
+      actorHeader={t("ADMIN")}
+      headerLeft={(total) => (
         <div className="flex items-center gap-2">
           <Activity className="h-3.5 w-3.5 text-violet-400" />
           <span className="font-mono text-xs text-muted-foreground">
-            {total} action{total === 1 ? "" : "s"} by other admins
+            {total} {t(total === 1 ? "action by other admins" : "actions by other admins")}
           </span>
         </div>
-        <Button variant="outline" size="sm" onClick={load} className="h-7 w-7 p-0">
-          <RefreshCw className="h-3 w-3" />
-        </Button>
-      </div>
-
-      <div className="rounded-md border border-border/50 overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-border/50">
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("WHEN")}</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("ADMIN")}</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("ACTION")}</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("TARGET")}</TableHead>
-              <TableHead className="font-mono text-[10px] tracking-widest text-muted-foreground/70">{t("DETAILS")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading
-              ? Array.from({ length: 6 }).map((_, i) => (
-                  <TableRow key={i} className="border-border/30">
-                    {Array.from({ length: 5 }).map((_, j) => (
-                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              : entries.length === 0
-                ? <TableRow><TableCell colSpan={5} className="py-8 text-center text-xs text-muted-foreground">{t("No actions by other admins yet.")}</TableCell></TableRow>
-                : entries.map(e => (
-                    <TableRow key={e.id} className="border-border/30 hover:bg-muted/30">
-                      <TableCell className="font-mono text-[10px] text-muted-foreground whitespace-nowrap">{timeAgo(e.created_at)}</TableCell>
-                      <TableCell className="font-mono text-[10px]">
-                        <span className="text-foreground">{e.actor?.email ?? "—"}</span>
-                        {e.actor?.platform_role && (
-                          <span className="ml-1.5 rounded bg-muted px-1 py-0.5 text-[9px] text-muted-foreground">
-                            {ROLE_BADGE[e.actor.platform_role]?.label ?? e.actor.platform_role}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="rounded bg-violet-500/10 px-1.5 py-0.5 font-mono text-[10px] text-violet-300">
-                          {t(ADMIN_ACTION_LABEL[e.action] ?? e.action)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-mono text-[10px] text-muted-foreground">{e.target?.email ?? "—"}</TableCell>
-                      <TableCell className="font-mono text-[10px] text-muted-foreground/70 max-w-xs truncate">
-                        {JSON.stringify(e.details)}
-                      </TableCell>
-                    </TableRow>
-                  ))
-            }
-          </TableBody>
-        </Table>
-      </div>
-
-      {pages > 1 && (
-        <div className="flex items-center justify-end gap-2">
-          <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </Button>
-          <span className="font-mono text-xs text-muted-foreground">{page} / {pages}</span>
-          <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setPage(p => Math.min(pages, p + 1))} disabled={page === pages}>
-            <ChevronRight className="h-3.5 w-3.5" />
-          </Button>
-        </div>
       )}
-    </div>
+      renderActor={(e) => (
+        <>
+          <span className="text-foreground">{e.actor?.email ?? "—"}</span>
+          {e.actor?.platform_role && (
+            <span className="ml-1.5 rounded bg-muted px-1 py-0.5 text-[9px] text-muted-foreground">
+              {ROLE_BADGE[e.actor.platform_role]?.label ?? e.actor.platform_role}
+            </span>
+          )}
+        </>
+      )}
+      renderAction={(e) => (
+        <span className="rounded bg-violet-500/10 px-1.5 py-0.5 font-mono text-[10px] text-violet-300">
+          {t(ADMIN_ACTION_LABEL[e.action] ?? e.action)}
+        </span>
+      )}
+    />
   );
 }
 
@@ -1273,7 +1270,7 @@ function AdminPage() {
     { id: "audit",    label: tr("Audit Log"),       icon: ClipboardList },
     { id: "recovery", label: tr("Recovery Links"),  icon: Link2 },
   ];
-  // Owner-only: live feed of every other admin's actions ("Deus" oversight).
+  // Owner-only: live feed of every other admin's actions.
   if (isOwner) TABS.push({ id: "activity", label: tr("Activity Feed"), icon: Activity });
 
   return (

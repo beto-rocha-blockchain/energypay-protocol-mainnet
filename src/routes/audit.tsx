@@ -1,13 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  Activity,
-  CheckCircle2,
   ExternalLink,
-  FileCheck,
   Radio,
   RefreshCw,
   ShieldCheck,
-  XCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,7 +49,7 @@ const timeAgo = (iso: string) => relativeTime(iso);
 
 function AuditPage() {
   const { stats, settlements, horizon, loading, refresh } = useDashboard();
-  const { health, telemetry } = useSettlementRail();
+  const { health } = useSettlementRail();
   const t = useT();
 
   const total = stats?.total_settlements ?? 0;
@@ -63,6 +59,7 @@ function AuditPage() {
   const successRate = total > 0 ? (settled / total) * 100 : 0;
   const horizonLatency = horizon?.latency_ms ?? 0;
   const finalitySlaPct = stats?.finality_sla_pct ?? null;
+  const finalitySamples = stats?.finality_samples ?? 0;
 
   return (
     <div className="space-y-4">
@@ -152,40 +149,23 @@ function AuditPage() {
         />
       </div>
 
-      {/* Compliance Indicators + Telemetry */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-        <Card className="border-border bg-card p-4 lg:col-span-2">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            {t("Compliance Health Indicators")}
-          </p>
-          <div className="mt-3 space-y-3">
-            <HealthBar label={t("Settlement Compliance")} value={successRate} />
-            <HealthBar label={t("Horizon Connectivity")} value={horizon?.horizon_online ? 100 : 0} />
-            <HealthBar label={t("Backend Availability")} value={health?.status === "ok" ? 100 : health?.status === "degraded" ? 50 : 0} />
+      {/* Ledger anchoring status */}
+      <Card className="border-border bg-card p-4">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          {t("Ledger Anchoring Status")}
+        </p>
+        <div className="mt-3 space-y-3">
+          <StatusPill label={t("Horizon Connectivity")} online={!!horizon?.horizon_online} />
+          <StatusPill label={t("Backend Availability")} online={health?.status === "ok"} />
+          {finalitySamples > 0 && (
             <HealthBar label={t("Finality SLA (< 6s)")} value={finalitySlaPct ?? 0} noData={finalitySlaPct === null} />
-          </div>
-        </Card>
-
-        <Card className="border-border bg-card p-4">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            {t("Audit Telemetry")}
-          </p>
-          <div className="mt-3 space-y-2">
-            <TelRow icon={<ShieldCheck className="h-3.5 w-3.5" />} label={t("Compliance rate")} value={total > 0 ? fmtPct(successRate) : "—"} tone={successRate >= 95 ? "ok" : "warn"} />
-            <TelRow icon={<Activity className="h-3.5 w-3.5" />} label={t("Horizon latency")} value={`${horizonLatency} ms`} tone={horizonLatency < 1000 ? "ok" : "warn"} />
-            <TelRow icon={<CheckCircle2 className="h-3.5 w-3.5" />} label={t("Confirmed")} value={String(settled)} tone="ok" />
-            <TelRow icon={<XCircle className="h-3.5 w-3.5" />} label={t("Failed")} value={String(failed)} tone={failed > 0 ? "warn" : "ok"} />
-            <TelRow icon={<FileCheck className="h-3.5 w-3.5" />} label={t("Counterparties")} value={String(stats?.total_users ?? 0)} tone="muted" />
-          </div>
-        </Card>
-      </div>
+          )}
+        </div>
+      </Card>
 
       {/* Immutable Audit Log — Real Settlement Data */}
       <Card className="border-border bg-card p-5">
         <div className="mb-4">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            {t("Immutable Audit Log · Ledger Anchored · Provenance")}
-          </p>
           <p className="font-display text-lg font-semibold">{t("Settlement Audit Trail")}</p>
         </div>
 
@@ -343,25 +323,21 @@ function HealthBar({ label, value, noData }: { label: string; value: number; noD
   );
 }
 
-function TelRow({
-  icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value?: string;
-  tone: "ok" | "warn" | "muted";
-}) {
-  const color = tone === "ok" ? "text-success" : tone === "warn" ? "text-destructive" : "text-foreground";
+function StatusPill({ label, online }: { label: string; online: boolean }) {
+  const t = useT();
   return (
-    <div className="flex items-center justify-between rounded-md border border-border bg-background/40 px-2.5 py-1.5">
-      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        {icon}
-        {label}
+    <div className="flex items-center justify-between">
+      <span className="text-[11px] text-muted-foreground">{label}</span>
+      <span
+        className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest ${
+          online
+            ? "border-success/40 bg-success/10 text-success"
+            : "border-destructive/40 bg-destructive/10 text-destructive"
+        }`}
+      >
+        <span className={`h-1.5 w-1.5 rounded-full ${online ? "bg-success" : "bg-destructive"}`} />
+        {online ? t("ONLINE") : t("OFFLINE")}
       </span>
-      <span className={`font-mono text-[11px] ${color}`}>{value ?? "—"}</span>
     </div>
   );
 }

@@ -14,7 +14,6 @@ import {
   LineChart,
   Plug,
   Factory,
-  Signal,
   Zap,
   ExternalLink,
   ShieldCheck,
@@ -23,7 +22,6 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import {
   useGrid,
@@ -32,7 +30,6 @@ import {
   STATUS_TONE,
   type GridNode,
   type EnergyType,
-  type NodeStatus,
 } from "@/store/grid";
 import { useOperator, maskAddress, ROLE_COLORS, ROLE_META, sortRoles } from "@/store/operator";
 import type { ParticipantRole } from "@/store/operator";
@@ -97,7 +94,6 @@ function GridPage() {
   }, [fetchGrid, operator]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterRole, setFilterRole] = useState<"ALL" | ParticipantRole>("ALL");
-  const [filterStatus, setFilterStatus] = useState<"ALL" | NodeStatus>("ALL");
   const [query, setQuery] = useState("");
   const [mounted, setMounted] = useState(false);
 
@@ -108,7 +104,6 @@ function GridPage() {
     () =>
       nodes.filter((n) => {
         if (filterRole !== "ALL" && !n.roles.includes(filterRole)) return false;
-        if (filterStatus !== "ALL" && n.status !== filterStatus) return false;
         if (
           query &&
           !`${n.organization} ${n.region} ${n.id}`.toLowerCase().includes(query.toLowerCase())
@@ -116,7 +111,7 @@ function GridPage() {
           return false;
         return true;
       }),
-    [nodes, filterRole, filterStatus, query],
+    [nodes, filterRole, query],
   );
 
   const selected = useMemo(
@@ -127,11 +122,8 @@ function GridPage() {
   const stats = useMemo(() => {
     const total = nodes.length;
     const active = nodes.filter((n) => n.status === "ACTIVE").length;
-    const generators = nodes.filter((n) => n.role === "GENERATOR");
-    const capacity = generators.reduce((s, n) => s + n.capacityMW, 0);
-    const degraded = nodes.filter((n) => n.status === "DEGRADED").length;
-    const offline = nodes.filter((n) => n.status === "OFFLINE").length;
-    return { total, active, capacity, degraded, offline, generators: generators.length };
+    const generators = nodes.filter((n) => n.role === "GENERATOR").length;
+    return { total, active, generators };
   }, [nodes]);
 
   const operatorCoords = operator?.coords
@@ -153,10 +145,7 @@ function GridPage() {
         <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-widest">
           <Stat label={t("Nodes")} value={stats.total.toString()} />
           <Stat label={t("Active")} value={stats.active.toString()} tone="success" />
-          <Stat label={t("Degraded")} value={stats.degraded.toString()} tone="warning" />
-          <Stat label={t("Offline")} value={stats.offline.toString()} tone="destructive" />
           <Stat label={t("Generators")} value={stats.generators.toString()} />
-          <Stat label={t("Capacity")} value={`${stats.capacity.toLocaleString()} MW`} tone="success" />
           <Button size="sm" variant="outline" onClick={fetchGrid} disabled={gridLoading} className="h-7 px-2">
             <RefreshCw className={`mr-1.5 h-3 w-3 ${gridLoading ? "animate-spin" : ""}`} />
             <span className="font-mono text-[10px] uppercase tracking-widest">{t("Refresh")}</span>
@@ -177,15 +166,6 @@ function GridPage() {
                 <span className="h-1.5 w-1.5 rounded-full" style={{ background: ROLE_COLORS[r].hex }} />
                 {ROLE_META[r].label}
               </span>
-            </Pill>
-          ))}
-          <Separator orientation="vertical" className="mx-1 h-4 bg-border" />
-          <Pill active={filterStatus === "ALL"} onClick={() => setFilterStatus("ALL")}>
-            {t("All States")}
-          </Pill>
-          {(["ACTIVE", "DEGRADED", "OFFLINE"] as NodeStatus[]).map((s) => (
-            <Pill key={s} active={filterStatus === s} onClick={() => setFilterStatus(s)}>
-              {s}
             </Pill>
           ))}
           <div className="ml-auto w-full md:w-56">
@@ -256,12 +236,6 @@ function GridPage() {
               <span>{t("Stellar Settlement Network · Live Map")}</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
-              {(["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY"] as ParticipantRole[]).map((r) => (
-                <span key={r} className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full" style={{ background: ROLE_COLORS[r].hex }} />
-                  {ROLE_META[r].label}
-                </span>
-              ))}
               <span className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-[#06b6d4]" /> {t("You")}
               </span>
@@ -299,9 +273,6 @@ function GridPage() {
                 <Activity className="h-3 w-3 text-success" /> {t("Live")} · {STELLAR_NETWORK_LABEL}
               </span>
               <span className="hidden md:block">{t("Click a node to inspect · Scroll to zoom")}</span>
-              <span>
-                {filtered.length} {t("of")} {nodes.length} {t("nodes visible")}
-              </span>
             </div>
           </div>
         </Card>
@@ -367,7 +338,7 @@ function GridPage() {
                 <div className="grid grid-cols-2 gap-2 font-mono text-[10px] uppercase tracking-widest">
                   <Mini label={t("Energy Type")} value={ENERGY_LABEL[selected.energyType]} />
                   <Mini label={t("Region")} value={selected.region} />
-                  <Mini label={t("Connectivity")} value={`${selected.connections.length} ${t("peers")}`} />
+                  <Mini label={t("Nearby participants (≤800 km)")} value={`${selected.connections.length} ${t("peers")}`} />
                   <Mini
                     label={t("Location")}
                     value={selected.approximateLocation ? t("≈ City-level") : t("GPS · Exact")}
@@ -410,7 +381,7 @@ function GridPage() {
 
                 <div>
                   <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                    {t("Network Connectivity")}
+                    {t("Nearby participants (≤800 km)")}
                   </div>
                   <div className="mt-1 flex flex-wrap gap-1">
                     {selected.connections.map((cid) => {
@@ -429,19 +400,13 @@ function GridPage() {
                   </div>
                 </div>
 
-                <div className="rounded-md border border-border bg-background/40 p-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <Signal className="h-3 w-3 text-success" /> {t("Settlement Network")}
-                    </span>
-                    <span className="text-success">{STELLAR_NETWORK_LABEL}</span>
-                  </div>
-                  {selected.approximateLocation && (
-                    <div className="mt-1 text-[9px] text-warning/80">
+                {selected.approximateLocation && (
+                  <div className="rounded-md border border-border bg-background/40 p-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    <div className="text-[9px] text-warning/80">
                       {t("⚠ Location is city-level approximate — participant has not provided GPS coordinates.")}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -463,7 +428,6 @@ function GridPage() {
                 <th className="px-3 py-2 text-left">{t("Organization")}</th>
                 <th className="px-3 py-2 text-left">{t("Role")}</th>
                 <th className="px-3 py-2 text-left">{t("Energy")}</th>
-                <th className="px-3 py-2 text-right">{t("Capacity")}</th>
                 <th className="px-3 py-2 text-left">{t("Region")}</th>
                 <th className="px-3 py-2 text-left">{t("Settlement Address")}</th>
                 <th className="px-3 py-2 text-left">{t("Status")}</th>
@@ -498,9 +462,6 @@ function GridPage() {
                     </td>
                     <td className="px-3 py-2 font-mono uppercase tracking-widest text-muted-foreground">
                       {n.energyType}
-                    </td>
-                    <td className="px-3 py-2 text-right font-mono">
-                      {n.role === "GENERATOR" ? `${n.capacityMW.toLocaleString()} MW` : "—"}
                     </td>
                     <td className="px-3 py-2 font-mono text-muted-foreground">{n.region}</td>
                     <td className="px-3 py-2 font-mono text-muted-foreground">

@@ -10,7 +10,6 @@ import {
   Loader2,
   RefreshCw,
   Copy,
-  ExternalLink,
   CheckCheck,
   Coins,
   FileText,
@@ -337,7 +336,7 @@ function SubscriptionPage() {
                   {t("Security & compliance")}
                 </p>
                 <p className="mt-1 text-[11px] text-muted-foreground">
-                  {t("Card and PIX payments are processed by")} <strong className="text-foreground">Asaas</strong> — {t("a Brazilian fintech certified by the Central Bank of Brazil. Card data is tokenized by the gateway and never stored on EnergyPay servers. Crypto payments are verified on-chain on Stellar Mainnet, without exposing secret keys. Every paid charge generates a payment receipt — official NF-e/NFS-e issuance will be available once EnergyPay's tax profile and digital certificate are configured.")}
+                  {t("Card and PIX payments are processed by")} <strong className="text-foreground">Asaas</strong> — {t("a Brazilian fintech certified by the Central Bank of Brazil. Card data is tokenized by the gateway and never stored on EnergyPay servers. Crypto payments are verified on-chain on Stellar Mainnet, without exposing secret keys.")}
                 </p>
               </div>
             </div>
@@ -517,19 +516,21 @@ function CurrentPlanCard({
           </div>
         )}
 
-        <div>
-          <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-            {t("Settlements")}
-          </p>
-          <p className="mt-0.5 font-mono text-xl font-semibold">
-            {meta.settlementsLimit === null
-              ? <span className="text-2xl">∞</span>
-              : meta.settlementsLimit}
-            {meta.settlementsLimit === null && (
-              <span className="ml-1 text-[10px] font-normal text-muted-foreground">{t("unlimited")}</span>
-            )}
-          </p>
-        </div>
+        {s.plan !== "FREE" && (
+          <div>
+            <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+              {t("Settlements")}
+            </p>
+            <p className="mt-0.5 font-mono text-xl font-semibold">
+              {meta.settlementsLimit === null
+                ? <span className="text-2xl">∞</span>
+                : meta.settlementsLimit}
+              {meta.settlementsLimit === null && (
+                <span className="ml-1 text-[10px] font-normal text-muted-foreground">{t("unlimited")}</span>
+              )}
+            </p>
+          </div>
+        )}
       </div>
     </Card>
   );
@@ -678,7 +679,6 @@ function PixPaymentModal({
         setTimeout(onConfirmed, 1500);
       } else {
         setPollCount((c) => c + 1);
-        toast.info(t("Payment not confirmed yet. Try again shortly."));
       }
     } catch {
       toast.error(t("Error checking payment."));

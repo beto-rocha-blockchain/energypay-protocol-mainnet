@@ -1,81 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ShieldCheck, AlertTriangle } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { RequireRole } from "@/components/RequireRole";
-import { useT } from "@/lib/i18n";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/utility/certificates")({
-  component: () => (
-    <RequireRole role="UTILITY">
-      <UtilityCertificatesPage />
-    </RequireRole>
-  ),
+  // Connection Certificates was a backend-less "future module" preview with no
+  // live data. Redirect to the Consumer Registry until the module is real.
+  beforeLoad: () => {
+    throw redirect({ to: "/utility/uc" });
+  },
 });
-
-function UtilityCertificatesPage() {
-  const t = useT();
-  return (
-    <div className="flex flex-1 flex-col gap-6 p-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <ShieldCheck className="h-5 w-5 text-orange-400" />
-        <h1 className="font-mono text-sm uppercase tracking-widest text-orange-400">
-          {t("Connection Certificates — UTL-04")}
-        </h1>
-      </div>
-
-      {/* Future module banner */}
-      <Card className="border-amber-400/40 bg-amber-400/10 p-5">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
-          <div className="flex flex-col gap-1">
-            <p className="font-mono text-sm font-semibold uppercase tracking-widest text-amber-400">
-              {t("FUTURE MODULE")}
-            </p>
-            <p className="font-mono text-xs text-amber-300/80">
-              {t("This module is part of the IoT integration planned for a future phase of EnergyPay.")}
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Architecture preview */}
-      <Card className="border-border bg-background p-6">
-        <p className="mb-4 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          {t("Architecture Preview")}
-        </p>
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-1">
-            <p className="font-mono text-xs text-orange-400">{t("Smart Meter Integration")}</p>
-            <p className="font-mono text-xs text-muted-foreground">
-              {t("On-chain certificates proving physical grid connection, issued when a smart meter reports successful commissioning.")}
-            </p>
-          </div>
-
-          <div className="h-px bg-border" />
-
-          <div className="flex flex-col gap-1">
-            <p className="font-mono text-xs text-orange-400">{t("On-Chain Certificate Registry")}</p>
-            <p className="font-mono text-xs text-muted-foreground">
-              {t("Each connection certificate is anchored to Stellar Mainnet as an immutable proof of grid participation.")}
-            </p>
-          </div>
-
-          <div className="h-px bg-border" />
-
-          <div className="flex flex-col gap-1">
-            <p className="font-mono text-xs text-orange-400">{t("Automated TUSD Trigger")}</p>
-            <p className="font-mono text-xs text-muted-foreground">
-              {t("Smart meter data triggers automatic TUSD settlement when energy delivery is confirmed.")}
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Footer note */}
-      <p className="font-mono text-xs text-muted-foreground/60 text-center">
-        {t("Planned for Sprint 6+ · No IoT or WebAssembly dependencies in current sprint")}
-      </p>
-    </div>
-  );
-}

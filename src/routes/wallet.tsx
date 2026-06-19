@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { WalletBalancesPanel } from "@/components/WalletBalancesPanel";
 import { useOperator } from "@/store/operator";
 import { useWalletActivity } from "@/hooks/useWalletActivity";
-import { stellarExpertTx } from "@/lib/stellar";
+import { stellarExpertAccount } from "@/lib/stellar";
 import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/wallet")({
@@ -89,7 +89,7 @@ function LedgerActivityPanel({ publicKey }: { publicKey: string }) {
           {activity.fetchedAt && (
             <Badge variant="outline" className="border-success/40 text-success">
               <Activity className="mr-1.5 h-3 w-3 animate-pulse" />
-              {t("STREAMING")}
+              {t("LIVE")}
             </Badge>
           )}
           {activity.fetchedAt && (
@@ -97,6 +97,14 @@ function LedgerActivityPanel({ publicKey }: { publicKey: string }) {
               {t("sync")} {new Date(activity.fetchedAt).toUTCString().slice(17, 25)}
             </span>
           )}
+          <a
+            href={stellarExpertAccount(publicKey)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-muted-foreground hover:text-primary"
+          >
+            Stellar Expert <ExternalLink className="h-2.5 w-2.5" />
+          </a>
         </div>
       </div>
 
@@ -121,7 +129,6 @@ function LedgerActivityPanel({ publicKey }: { publicKey: string }) {
                 <th className="px-2 py-2 text-right font-mono text-[9px] uppercase tracking-widest text-muted-foreground">{t("Amount")}</th>
                 <th className="px-2 py-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">{t("Asset")}</th>
                 <th className="px-2 py-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">{t("Result")}</th>
-                <th className="px-2 py-2" />
               </tr>
             </thead>
             <tbody>
@@ -148,16 +155,6 @@ function LedgerActivityPanel({ publicKey }: { publicKey: string }) {
                     >
                       {ev.successful ? t("FINALIZED") : t("FAILED")}
                     </Badge>
-                  </td>
-                  <td className="px-2 py-2 text-right">
-                    <a
-                      href={stellarExpertTx(ev.tx_hash)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 font-mono text-[10px] text-muted-foreground hover:text-primary"
-                    >
-                      Stellar Expert <ExternalLink className="h-2.5 w-2.5" />
-                    </a>
                   </td>
                 </tr>
               ))}

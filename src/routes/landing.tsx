@@ -29,7 +29,6 @@ import {
   Clock,
   Layers,
   Landmark,
-  Terminal,
   Send,
   Code2,
   Wallet,
@@ -278,20 +277,10 @@ function LandingPage() {
                     {STELLAR_NETWORK_LABEL}.
                   </p>
 
-                  <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                    <Link to={PLATFORM_URL} className={PRIMARY_CTA}>
-                      {t("Launch Mainnet Platform")} <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                    <Link to="/register" className={OUTLINE_CTA}>
-                      {t("Provision settlement identity")}
-                    </Link>
-                  </div>
-
-                  <div className="mx-auto mt-10 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-4">
+                  <div className="mx-auto mt-10 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-3">
                     {[
-                      { k: t("Finality"), v: "~5s", s: t("Stellar ledger close") },
-                      { k: t("Network"), v: "PUBLIC", s: "Mainnet · Horizon" },
-                      { k: t("Settlement asset"), v: "EPWR", s: t("Tokenized energy") },
+                      { k: t("Settlement"), v: t("On-chain"), s: t("Deterministic finality") },
+                      { k: t("Reconciliation"), v: t("Automatic"), s: t("Matched to receipts") },
                       { k: t("Audit"), v: "txHash", s: t("Publicly verifiable") },
                     ].map((m) => (
                       <div key={m.k} className="bg-card px-4 py-5">
@@ -391,12 +380,6 @@ function LandingPage() {
                       executes them on {STELLAR_NETWORK_LABEL}, and reconciles automatically against the
                       resulting on-chain receipts — giving every counterparty the same verifiable truth.
                     </p>
-
-                    <div className="mt-7 flex flex-wrap gap-3">
-                      <Link to={PLATFORM_URL} className={PRIMARY_CTA}>
-                        {t("Launch Mainnet Platform")} <ArrowRight className="h-3.5 w-3.5" />
-                      </Link>
-                    </div>
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -437,10 +420,7 @@ function LandingPage() {
                     <FeatureCard icon={Landmark} title={t("Treasury & Rails")} tag="STL-01">
                       {t("Treasury balances, settlement rails and liquidity routing.")}
                     </FeatureCard>
-                    <FeatureCard icon={Terminal} title={t("Settlement Console")} tag="STL-02">
-                      {t("Operate, monitor and reconcile settlement batches in real time.")}
-                    </FeatureCard>
-                    <FeatureCard icon={Code2} title={t("x402 API Access")} tag="STL-04">
+                    <FeatureCard icon={Code2} title={t("x402 API Access")} roadmap>
                       {t("Machine-to-machine payments (x402) for metered, pay-per-call access to market-data and oracle APIs.")}
                     </FeatureCard>
                     <FeatureCard icon={Wallet} title={t("Custody Wallet")} tag="STL-05">
@@ -468,7 +448,7 @@ function LandingPage() {
           <CarouselItem className="pl-0">
             <Slide>
               <section className="bg-card/20">
-                <div className="mx-auto grid max-w-6xl gap-10 px-5 lg:grid-cols-[1.1fr_1fr] lg:items-center">
+                <div className="mx-auto max-w-3xl px-5">
                   <div>
                     <SectionLabel>{t("Stellar Mainnet Integration")}</SectionLabel>
                     <h2 className="mt-2 font-display text-2xl font-semibold md:text-3xl">
@@ -499,30 +479,6 @@ function LandingPage() {
                       ))}
                     </div>
                   </div>
-
-                  {/* Network status panel */}
-                  <Card className="overflow-hidden border-border bg-card/70">
-                    <div className="flex items-center justify-between border-b border-border bg-background/40 px-4 py-2.5">
-                      <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> {t("Settlement Rail · Connected")}
-                      </div>
-                      <span className="font-mono text-[10px] text-success">{t("ONLINE")}</span>
-                    </div>
-                    <div className="space-y-3 p-5">
-                      {[
-                        { k: t("Active network"), v: STELLAR_NETWORK_LABEL },
-                        { k: t("Settlement asset"), v: t("EPWR · tokenized energy receivable") },
-                        { k: t("Network reserve / gas"), v: "XLM" },
-                        { k: t("Machine payments"), v: t("x402 (pay-per-call API)") },
-                        { k: t("Receipt"), v: "txHash + ledger + Stellar Expert" },
-                      ].map((r) => (
-                        <div key={r.k} className="flex items-center justify-between gap-4 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{r.k}</span>
-                          <span className="text-right font-mono text-[11px] text-foreground">{r.v}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
                 </div>
               </section>
             </Slide>
