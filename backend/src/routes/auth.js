@@ -788,17 +788,25 @@ router.post("/reset-password/confirm-phone", async (req, res) => {
 
 router.get("/counterparties", requireAuth, async (req, res) => {
   try {
-    const { data, error } = await supabase
+    // Demo/test accounts are hidden from real users' counterparty directory; they
+    // stay visible only to other demo accounts so live demonstrations keep working.
+    const callerId = req.operator.sub || req.operator.id;
+    const { data: caller } = await supabase
+      .from("users").select("is_demo").eq("id", callerId).single();
+    const callerIsDemo = caller?.is_demo === true;
+
+    let query = supabase
       .from("users")
       .select(
         "id, full_name, email, organization, roles, stellar_public_key, country, city, email_verified, phone_verified, phone",
       )
-      // A participant is visible to counterparties only when BOTH email and
-      // phone are verified (admins can approve either manually).
+      // Visible only when fully verified (email + phone) AND a real, non-demo
+      // participant. Admins can approve verification manually.
       .eq("email_verified", true)
       .eq("phone_verified", true)
-      .not("stellar_public_key", "is", null)
-      .order("full_name", { ascending: true });
+      .not("stellar_public_key", "is", null);
+    if (!callerIsDemo) query = query.eq("is_demo", false);
+    const { data, error } = await query.order("full_name", { ascending: true });
 
     if (error) {
       return res.status(500).json({ success: false, error: error.message });
@@ -1096,9 +1104,10 @@ router.get("/grid-participants", requireAuth, async (req, res) => {
     const { data, error } = await supabase
       .from("users")
       .select("id, full_name, organization, roles, stellar_public_key, country, city, coords, email_verified, phone_verified, has_solar_generation, energy_type, energy_types")
-      // Visible on the grid only when fully verified (email AND phone).
+      // Visible on the grid only when fully verified (email AND phone) and real.
       .eq("email_verified", true)
       .eq("phone_verified", true)
+      .eq("is_demo", false)
       // coords not required — city-level fallback applied below
       .order("full_name", { ascending: true });
 

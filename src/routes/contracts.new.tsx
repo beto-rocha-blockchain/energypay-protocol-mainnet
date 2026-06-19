@@ -654,7 +654,7 @@ function NewContract() {
                         <div className="flex items-center gap-1.5 border-t border-border px-3 py-2">
                           <ShieldCheck className="h-3 w-3 text-success" />
                           <p className="font-mono text-[9px] text-muted-foreground">
-                            {t("Only users with verified e-mail and phone are shown")}
+                            {t("Only real participants with verified e-mail and phone are shown")}
                           </p>
                         </div>
                       </div>

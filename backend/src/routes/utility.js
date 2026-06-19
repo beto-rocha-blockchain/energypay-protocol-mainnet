@@ -25,6 +25,7 @@ router.get("/uc", requireAuth, async (req, res) => {
       )
       .eq("email_verified", true)
       .eq("phone_verified", true)
+      .eq("is_demo", false)
       .or("roles.cs.{USER},roles.cs.{UTILITY}")
       .order("created_at", { ascending: false });
 
@@ -93,6 +94,7 @@ router.get("/participants", requireAuth, async (req, res) => {
       )
       .eq("email_verified", true)
       .eq("phone_verified", true)
+      .eq("is_demo", false)
       .contains("roles", ["UTILITY"])
       .order("full_name", { ascending: true });
 

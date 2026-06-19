@@ -31,6 +31,8 @@ export const PT: Record<string, string> = {
   "Operator email and password are required.": "E-mail e senha do operador são obrigatórios.",
   "Authentication failed": "Falha na autenticação",
   "Invalid email or password.": "E-mail ou senha incorretos.",
+  "Only real participants with verified e-mail and phone are shown":
+    "Apenas participantes reais com e-mail e telefone verificados são exibidos",
   "Register a bilateral energy contract": "Registre um contrato bilateral de energia",
   "Define the counterparties, the volume in MWh, the price and the delivery period. Once every party approves, EnergyPay tokenizes the energy as EPWR and settles it automatically on Stellar — with no manual reconciliation.":
     "Defina as contrapartes, o volume em MWh, o preço e o período de entrega. Assim que todas as partes aprovam, a EnergyPay tokeniza a energia como EPWR e a liquida automaticamente na Stellar — sem conciliação manual.",

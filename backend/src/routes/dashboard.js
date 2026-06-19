@@ -385,9 +385,10 @@ router.get("/counterparty-risk", requireAuth, async (req, res) => {
     const { data: users, error: usersErr } = await supabase
       .from("users")
       .select("id, full_name, organization, roles, stellar_public_key, country, city, email_verified, phone_verified, created_at")
-      // Fully verified participants only — both email and phone confirmed.
+      // Fully verified, real participants only — email + phone confirmed, non-demo.
       .eq("email_verified", true)
       .eq("phone_verified", true)
+      .eq("is_demo", false)
       .order("full_name", { ascending: true });
 
     if (usersErr) throw usersErr;
