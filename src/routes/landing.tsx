@@ -440,9 +440,6 @@ function LandingPage() {
                     <FeatureCard icon={Terminal} title={t("Settlement Console")} tag="STL-02">
                       {t("Operate, monitor and reconcile settlement batches in real time.")}
                     </FeatureCard>
-                    <FeatureCard icon={Send} title={t("Direct Settlement")} tag="STL-03">
-                      {t("Execute bilateral transfers with ~5s Stellar finality.")}
-                    </FeatureCard>
                     <FeatureCard icon={Code2} title={t("x402 API Access")} tag="STL-04">
                       {t("Machine-to-machine payments (x402) for metered, pay-per-call access to market-data and oracle APIs.")}
                     </FeatureCard>

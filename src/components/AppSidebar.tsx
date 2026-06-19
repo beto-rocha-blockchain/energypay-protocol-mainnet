@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   Calculator,
   ListChecks,
-  Send,
   Radio,
   Wallet,
   GitBranch,
@@ -126,14 +125,6 @@ const SETTLEMENT: Item[] = [
     icon: Calculator,
     code: "STL-02",
     roles: ["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY", "REGULATORY_AUTHORITY"],
-  },
-  {
-    title: "Direct Settlement",
-    url: "/p2p",
-    icon: Send,
-    code: "STL-03",
-    // P2P livre — todos os participantes são agentes do mercado livre
-    roles: ["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY"],
   },
   {
     title: "x402 API Access",

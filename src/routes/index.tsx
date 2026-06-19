@@ -218,11 +218,6 @@ function OperationsPage() {
                 {t("Contracts")} <ArrowUpRight className="ml-1 h-3 w-3" />
               </Link>
             </Button>
-            <Button asChild variant="ghost" size="sm" className="text-xs">
-              <Link to="/p2p">
-                {t("Direct Settlement")} <ExternalLink className="ml-1 h-3 w-3" />
-              </Link>
-            </Button>
           </div>
         </div>
 
@@ -458,12 +453,10 @@ const ROLE_CONTEXT = {
     description: "You are a free-market consumer (Mercado Livre) and can purchase energy directly from generators and sellers. Browse the Operational Grid to find available supply, create a buy contract, and settle in EPWR.",
     actions: [
       { label: "Find Energy Sellers", to: "/grid", primary: true },
-      { label: "Direct Settlement", to: "/p2p", primary: false },
       { label: "My Contracts", to: "/contracts", primary: false },
     ],
     tips: [
       "As a free-market consumer you can buy directly from generators — no intermediary needed.",
-      "Direct Settlement (P2P) is open to all platform participants.",
       "Check Oracle & Market Data for the current PLD before negotiating.",
     ],
   },
