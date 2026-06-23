@@ -4,6 +4,7 @@ import {
   ChevronDown,
   LayoutDashboard,
   ListChecks,
+  Send,
   Radio,
   Wallet,
   GitBranch,
@@ -115,6 +116,13 @@ const SETTLEMENT: Item[] = [
     icon: Banknote,
     code: "STL-01",
     roles: ["GENERATOR", "SELLER", "INVESTOR", "UTILITY"],
+  },
+  {
+    title: "Direct Settlement",
+    url: "/p2p",
+    icon: Send,
+    code: "STL-03",
+    roles: ["GENERATOR", "SELLER", "INVESTOR", "USER", "UTILITY"],
   },
   {
     title: "x402 API Access",

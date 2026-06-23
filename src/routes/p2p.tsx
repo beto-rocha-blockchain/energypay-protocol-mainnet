@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Send,
@@ -53,13 +53,6 @@ import { useT } from "@/lib/i18n";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/p2p")({
-  // P2P transfer surface retired: EPWR is a contract-settlement instrument, not a
-  // freely transferable token — keeping it off any secondary market avoids giving it
-  // a market price (and the CVM securities exposure that would follow). Direct access
-  // to this route redirects to the contract registry.
-  beforeLoad: () => {
-    throw redirect({ to: "/contracts" });
-  },
   head: () => ({
     meta: [
       { title: "Direct Settlement — EnergyPay" },

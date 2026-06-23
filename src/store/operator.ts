@@ -232,6 +232,7 @@ export const SUBSCRIPTION_PLAN_META: Record<
       "Active custody wallet",
       "Basic risk metrics",
       "Priority support",
+      "P2P contract access",
     ],
   },
   ENTERPRISE: {
