@@ -336,7 +336,10 @@ router.post("/register", async (req, res) => {
       coords: coords ?? null,
       email_verified: false,
       email_verification_token: emailVerificationToken,
-      phone_verified: false,
+      // Interim: with no OTP provider (Twilio Verify) configured, auto-confirm the
+      // phone at signup so users aren't blocked. Once Verify IS configured this
+      // flips back to false and the OTP flow (send/verify-phone-code) is required.
+      phone_verified: !!phone && !isVerifyConfigured(),
     };
 
     // Try with all optional extras; fall back gracefully if any column doesn't exist yet.
@@ -438,7 +441,7 @@ router.post("/register", async (req, res) => {
         has_solar_generation,
         coords: data[0].coords ?? coords ?? null,
         email_verified: false,
-        phone_verified: false,
+        phone_verified: !!phone && !isVerifyConfigured(),
         funded: stellarFunded,
       },
       provisioning: {
