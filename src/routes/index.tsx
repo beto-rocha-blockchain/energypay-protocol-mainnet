@@ -221,6 +221,11 @@ function OperationsPage() {
                 {t("Contracts")} <ArrowUpRight className="ml-1 h-3 w-3" />
               </Link>
             </Button>
+            <Button asChild variant="ghost" size="sm" className="text-xs">
+              <Link to="/p2p">
+                {t("Direct Settlement")} <ExternalLink className="ml-1 h-3 w-3" />
+              </Link>
+            </Button>
           </div>
         </div>
 

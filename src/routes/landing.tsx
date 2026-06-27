@@ -420,6 +420,9 @@ function LandingPage() {
                     <FeatureCard icon={Landmark} title={t("Treasury & Rails")} tag="STL-01">
                       {t("Treasury balances, settlement rails and liquidity routing.")}
                     </FeatureCard>
+                    <FeatureCard icon={Send} title={t("Direct Settlement")} tag="STL-03">
+                      {t("Peer-to-peer XLM transfers with ~5s Stellar finality.")}
+                    </FeatureCard>
                     <FeatureCard icon={Code2} title={t("x402 API Access")} roadmap>
                       {t("Machine-to-machine payments (x402) for metered, pay-per-call access to market-data and oracle APIs.")}
                     </FeatureCard>
