@@ -171,20 +171,19 @@ useEffect(() => {
     ? t("Enter at least 4 characters.")
     : documentType === "COMPANY" ? t("CNPJ must have 14 digits.") : t("CPF must have 11 digits.");
 
+  // Streamlined sign-up: only what the backend truly requires (name, email,
+  // phone, password, ≥1 role) plus the wallet choice. Organization, location and
+  // tax document are optional — evaluators/new users sign up in seconds.
   const formValid = useMemo(
     () =>
       fullName.trim() &&
       email.trim() &&
       password.length >= 6 &&
-      organization.trim() &&
-      country.trim() &&
-      (!stateRequired || state.trim()) &&
-      city.trim() &&
+      phoneValid &&
       docValid &&
       roles.length > 0 &&
-      phoneValid &&
       linkValid,
-    [fullName, email, password, organization, country, state, stateRequired, city, docValid, roles, phoneValid, linkValid],
+    [fullName, email, password, docValid, roles, phoneValid, linkValid],
   );
 
   // ── Per-field carousel onboarding ──────────────────────────────────────────
@@ -237,7 +236,13 @@ useEffect(() => {
     { key: "review",         title: t("Ready to provision your identity"),     description: t("Review everything below and confirm — we'll mint your identity, bind your ed25519 keypair and register your roles on Stellar. Email confirmation follows."),         valid: Boolean(formValid),         shouldShow: true },
   ];
 
-  const visibleFields = FIELDS.filter((f) => f.shouldShow);
+  // Keep the carousel short: hide the optional slides (organization, location,
+  // tax document) so onboarding is name → email → phone → password → roles →
+  // wallet → review. They remain editable later from the profile.
+  const HIDDEN_ONBOARDING_KEYS = new Set<FieldKey>([
+    "organization", "country", "state", "city", "documentType", "documentNumber",
+  ]);
+  const visibleFields = FIELDS.filter((f) => f.shouldShow && !HIDDEN_ONBOARDING_KEYS.has(f.key));
   const safeStep = Math.min(formStep, visibleFields.length - 1);
   const currentField = visibleFields[safeStep];
 
@@ -960,11 +965,11 @@ useEffect(() => {
                             { label: t("Full Name"),     value: fullName },
                             { label: t("Operator Email"),value: email },
                             { label: t("Phone"),         value: phone },
-                            { label: t("Organization"), value: organization },
-                            { label: t("Country"),      value: country },
+                            organization.trim() && { label: t("Organization"), value: organization },
+                            country.trim() && { label: t("Country"),      value: country },
                             stateRequired && { label: t("State / Province"), value: state },
-                            { label: t("City"),          value: city },
-                            { label: t("Identity Type"),value: documentType === "COMPANY" ? t("Company") : t("Individual") },
+                            city.trim() && { label: t("City"),          value: city },
+                            documentNumber.trim() && { label: t("Identity Type"),value: documentType === "COMPANY" ? t("Company") : t("Individual") },
                             documentNumber.trim() && { label: docLabel.replace(` ${t("(optional)")}`, ""), value: documentNumber },
                             { label: t("Roles"),        value: roles.join(" · ") || "—" },
                             roles.includes("GENERATOR") && { label: t("Generation"), value: energyTypes.join(" · ") || "—" },
