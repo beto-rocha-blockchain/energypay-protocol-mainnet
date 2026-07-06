@@ -969,6 +969,7 @@ function ContractsList() {
                       <KV k={t("Buyer")} v={selected.buyer} />
                       <KV k={t("Seller")} v={selected.seller} />
                       <KV k={t("Volume")} v={`${selected.volumeMWh.toLocaleString("pt-BR")} MWh`} mono />
+                      <KV k={t("Guarantee")} v={`${selected.volumeMWh.toLocaleString("pt-BR")} MWh · ${fmtBRL(selected.volumeMWh * selected.priceBRL)}`} mono highlight />
                       <KV k={t("Contract price")} v={`R$ ${selected.priceBRL.toFixed(2)}`} mono />
                       <KV k={t("PLD reference")} v={`R$ ${selected.pldBRL.toFixed(2)}`} mono />
                       <KV k={t("Settlement window")} v={selected.window} mono />

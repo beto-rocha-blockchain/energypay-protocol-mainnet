@@ -620,6 +620,7 @@ export const PT: Record<string, string> = {
   "Settlement state machine": "Máquina de estados de liquidação",
   "Operational metadata": "Metadados operacionais",
   "Volume": "Volume",
+  "Guarantee": "Garantia",
   "Contract price": "Preço do contrato",
   "PLD reference": "Referência de PLD",
   "Settlement window": "Janela de liquidação",
