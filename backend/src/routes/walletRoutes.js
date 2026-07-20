@@ -12,7 +12,7 @@ import {
   buyEPRW,
   getOrderbook,
 } from "../services/stellarService.js";
-import { requirePlatformRole } from "../middleware/auth.js";
+import { requirePlatformRole, requireOwnWalletOrOwner } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -124,7 +124,7 @@ const classifyHorizonOp = (op, account) => {
   };
 };
 
-router.get("/:publicKey/activity", async (req, res) => {
+router.get("/:publicKey/activity", requireOwnWalletOrOwner, async (req, res) => {
   const startedAt = Date.now();
   const { publicKey } = req.params;
   const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 50);
@@ -187,7 +187,7 @@ router.get("/:publicKey/activity", async (req, res) => {
 // GET ACCOUNT BALANCE
 // =====================================================
 
-router.get("/:publicKey", async (req, res) => {
+router.get("/:publicKey", requireOwnWalletOrOwner, async (req, res) => {
   try {
     const data = await getBalance(req.params.publicKey);
 
@@ -209,7 +209,7 @@ router.get("/:publicKey", async (req, res) => {
 // GET FORMATTED BALANCES (XLM + EPRW)
 // =====================================================
 
-router.get("/:publicKey/balances", async (req, res) => {
+router.get("/:publicKey/balances", requireOwnWalletOrOwner, async (req, res) => {
   const startedAt = Date.now();
 
   try {

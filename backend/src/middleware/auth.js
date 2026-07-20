@@ -79,6 +79,65 @@ export function requirePlatformRole(...allowedRoles) {
 }
 
 /**
+ * Balance-visibility guard for wallet read endpoints (balance / activity).
+ *
+ * Rule: a participant may read ONLY their own wallet. The platform master
+ * (PLATFORM_OWNER) is the single account allowed to look up ANY account's
+ * balance or on-chain activity.
+ *
+ * The own-wallet check uses the signed `publicKey` claim in the JWT (set at
+ * login from users.stellar_public_key) — it cannot be forged without the
+ * signing secret, so the common case (a user polling their own balance) needs
+ * no DB round-trip. Any OTHER key triggers a live role lookup so demotions take
+ * effect without re-login.
+ *
+ * Requires the :publicKey route param. Sets req.operator on success.
+ */
+export async function requireOwnWalletOrOwner(req, res, next) {
+  try {
+    const auth = req.headers.authorization;
+    if (!auth?.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Bearer token required." });
+    }
+
+    const decoded = jwt.verify(auth.replace("Bearer ", ""), process.env.JWT_SECRET);
+    const requestedKey = (req.params.publicKey || "").trim();
+
+    // Fast path — a participant reading their OWN wallet.
+    if (requestedKey && decoded.publicKey && requestedKey === decoded.publicKey) {
+      req.operator = decoded;
+      return next();
+    }
+
+    // Any other account → only the platform master may look it up.
+    const userId = decoded.sub || decoded.id;
+    if (!userId) return res.status(401).json({ error: "Invalid token payload." });
+
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("platform_role")
+      .eq("id", userId)
+      .single();
+
+    if (error || !user) {
+      return res.status(401).json({ error: "User not found." });
+    }
+
+    if ((user.platform_role ?? "USER") !== "PLATFORM_OWNER") {
+      return res.status(403).json({
+        error: "BALANCE_FORBIDDEN",
+        message: "Only the platform owner may view other accounts' balances.",
+      });
+    }
+
+    req.operator = decoded;
+    return next();
+  } catch {
+    return res.status(401).json({ error: "Invalid token." });
+  }
+}
+
+/**
  * Step-up auth guard — for maximum-security actions (card management,
  * fiscal-document downloads, etc.). Requires a short-lived step-up token
  * obtained from POST /api/auth/step-up (account-password re-confirmation).

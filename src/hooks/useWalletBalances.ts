@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { getSession } from "@/lib/session";
 import type { WalletAssetEntry } from "@/routes/api.wallet.$publicKey.balances";
 
 export type { WalletAssetEntry };
@@ -57,9 +58,12 @@ export function useWalletBalances(publicKey: string | null | undefined): WalletB
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     try {
+      const headers: Record<string, string> = { Accept: "application/json" };
+      const token = getSession()?.token;
+      if (token) headers.Authorization = `Bearer ${token}`;
       const res = await fetch(`/api/wallet/${publicKey}/balances`, {
         method: "GET",
-        headers: { Accept: "application/json" },
+        headers,
         signal: ctrl.signal,
       });
       const body = (await res.json().catch(() => null)) as
