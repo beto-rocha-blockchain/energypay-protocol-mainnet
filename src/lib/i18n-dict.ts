@@ -53,7 +53,7 @@ export const PT: Record<string, string> = {
   "Email address": "Endereço de e-mail",
   "Light mode": "Modo claro",
   "Dark mode": "Modo escuro",
-
+  
   // register
   "Tax / Registration ID": "Documento fiscal / de registro",
   "(optional)": "(opcional)",
@@ -270,6 +270,39 @@ export const PT: Record<string, string> = {
   Light: "Claro",
   "Clean light interface — high contrast for daylight and presentation use":
     "Interface clara e limpa — alto contraste para uso à luz do dia e em apresentações",
+
+  // ── Onboarding Fields Carousel
+  "Welcome to EnergyPay": "Bem-vindo ao EnergyPay",
+  "In a few quick steps we'll provision your settlement identity on Stellar Mainnet. Below is everything you need to know before you start — the next slides each ask for one piece of information.": "Em alguns passos rápidos, vamos provisionar sua identidade de liquidação na Stellar Mainnet. Abaixo está tudo o que você precisa saber antes de começar — os próximos slides solicitarão uma informação cada.",
+  "What's your full name?": "Qual é o seu nome completo?",
+  "Your name is the human-readable identity for your operator account. Use the same name that appears on official documents — it's how the network will recognise you.": "Seu nome é a identidade legível por humanos para sua conta de operador. Use o mesmo nome que aparece nos documentos oficiais — é assim que a rede reconhecerá você.",
+  "Your operator email": "Seu e-mail de operador",
+  "This is how you sign in to the platform and where we send the verification link at the end of sign-up. Use an email you check regularly.": "É assim que você entra na plataforma e para onde enviamos o link de verificação ao final do cadastro. Use um e-mail que você verifica regularmente.",
+  "Your phone number": "Seu número de telefone",
+  "Required for two-factor authentication. Include the country code — for example +55 11 99999-9999. We'll never share this number.": "Obrigatório para autenticação de dois fatores. Inclua o código do país — por exemplo, +55 11 99999-9999. Nunca compartilharemos este número.",
+  "Create a password": "Crie uma senha",
+  "Use at least 6 characters. This password protects your settlement identity — pick something only you know.": "Use pelo menos 6 caracteres. Esta senha protege sua identidade de liquidação — escolha algo que apenas você saiba.",
+  "Your organization": "Sua organização",
+  "Tell us the name of the company, generator, distributor or institution you represent. If you're an individual operator, use your own name.": "Informe o nome da empresa, geradora, distribuidora ou instituição que você representa. Se você for um operador individual, use seu próprio nome.",
+  "Where are you based?": "Onde você está sediado?",
+  "Choose your country. The next slides — state and city — will load the available options for the country you pick here.": "Escolha seu país. Os próximos slides — estado e cidade — carregarão as opções disponíveis para o país que você escolher aqui.",
+  "Your state / province": "Seu estado / província",
+  "Select the state or province inside the country you chose. This helps with regional liquidity attribution and regulatory reporting.": "Selecione o estado ou província dentro do país escolhido. Isso ajuda na atribuição de liquidez regional e relatórios regulatórios.",
+  "Your city": "Sua cidade",
+  "Choose your city from the list, or pick \"Other…\" to type it in. This pins your operator on the grid map.": "Escolha sua cidade na lista ou selecione \"Outro…\" para digitá-la. Isso fixa seu operador no mapa da rede.",
+  "Are you an individual or a company?": "Você é pessoa física ou jurídica?",
+  "Pick \"Individual\" if you'll operate as a person (CPF) or \"Company\" if you'll operate as a legal entity (CNPJ).": "Escolha \"Pessoa física\" se for operar como indivíduo (CPF) ou \"Pessoa jurídica\" se for operar como entidade legal (CNPJ).",
+  "Tax / identity document (optional)": "Documento fiscal / de identidade (opcional)",
+  "Add your CPF, CNPJ or local tax/registration ID. This step is optional — you can complete it later from your profile.": "Adicione seu CPF, CNPJ ou ID fiscal/registro local. Esta etapa é opcional — você pode completá-la mais tarde no seu perfil.",
+  "Pick your market roles": "Escolha seus papéis de mercado",
+  "Select every role you want to act as on the platform — Generator, Trader, Investor, Consumer or Utility. Roles define what you can do; you can pick more than one.": "Selecione cada papel que deseja desempenhar na plataforma — Generator, Trader, Investor, Consumer ou Utility. Os papéis definem o que você pode fazer; você pode escolher mais de um.",
+  "Your generation sources": "Suas fontes de geração",
+  "Since you're operating as a Generator, tell us every type of energy you produce. Pick all that apply — solar, wind, hydro, biomass, and so on.": "Como você está operando como Generator, informe todos os tipos de energia que produz. Escolha todos os que se aplicam — solar, eólica, hídrica, biomassa, entre outros.",
+  "Activate your settlement wallet": "Ative sua carteira de liquidação",
+  "Your wallet is the Stellar account that holds EPWR (1 token = 1 MWh) and settles your contracts. Choose Managed if you want EnergyPay to safeguard the keys for you (recommended for first-time users), or Link to use your own existing Stellar wallet.": "Sua carteira é a conta Stellar que armazena EPWR (1 token = 1 MWh) e liquida seus contratos. Escolha Gerenciada se quiser que a EnergyPay proteja as chaves para você (recomendado para novos usuários), ou Vincular para usar sua própria carteira Stellar existente.",
+  "Ready to provision your identity": "Pronto para provisionar sua identidade",
+  "Review everything below and confirm — we'll mint your identity, bind your ed25519 keypair and register your roles on Stellar. Email confirmation follows.": "Revise tudo abaixo e confirme — vamos emitir sua identidade, vincular seu keypair ed25519 e registrar seus papéis na Stellar. A confirmação por e-mail virá em seguida.",
+
 
   // landing
   Roadmap: "Roadmap",
