@@ -1,14 +1,12 @@
 /**
  * seed-admin-accounts.js
  *
- * Creates or promotes the 4 platform admin accounts:
+ * Creates or promotes the platform admin accounts:
  *
  *   energypayepwr@gmail.com      → PLATFORM_OWNER   (Roberto Master)
  *   roberto.blockchainresources  → ACCOUNT_RECOVERY (Roberto Backup — promotes existing)
- *   eduferreira053@gmail.com     → PLATFORM_ADMIN   (Eduardo Master)
- *   contato@edugera.com.br       → ACCOUNT_RECOVERY (Eduardo Backup)
  *
- * Then sets up the full 4-way cross-recovery mesh.
+ * Then sets up the cross-recovery mesh.
  *
  * Run from the repo root:
  *   node --env-file=backend/.env backend/src/migrations/seed-admin-accounts.js
@@ -182,36 +180,15 @@ async function main() {
   });
   if (r2) results.push(r2);
 
-  // 3. Eduardo Master (new account — eduferreira053@gmail.com)
-  const r3 = await upsertAdmin({
-    email:        "eduferreira053@gmail.com",
-    fullName:     "Eduardo Ferreira da Silva",
-    phone:        "+5511960320519",
-    platformRole: "PLATFORM_ADMIN",
-    isNew:        true,
-  });
-  if (r3) results.push(r3);
-
-  // 4. Eduardo Backup (new account — contato@edugera.com.br)
-  const r4 = await upsertAdmin({
-    email:        "contato@edugera.com.br",
-    fullName:     "Eduardo Ferreira da Silva",
-    phone:        "+5511960320519",
-    platformRole: "ACCOUNT_RECOVERY",
-    isNew:        true,
-  });
-  if (r4) results.push(r4);
 
   // ─── Recovery link mesh ────────────────────────────────────────────────────
-  // Every account can be recovered by the other 3.
-  // Matrix: Roberto Master ↔ Roberto Backup ↔ Eduardo Master ↔ Eduardo Backup
+  // Each account can be recovered by the other.
+  // Matrix: Roberto Master ↔ Roberto Backup
   console.log("\n🔗 Setting up recovery link mesh…");
 
   const EMAILS = [
     "energypayepwr@gmail.com",
     "roberto.blockchainresources@gmail.com",
-    "eduferreira053@gmail.com",
-    "contato@edugera.com.br",
   ];
 
   // Fetch PLATFORM_OWNER id to set as creator on all links

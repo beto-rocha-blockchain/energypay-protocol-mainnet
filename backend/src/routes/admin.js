@@ -733,11 +733,7 @@ router.post(
 // Elevated platform roles are restricted to specific accounts (allowlist by email).
 // Enforced here server-side; the UI also hides ineligible options.
 const OWNER_ELIGIBLE_EMAILS = ["energypayepwr@gmail.com", "roberto.blockchainresources@gmail.com"];
-const ADMIN_ELIGIBLE_EMAILS = [
-  ...OWNER_ELIGIBLE_EMAILS,
-  "contato@edugera.com.br",
-  "eduferreira053@gmail.com",
-];
+const ADMIN_ELIGIBLE_EMAILS = [...OWNER_ELIGIBLE_EMAILS];
 const VALID_PLATFORM_ROLES = ["PLATFORM_OWNER", "PLATFORM_ADMIN", "ACCOUNT_RECOVERY", "USER"];
 
 router.post(

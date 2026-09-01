@@ -28,7 +28,7 @@ ALTER TABLE users
   ADD COLUMN IF NOT EXISTS platform_role TEXT NOT NULL DEFAULT 'USER'
     CHECK (platform_role IN (
       'PLATFORM_OWNER',    -- Roberto Master — full platform control
-      'PLATFORM_ADMIN',    -- Eduardo Master — commercial/ops access
+      'PLATFORM_ADMIN',    -- Platform admin — commercial/ops access
       'ACCOUNT_RECOVERY',  -- Backup accounts — can recover assigned accounts
       'USER'               -- Standard market participant (default)
     ));

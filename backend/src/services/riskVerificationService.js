@@ -12,7 +12,7 @@
  * Settlement is blocked ONLY by objective violations (missing/invalid PLD
  * snapshot, supply cap exceeded, invalid contract) enforced in the settlement
  * routes — never here. Real financial collateral (a BRL-stable / USDC escrow)
- * is a future layer, pending product/legal (Eduardo).
+ * is a future layer, pending product/legal.
  */
 
 import { horizon } from "../lib/stellar-network.js";

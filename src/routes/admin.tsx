@@ -324,7 +324,7 @@ function SetPasswordModal({
 
 // Elevated platform roles are restricted by email (mirrors the server-side allowlist).
 const OWNER_ELIGIBLE_EMAILS = ["energypayepwr@gmail.com", "roberto.blockchainresources@gmail.com"];
-const ADMIN_ELIGIBLE_EMAILS = [...OWNER_ELIGIBLE_EMAILS, "contato@edugera.com.br", "eduferreira053@gmail.com"];
+const ADMIN_ELIGIBLE_EMAILS = [...OWNER_ELIGIBLE_EMAILS];
 const eligiblePlatformRoles = (email: string): PlatformRole[] => {
   const e = (email || "").trim().toLowerCase();
   const roles: PlatformRole[] = ["USER"];

@@ -501,10 +501,6 @@ EnergyPay is being developed by:
 Fullstack & Web3 Developer  
 Technical Lead / Builder
 
-**Eduardo Ferreira**  
-Energy Market & Commercial Strategy  
-Market Validation / Business Lead
-
 ---
 
 ## Project Status
