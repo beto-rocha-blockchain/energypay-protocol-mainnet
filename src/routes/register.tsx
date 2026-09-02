@@ -53,7 +53,7 @@ import { BrandBadge, BrandName } from "@/components/BrandLogo";
 import { useUiStore } from "@/store/ui";
 import { toast } from "sonner";
 import { safeErrorMessage } from "@/lib/safe-error";
-import { apiResendVerification, apiSendPhoneCode, apiVerifyPhoneCode, apiUploadIdentityDocument } from "@/lib/api";
+import { apiResendVerification, apiSendPhoneCode, apiVerifyPhoneCode, apiUploadIdentityDocument, type ApiError } from "@/lib/api";
 import { getSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
@@ -305,7 +305,36 @@ useEffect(() => {
       setProvisionError(null);
       setStep("verify-email");
     } catch (err) {
-      const reason = safeErrorMessage(err, t("Settlement Network unreachable."));
+      const apiErr = err as ApiError;
+      const code =
+        apiErr && typeof apiErr.payload === "object" && apiErr.payload
+          ? (apiErr.payload as { code?: string }).code
+          : undefined;
+
+      // Idempotent recovery: the identity already exists. On a weak connection a
+      // previous attempt most likely succeeded but its response was lost — so
+      // route the operator to sign-in (email prefilled) instead of showing a
+      // scary failure. Also correct if they simply already have an account.
+      if (code === "EMAIL_ALREADY_REGISTERED") {
+        try {
+          sessionStorage.setItem("ep:prefill-email", email);
+        } catch {
+          /* private-mode storage may throw — harmless, login still works */
+        }
+        toast.success(t("Your settlement identity is already provisioned — please sign in."));
+        setProvisionError(null);
+        setStep("form");
+        navigate({ to: "/login" });
+        return;
+      }
+
+      // Network drop (no HTTP response) — reached only after the client already
+      // auto-retried a fast failure. Give an actionable message, not the generic
+      // "backend unreachable". Session/state is preserved for a manual resubmit.
+      const reason =
+        apiErr?.status === 0
+          ? t("Your connection dropped during provisioning. Your data is safe — try again once you're back online.")
+          : safeErrorMessage(err, t("Settlement Network unreachable."));
       setProvisionError(reason);
       // Do NOT clear session, do NOT redirect to /login — keep operator on
       // the form with an inline institutional error banner.

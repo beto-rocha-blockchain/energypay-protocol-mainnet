@@ -150,7 +150,14 @@ router.post("/register", async (req, res) => {
       .single();
 
     if (existingUser) {
-      return res.status(400).json({ success: false, error: "email already registered" });
+      // `code` lets the client recover idempotently: a duplicate request from a
+      // dropped connection (the first attempt actually succeeded) is treated as
+      // success and routed to sign-in instead of shown as a failure.
+      return res.status(400).json({
+        success: false,
+        error: "email already registered",
+        code: "EMAIL_ALREADY_REGISTERED",
+      });
     }
 
     // ── Wallet mode resolution ───────────────────────────────────────────────

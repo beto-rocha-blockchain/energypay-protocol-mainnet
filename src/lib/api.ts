@@ -41,10 +41,39 @@ type RequestOptions = {
   signal?: AbortSignal;
   /** Extra headers to merge (e.g. x-step-up-token for maximum-security routes). */
   headers?: Record<string, string>;
+  /** Abort each attempt after this many ms. Unset = no client-side timeout. */
+  timeoutMs?: number;
+  /**
+   * Automatic retries on a NETWORK failure (never on an HTTP status — a status
+   * code is a server decision, and replaying it could double-execute). Default 0.
+   */
+  retries?: number;
+  /** Base backoff between retries in ms, scaled by attempt number. Default 1500. */
+  retryDelayMs?: number;
+  /**
+   * Safety gate for non-idempotent POSTs: only auto-retry a network failure that
+   * occurred within this many ms of starting the attempt. A failure that fast
+   * means the request almost certainly never reached the server, so replaying it
+   * cannot double-execute (e.g. double-fund a wallet). Slower failures and
+   * timeouts are surfaced instead of retried. Unset = retry any network failure.
+   */
+  retryFastFailMs?: number;
 };
 
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 export async function apiRequest<T = unknown>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, auth = true, signal, headers: extraHeaders } = opts;
+  const {
+    method = "GET",
+    body,
+    auth = true,
+    signal,
+    headers: extraHeaders,
+    timeoutMs,
+    retries = 0,
+    retryDelayMs = 1500,
+    retryFastFailMs,
+  } = opts;
   const headers: Record<string, string> = {
     Accept: "application/json",
   };
@@ -57,41 +86,77 @@ export async function apiRequest<T = unknown>(path: string, opts: RequestOptions
 
   if (extraHeaders) Object.assign(headers, extraHeaders);
 
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE_URL}${path}`, {
-      method,
-      headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-      signal,
-    });
-  } catch (err) {
-    throw buildError(
-      0,
-      `Network error reaching backend (${API_BASE_URL}). ${(err as Error).message}`,
-    );
+  const maxAttempts = Math.max(1, retries + 1);
+  let lastNetworkErr: ApiError = buildError(0, `Network error reaching backend (${API_BASE_URL}).`);
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    // Fresh controller per attempt (an aborted one can't be reused). Combines a
+    // per-attempt timeout with any caller-supplied signal.
+    const controller = new AbortController();
+    const onCallerAbort = () => controller.abort();
+    if (signal) {
+      if (signal.aborted) controller.abort();
+      else signal.addEventListener("abort", onCallerAbort, { once: true });
+    }
+    const timer = timeoutMs ? setTimeout(() => controller.abort(), timeoutMs) : undefined;
+    const startedAt = Date.now();
+
+    let res: Response;
+    try {
+      res = await fetch(`${API_BASE_URL}${path}`, {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+    } catch (err) {
+      const elapsed = Date.now() - startedAt;
+      const callerAborted = !!signal?.aborted;
+      lastNetworkErr = buildError(
+        0,
+        callerAborted
+          ? "Request aborted."
+          : `Network error reaching backend (${API_BASE_URL}). ${(err as Error).message}`,
+      );
+      // Never retry a caller-initiated cancel. Otherwise retry only when the
+      // fast-fail gate (if set) is satisfied — a quick failure means the request
+      // never reached the server, so replaying it cannot double-execute.
+      const gateOk = retryFastFailMs === undefined || elapsed < retryFastFailMs;
+      if (!callerAborted && attempt < maxAttempts && gateOk) {
+        await sleep(retryDelayMs * attempt);
+        continue;
+      }
+      throw lastNetworkErr;
+    } finally {
+      if (timer) clearTimeout(timer);
+      if (signal) signal.removeEventListener("abort", onCallerAbort);
+    }
+
+    // An HTTP response arrived. A status code is a server decision — parse and
+    // return/throw it, never retry it here.
+    const ctype = res.headers.get("content-type") || "";
+    const data = ctype.includes("application/json")
+      ? await res.json().catch(() => null)
+      : await res.text().catch(() => null);
+
+    if (!res.ok) {
+      const message =
+        (data &&
+          typeof data === "object" &&
+          "error" in (data as Record<string, unknown>) &&
+          String((data as Record<string, unknown>).error)) ||
+        (data &&
+          typeof data === "object" &&
+          "message" in (data as Record<string, unknown>) &&
+          String((data as Record<string, unknown>).message)) ||
+        `Request failed with ${res.status}`;
+      throw buildError(res.status, message, data);
+    }
+
+    return data as T;
   }
 
-  const ctype = res.headers.get("content-type") || "";
-  const data = ctype.includes("application/json")
-    ? await res.json().catch(() => null)
-    : await res.text().catch(() => null);
-
-  if (!res.ok) {
-    const message =
-      (data &&
-        typeof data === "object" &&
-        "error" in (data as Record<string, unknown>) &&
-        String((data as Record<string, unknown>).error)) ||
-      (data &&
-        typeof data === "object" &&
-        "message" in (data as Record<string, unknown>) &&
-        String((data as Record<string, unknown>).message)) ||
-      `Request failed with ${res.status}`;
-    throw buildError(res.status, message, data);
-  }
-
-  return data as T;
+  throw lastNetworkErr;
 }
 
 /* ------------------------------------------------------------------ */
@@ -196,6 +261,16 @@ export const apiRegister = (payload: RegisterPayload) =>
     method: "POST",
     body: payload,
     auth: false,
+    // Provisioning is heavy (mainnet account creation + funding) and often runs
+    // on flaky event Wi-Fi. Give it a generous ceiling and auto-retry ONCE — but
+    // only when the first attempt failed within retryFastFailMs, i.e. too fast to
+    // have reached the server. That gate guarantees a retry can never double-fund
+    // an account; slower failures/timeouts surface a message and let the operator
+    // resubmit (guarded server-side by the duplicate-email check).
+    timeoutMs: 45_000,
+    retries: 1,
+    retryDelayMs: 2_000,
+    retryFastFailMs: 2_500,
   });
 
 export const apiLogin = (payload: LoginPayload) =>

@@ -65,6 +65,10 @@ export const PT: Record<string, string> = {
   "Identity document upload failed (you can add it later):":
     "Falha no envio do documento de identidade (você pode adicioná-lo depois):",
   "Settlement Network unreachable.": "Rede de Liquidação inacessível.",
+  "Your connection dropped during provisioning. Your data is safe — try again once you're back online.":
+    "Sua conexão caiu durante o provisionamento. Seus dados estão salvos — tente novamente quando estiver online.",
+  "Your settlement identity is already provisioned — please sign in.":
+    "Sua identidade de liquidação já foi provisionada — faça login.",
   "Geolocation unavailable on this device.": "Geolocalização indisponível neste dispositivo.",
   "Operational coordinates bound to identity.": "Coordenadas operacionais vinculadas à identidade.",
   "GPS denied — provide a region manually.": "GPS negado — informe uma região manualmente.",

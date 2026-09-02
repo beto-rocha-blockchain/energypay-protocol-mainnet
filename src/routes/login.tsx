@@ -59,6 +59,20 @@ function LoginPage() {
     }
   }, []);
 
+  // Prefill the email when arriving from an idempotent register recovery — a
+  // duplicate provisioning request whose first attempt had already succeeded.
+  useEffect(() => {
+    try {
+      const prefill = sessionStorage.getItem("ep:prefill-email");
+      if (prefill) {
+        setEmail(prefill);
+        sessionStorage.removeItem("ep:prefill-email");
+      }
+    } catch {
+      /* private-mode storage may throw — ignore */
+    }
+  }, []);
+
   // Auto-start the guided tour on first visit, once a language is chosen so the
   // bubbles match the user's choice (shown once, then on demand).
   useEffect(() => {
